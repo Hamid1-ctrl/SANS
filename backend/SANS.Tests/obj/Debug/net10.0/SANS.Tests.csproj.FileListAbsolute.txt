@@ -112,3 +112,4 @@ C:\Users\HMD\Desktop\SANS\backend\SANS.Tests\obj\Debug\net10.0\refint\SANS.Tests
 C:\Users\HMD\Desktop\SANS\backend\SANS.Tests\obj\Debug\net10.0\SANS.Tests.pdb
 C:\Users\HMD\Desktop\SANS\backend\SANS.Tests\obj\Debug\net10.0\SANS.Tests.genruntimeconfig.cache
 C:\Users\HMD\Desktop\SANS\backend\SANS.Tests\obj\Debug\net10.0\ref\SANS.Tests.dll
+C:\Users\HMD\Desktop\SANS\backend\SANS.Tests\obj\Debug\net10.0\SANS.Tests.sourcelink.json

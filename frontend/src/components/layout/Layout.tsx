@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from './ThemeProvider';
 import { 
@@ -23,13 +23,26 @@ import {
 import { UserRole } from '../../types';
 
 const Layout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   
   // Show / Hide keyboard shortcuts modal helper
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6fb] dark:bg-[#12101a] text-slate-500 font-bold text-xs select-none">
+        Loading SANS Workspace...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   const handleLogout = () => {
     logout();
@@ -176,10 +189,44 @@ const Layout: React.FC = () => {
           {/* Right Header Navigation Controls */}
           <div className="flex items-center gap-6">
             {/* Bell notification */}
-            <button className="relative p-1.5 text-slate-455 dark:text-slate-400 hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer">
-              <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#d946ef] rounded-full"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-1.5 text-slate-455 dark:text-slate-400 hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer"
+              >
+                <Bell size={16} />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#d946ef] rounded-full"></span>
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1a1625] border border-[#ece8f3] dark:border-slate-800/60 rounded-2xl shadow-large p-4 z-50 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inbox Notifications</span>
+                    <button 
+                      onClick={() => setShowNotifications(false)}
+                      className="text-[9px] font-bold text-brand-primary hover:underline cursor-pointer"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto">
+                    {[
+                      { title: 'Notice approved by Faculty', time: '10 mins ago', desc: 'Dr. Jenkins approved Syllabus Update notice.' },
+                      { title: 'New assignment deadline', time: '1 hour ago', desc: 'Software Engineering Assignment 4 published.' },
+                      { title: 'Meeting scheduled', time: '2 hours ago', desc: 'Dean liaison meeting booked for Thursday.' }
+                    ].map((n, idx) => (
+                      <div key={idx} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-xl transition-colors text-left">
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{n.title}</h4>
+                          <span className="text-[8px] text-slate-400 font-bold shrink-0">{n.time}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug mt-0.5">{n.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Theme selector */}
             <button

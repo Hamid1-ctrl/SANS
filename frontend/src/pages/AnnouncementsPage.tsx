@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Plus, Calendar, Edit, Trash2, Paperclip, Send, ChevronDown } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { UserRole } from '../types';
 
 interface Announcement {
   id: number;
@@ -20,8 +22,8 @@ interface Announcement {
     time: string;
   }>;
 }
-
 const AnnouncementsPage: React.FC = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedItemId, setSelectedItemId] = useState<number>(1);
@@ -87,6 +89,48 @@ const AnnouncementsPage: React.FC = () => {
 
   const activeAnnouncement = announcements.find(a => a.id === selectedItemId) || announcements[0];
 
+  const handleCreateAnnouncement = () => {
+    const title = window.prompt("Enter Announcement Title:");
+    if (!title) return;
+    const desc = window.prompt("Enter Announcement Description:");
+    if (!desc) return;
+    
+    const newAnn: Announcement = {
+      id: announcements.length + 1,
+      title: title,
+      desc: desc,
+      category: 'Academic',
+      course: 'General Info',
+      sender: user ? `${user.firstName} ${user.lastName}` : 'System Admin',
+      senderRole: user?.role === UserRole.Lecturer ? 'Lecturer' : 'Class Rep',
+      senderAvatar: user?.firstName?.[0] || 'A',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      unread: true,
+      comments: []
+    };
+    setBulletins([newAnn, ...announcements]);
+    setSelectedItemId(newAnn.id);
+  };
+
+  const handleEditAnnouncement = (id: number) => {
+    const target = announcements.find(a => a.id === id);
+    if (!target) return;
+    const newTitle = window.prompt("Edit Title:", target.title);
+    const newDesc = window.prompt("Edit Description:", target.desc);
+    if (newTitle !== null && newDesc !== null) {
+      setBulletins(announcements.map(a => a.id === id ? { ...a, title: newTitle, desc: newDesc } : a));
+    }
+  };
+
+  const handleDeleteAnnouncement = (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this announcement?")) return;
+    const filtered = announcements.filter(a => a.id !== id);
+    setBulletins(filtered);
+    if (filtered.length > 0) {
+      setSelectedItemId(filtered[0].id);
+    }
+  };
+
   const handlePostComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentInput.trim()) return;
@@ -149,12 +193,18 @@ const AnnouncementsPage: React.FC = () => {
               <option value="academic">Academic</option>
               <option value="facility">Facilities</option>
             </select>
-            <ChevronDown size={12} className="text-slate-505" />
+            <ChevronDown size={12} className="text-slate-500" />
           </div>
           
-          <button className="w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center shadow-md shadow-brand-green/20 hover:scale-[1.03] transition-transform active:scale-[0.97]">
-            <Plus size={16} />
-          </button>
+          {user?.role !== UserRole.Student && (
+            <button 
+              onClick={handleCreateAnnouncement}
+              className="w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center shadow-md shadow-brand-green/20 hover:scale-[1.03] transition-transform active:scale-[0.97] cursor-pointer"
+              title="Post Announcement"
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
 
         {/* List of cards */}
@@ -232,14 +282,24 @@ const AnnouncementsPage: React.FC = () => {
                 </h2>
                 
                 {/* Actions */}
-                <div className="flex items-center gap-1.5 shrink-0 ml-4">
-                  <button className="p-2 border border-[#ece8f3] dark:border-slate-800/40 text-slate-500 hover:text-brand-green hover:bg-slate-50 rounded-xl transition-all animate-none">
-                    <Edit size={14} />
-                  </button>
-                  <button className="p-2 border border-[#ece8f3] dark:border-slate-800/40 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {user?.role !== UserRole.Student && (
+                  <div className="flex items-center gap-1.5 shrink-0 ml-4">
+                    <button 
+                      onClick={() => handleEditAnnouncement(activeAnnouncement.id)}
+                      className="p-2 border border-[#ece8f3] dark:border-slate-800/40 text-slate-500 hover:text-brand-green hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
+                      title="Edit Announcement"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteAnnouncement(activeAnnouncement.id)}
+                      className="p-2 border border-[#ece8f3] dark:border-slate-800/40 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+                      title="Delete Announcement"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 text-xs text-slate-455 dark:text-slate-400 font-semibold">

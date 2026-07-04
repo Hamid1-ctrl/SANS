@@ -17,3 +17,4 @@ C:\Users\HMD\Desktop\SANS\backend\SANS.Infrastructure\obj\Debug\net10.0\refint\S
 C:\Users\HMD\Desktop\SANS\backend\SANS.Infrastructure\obj\Debug\net10.0\SANS.Infrastructure.pdb
 C:\Users\HMD\Desktop\SANS\backend\SANS.Infrastructure\obj\Debug\net10.0\SANS.Infrastructure.genruntimeconfig.cache
 C:\Users\HMD\Desktop\SANS\backend\SANS.Infrastructure\obj\Debug\net10.0\ref\SANS.Infrastructure.dll
+C:\Users\HMD\Desktop\SANS\backend\SANS.Infrastructure\obj\Debug\net10.0\SANS.Infrastructure.sourcelink.json

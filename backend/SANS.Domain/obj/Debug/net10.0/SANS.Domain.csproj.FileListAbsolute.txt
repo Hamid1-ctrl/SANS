@@ -9,3 +9,4 @@ C:\Users\HMD\Desktop\SANS\backend\SANS.Domain\obj\Debug\net10.0\SANS.Domain.dll
 C:\Users\HMD\Desktop\SANS\backend\SANS.Domain\obj\Debug\net10.0\refint\SANS.Domain.dll
 C:\Users\HMD\Desktop\SANS\backend\SANS.Domain\obj\Debug\net10.0\SANS.Domain.pdb
 C:\Users\HMD\Desktop\SANS\backend\SANS.Domain\obj\Debug\net10.0\ref\SANS.Domain.dll
+C:\Users\HMD\Desktop\SANS\backend\SANS.Domain\obj\Debug\net10.0\SANS.Domain.sourcelink.json

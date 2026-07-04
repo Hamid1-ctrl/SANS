@@ -80,7 +80,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (token) {
       refreshUser();
     } else {
-      setMockUser();
+      setUser(null);
+      setIsLoading(false);
     }
   }, []);
 

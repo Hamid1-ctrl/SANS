@@ -189,7 +189,7 @@ const DashboardPage: React.FC = () => {
   // ==========================================
   const [repTab, setRepTab] = useState<'notices' | 'issues'>('issues');
   const [selectedRepId, setSelectedRepId] = useState(401);
-  const [repNotices] = useState([
+  const [repNotices, setRepNotices] = useState([
     { id: 501, title: 'Liaison Committee Meeting with Dean', date: 'Yesterday', desc: 'The representative committee meeting with the Department Dean is scheduled for next Monday at 10:00 AM. We will bring up server outages.', isApproved: true },
     { id: 502, title: 'Proposed Study Group: Algorithms', date: '3 days ago', desc: 'Request sent to Dr. Sarah Jenkins for approval to set up a study group directory on the files tab.', isApproved: false }
   ]);
@@ -249,6 +249,53 @@ const DashboardPage: React.FC = () => {
 
   const handleCloseIssue = () => {
     setRepIssues(prev => prev.map(i => i.id === activeRepIssue.id ? { ...i, status: 'Resolved' } : i));
+  };
+
+  const handleCreateIssue = () => {
+    const title = window.prompt("Enter Student Issue Title:");
+    if (!title) return;
+    const desc = window.prompt("Enter Issue Description:");
+    if (!desc) return;
+    const reporter = window.prompt("Enter Reporter Name:");
+    if (!reporter) return;
+
+    const newIssue = {
+      id: repIssues.length + 401,
+      title: title,
+      reporter: reporter,
+      reporterId: `STU${Math.floor(100000 + Math.random() * 900000)}`,
+      time: 'Just now',
+      status: 'Open' as const,
+      desc: desc,
+      comments: []
+    };
+    setRepIssues([newIssue, ...repIssues]);
+    setSelectedRepId(newIssue.id);
+  };
+
+  const handleCreateRepNotice = () => {
+    const title = window.prompt("Enter Notice Title:");
+    if (!title) return;
+    const desc = window.prompt("Enter Notice Description:");
+    if (!desc) return;
+
+    const newNotice = {
+      id: repNotices.length + 501,
+      title: title,
+      desc: desc,
+      date: 'Today',
+      isApproved: false
+    };
+    setRepNotices(prev => [newNotice, ...prev]);
+    setSelectedRepId(newNotice.id);
+  };
+
+  const handleRepPlusClick = () => {
+    if (repTab === 'issues') {
+      handleCreateIssue();
+    } else {
+      handleCreateRepNotice();
+    }
   };
 
 
@@ -473,7 +520,11 @@ const DashboardPage: React.FC = () => {
           <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Upcoming Deadlines</h4>
           <div className="space-y-3">
             {assignmentsList.map(item => (
-              <div key={item.id} className="flex items-center gap-3 p-3 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-soft">
+              <div 
+                key={item.id} 
+                onClick={() => navigate('/assignments')}
+                className="flex items-center gap-3 p-3 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-soft cursor-pointer hover:border-brand-primary/20 transition-all hover:scale-[1.01]"
+              >
                 <div className="w-8 h-8 rounded-lg bg-brand-primary-light flex items-center justify-center text-brand-primary text-xs shrink-0"><Clock size={14} /></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{item.title}</p>
@@ -707,7 +758,10 @@ const DashboardPage: React.FC = () => {
         <div className="space-y-4 shrink-0">
           <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Upcoming Lectures</h4>
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-soft">
+            <div 
+              onClick={() => navigate('/schedule')}
+              className="flex items-center gap-3 p-3 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-soft cursor-pointer hover:border-brand-primary/20 transition-all hover:scale-[1.01]"
+            >
               <div className="w-8 h-8 rounded-lg bg-brand-primary-light flex items-center justify-center text-brand-primary text-xs shrink-0"><Clock size={14} /></div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">CS-401 Lecture Slot</p>
@@ -758,7 +812,11 @@ const DashboardPage: React.FC = () => {
 
         <div className="flex items-center justify-between mb-4 px-1">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Class Liaison</span>
-          <button className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-premium hover:scale-[1.03] transition-transform">
+          <button 
+            onClick={handleRepPlusClick}
+            className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-premium hover:scale-[1.03] transition-transform cursor-pointer"
+            title="Create New Entry"
+          >
             <Plus size={16} />
           </button>
         </div>
@@ -947,7 +1005,10 @@ const DashboardPage: React.FC = () => {
         <div className="space-y-4 shrink-0">
           <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Liaison Schedule</h4>
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-soft">
+            <div 
+              onClick={() => navigate('/meetings')}
+              className="flex items-center gap-3 p-3 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-soft cursor-pointer hover:border-brand-primary/20 transition-all hover:scale-[1.01]"
+            >
               <div className="w-8 h-8 rounded-lg bg-brand-primary-light flex items-center justify-center text-brand-primary text-xs shrink-0"><Clock size={14} /></div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Dean Meeting Liaison</p>
