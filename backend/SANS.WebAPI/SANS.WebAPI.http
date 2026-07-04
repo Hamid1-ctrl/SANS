@@ -1,0 +1,6 @@
+@SANS.WebAPI_HostAddress = http://localhost:5018
+
+GET {{SANS.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

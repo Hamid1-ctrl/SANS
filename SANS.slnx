@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/SANS.Domain/SANS.Domain.csproj" />
+    <Project Path="backend/SANS.Application/SANS.Application.csproj" />
+    <Project Path="backend/SANS.Infrastructure/SANS.Infrastructure.csproj" />
+    <Project Path="backend/SANS.WebAPI/SANS.WebAPI.csproj" />
+    <Project Path="backend/SANS.Tests/SANS.Tests.csproj" />
+  </Folder>
+</Solution>

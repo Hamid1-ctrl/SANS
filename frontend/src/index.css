@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+
+  /* Custom design token extensions mapped to theme variables */
+  --color-brand-primary: var(--color-primary);
+  --color-brand-primary-light: var(--color-primary-light);
+  --color-brand-primary-medium: var(--color-primary-medium);
+  --shadow-premium: var(--shadow-glow);
+
+  --color-brand-green: #1e7a34;
+  --color-brand-green-light: #f0f7f2;
+  --color-brand-green-medium: #3ea556;
+  
+  --color-brand-plum: #581c87;
+  --color-brand-lavender: #f1edf7;
+  
+  --color-page-bg: #f7f6fb;
+  --color-card-bg: #ffffff;
+  
+  --color-text-dark: #1e1b29;
+  --color-text-muted: #736d88;
+  --color-border-light: #ece8f3;
+
+  --shadow-soft: 0 4px 20px rgba(30, 122, 52, 0.015);
+  --shadow-medium: 0 8px 30px rgba(30, 122, 52, 0.03);
+  --shadow-large: 0 16px 40px rgba(30, 122, 52, 0.05);
+
+  --backdrop-blur-xs: 2px;
+}
+
+@layer base {
+  :root {
+    /* Student Theme (Darker Green) default */
+    --color-primary: #1e7a34;
+    --color-primary-light: #f0f7f2;
+    --color-primary-medium: #3ea556;
+    --shadow-glow: 0 12px 35px -8px rgba(30, 122, 52, 0.12);
+  }
+
+  .theme-student {
+    --color-primary: #1e7a34;
+    --color-primary-light: #f0f7f2;
+    --color-primary-medium: #3ea556;
+    --shadow-glow: 0 12px 35px -8px rgba(30, 122, 52, 0.12);
+  }
+
+  .theme-lecturer {
+    --color-primary: #5243d6; /* Royal Iris */
+    --color-primary-light: #f2f0fc;
+    --color-primary-medium: #8378f5;
+    --shadow-glow: 0 12px 35px -8px rgba(82, 67, 214, 0.15);
+  }
+
+  .theme-rep {
+    --color-primary: #d97706; /* Warm Amber */
+    --color-primary-light: #fef7ec;
+    --color-primary-medium: #f59e0b;
+    --shadow-glow: 0 12px 35px -8px rgba(217, 119, 6, 0.15);
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--color-page-bg);
+    color: var(--color-text-dark);
+    @apply antialiased selection:bg-brand-primary/25 selection:text-brand-primary;
+  }
+  
+  /* Styled scrollbars for high fidelity scroll panes */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #e2dde9;
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #c9c3d4;
+  }
+}
+
+@layer utilities {
+  .glass-light {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  .card-premium {
+    background-color: var(--color-card-bg);
+    border: 1px solid var(--color-border-light);
+    border-radius: 2rem;
+    box-shadow: var(--shadow-soft);
+    @apply hover:shadow-medium transition-all duration-300;
+  }
+  
+  .segment-pill {
+    background-color: #f1edf7;
+    border-radius: 1rem;
+    padding: 0.25rem;
+  }
+}

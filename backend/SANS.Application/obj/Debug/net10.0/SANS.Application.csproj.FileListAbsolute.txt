@@ -1,0 +1,15 @@
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\bin\Debug\net10.0\SANS.Application.deps.json
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\bin\Debug\net10.0\SANS.Application.dll
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\bin\Debug\net10.0\SANS.Application.pdb
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\bin\Debug\net10.0\SANS.Domain.dll
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\bin\Debug\net10.0\SANS.Domain.pdb
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\SANS.Application.csproj.AssemblyReference.cache
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\SANS.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\SANS.Application.AssemblyInfoInputs.cache
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\SANS.Application.AssemblyInfo.cs
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\SANS.Application.csproj.CoreCompileInputs.cache
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\SANS.App.F6CB79F2.Up2Date
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\SANS.Application.dll
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\refint\SANS.Application.dll
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\SANS.Application.pdb
+C:\Users\HMD\Desktop\SANS\backend\SANS.Application\obj\Debug\net10.0\ref\SANS.Application.dll
