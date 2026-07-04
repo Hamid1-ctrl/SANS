@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Download, Folder, SlidersHorizontal, ChevronRight } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { UserRole } from '../types';
 
 interface Resource {
   id: number;
@@ -14,6 +16,8 @@ interface Resource {
 }
 
 const ResourcesPage: React.FC = () => {
+  const { user } = useAuth();
+  const isStudent = user?.role === UserRole.Student;
   const [selectedFolder, setSelectedFolder] = useState('all');
 
   const resources: Resource[] = [
@@ -98,10 +102,12 @@ const ResourcesPage: React.FC = () => {
           </p>
         </div>
 
-        <button className="flex items-center gap-2 bg-brand-green text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-brand-green/25 hover:bg-brand-green/95 transition-all">
-          <Plus size={16} />
-          <span>Upload File</span>
-        </button>
+        {!isStudent && (
+          <button className="flex items-center gap-2 bg-brand-green text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-brand-green/25 hover:bg-brand-green/95 transition-all">
+            <Plus size={16} />
+            <span>Upload File</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -178,21 +184,23 @@ const ResourcesPage: React.FC = () => {
 
         {/* PANEL 2: Right upload dropzone info widget Column */}
         <aside className="space-y-6">
-          <div className="bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-[2rem] shadow-soft p-6 space-y-4">
-            <h3 className="font-extrabold text-slate-850 dark:text-slate-100 text-sm flex items-center gap-2">
-              <Folder size={16} className="text-brand-green" />
-              <span>Dropzone Upload</span>
-            </h3>
+          {!isStudent && (
+            <div className="bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-[2rem] shadow-soft p-6 space-y-4">
+              <h3 className="font-extrabold text-slate-850 dark:text-slate-100 text-sm flex items-center gap-2">
+                <Folder size={16} className="text-brand-green" />
+                <span>Dropzone Upload</span>
+              </h3>
 
-            {/* Dotted border drag area */}
-            <div className="border-2 border-dashed border-[#ece8f3] dark:border-slate-800/50 rounded-2xl p-6 text-center hover:border-brand-green transition-colors cursor-pointer">
-              <div className="w-10 h-10 rounded-full bg-[#f1edf7] dark:bg-slate-850 flex items-center justify-center text-brand-green mx-auto mb-3">
-                <Plus size={18} />
+              {/* Dotted border drag area */}
+              <div className="border-2 border-dashed border-[#ece8f3] dark:border-slate-800/50 rounded-2xl p-6 text-center hover:border-brand-green transition-colors cursor-pointer">
+                <div className="w-10 h-10 rounded-full bg-[#f1edf7] dark:bg-slate-850 flex items-center justify-center text-brand-green mx-auto mb-3">
+                  <Plus size={18} />
+                </div>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Drag files here</p>
+                <p className="text-[10px] text-slate-400 mt-1">Maximum upload size: 25MB</p>
               </div>
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Drag files here</p>
-              <p className="text-[10px] text-slate-400 mt-1">Maximum upload size: 25MB</p>
             </div>
-          </div>
+          )}
 
           {/* Quick links widget list */}
           <div className="bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-[2rem] shadow-soft p-6">

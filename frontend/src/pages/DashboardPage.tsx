@@ -475,13 +475,17 @@ const DashboardPage: React.FC = () => {
       <aside className="w-80 bg-transparent border-l border-[#ece8f3] dark:border-slate-800/40 p-6 flex flex-col gap-6 shrink-0 h-full overflow-y-auto">
         <div className="flex flex-col items-center text-center">
           <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-2xl font-black border-4 border-white dark:border-slate-850 shadow-md">
-              JD
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-2xl font-black border-4 border-white dark:border-slate-850 shadow-md select-none">
+              {(user?.firstName?.[0] || 'J')}{(user?.lastName?.[0] || 'D')}
             </div>
             <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-4 border-white dark:border-slate-850"></span>
           </div>
-          <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base mt-3">John Doe</h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Student • ID 102435</p>
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base mt-3">
+            {user?.firstName || 'John'} {user?.lastName || 'Doe'}
+          </h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Student • ID {user?.studentId || '102435'}
+          </p>
         </div>
 
         {/* Attendance summary */}
@@ -489,6 +493,23 @@ const DashboardPage: React.FC = () => {
           <div className="border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl p-4 text-center bg-white dark:bg-[#191624] shadow-soft">
             <p className="text-[9px] font-bold text-slate-400 uppercase">Attendance</p>
             <p className="text-base font-black text-slate-750 dark:text-slate-200 mt-1">94.2%</p>
+          </div>
+        </div>
+
+        {/* Term Credit Load */}
+        <div className="bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-[1.5rem] p-5 shadow-soft shrink-0 space-y-3">
+          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <BookOpen size={12} className="text-brand-primary" />
+            <span>Term Progress</span>
+          </h4>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs font-bold">
+              <span className="text-slate-500">Degree Credits</span>
+              <span className="text-brand-primary">18 / 20 Credits</span>
+            </div>
+            <div className="w-full bg-[#f1edf7] rounded-full h-1.5">
+              <div className="bg-brand-primary h-1.5 rounded-full" style={{ width: '90%' }}></div>
+            </div>
           </div>
         </div>
 
@@ -737,11 +758,18 @@ const DashboardPage: React.FC = () => {
       {/* Panel 3: Right Profile Panel */}
       <aside className="w-80 bg-transparent border-l border-[#ece8f3] dark:border-slate-800/40 p-6 flex flex-col gap-6 shrink-0 h-full overflow-y-auto">
         <div className="flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-2xl font-black border-4 border-white dark:border-slate-850 shadow-md">
-            SJ
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-2xl font-black border-4 border-white dark:border-slate-850 shadow-md select-none">
+              {(user?.firstName?.[0] || 'S')}{(user?.lastName?.[0] || 'J')}
+            </div>
+            <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-4 border-white dark:border-slate-850"></span>
           </div>
-          <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base mt-3">Dr. Sarah Jenkins</h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Faculty Lecturer • ID LECT402</p>
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base mt-3">
+            {user?.firstName || 'Dr. Sarah'} {user?.lastName || 'Jenkins'}
+          </h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Faculty Lecturer • ID {user?.studentId || 'LECT402'}
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 shrink-0">
@@ -752,6 +780,28 @@ const DashboardPage: React.FC = () => {
           <div className="border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl p-4 text-center bg-white dark:bg-[#191624] shadow-soft">
             <p className="text-[9px] font-bold text-slate-400 uppercase">Total Students</p>
             <p className="text-base font-black text-slate-755 mt-1">102</p>
+          </div>
+        </div>
+
+        {/* Active Quizzes Status */}
+        <div className="space-y-4 shrink-0">
+          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Quiz Submissions</h4>
+          <div className="space-y-3">
+            {[
+              { title: 'Algorithms Quiz #1', submitted: 42, total: 48, pct: 87 },
+              { title: 'Database Quiz #2', submitted: 54, total: 54, pct: 100 }
+            ].map((quiz, idx) => (
+              <div key={idx} className="p-3.5 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-soft space-y-2">
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{quiz.title}</span>
+                  <span className="text-[9px] text-[#5243d6] font-extrabold">{quiz.pct}%</span>
+                </div>
+                <div className="w-full bg-[#f1edf7] rounded-full h-1">
+                  <div className="bg-[#5243d6] h-1 rounded-full" style={{ width: `${quiz.pct}%` }}></div>
+                </div>
+                <div className="text-[8px] text-slate-400 font-bold uppercase">{quiz.submitted} / {quiz.total} Students Submitted</div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -982,11 +1032,15 @@ const DashboardPage: React.FC = () => {
       {/* Panel 3: Right liaison details */}
       <aside className="w-80 bg-transparent border-l border-[#ece8f3] dark:border-slate-800/40 p-6 flex flex-col gap-6 shrink-0 h-full overflow-y-auto">
         <div className="flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-2xl font-black border-4 border-white dark:border-slate-850 shadow-md">
-            CR
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-2xl font-black border-4 border-white dark:border-slate-850 shadow-md select-none">
+            {(user?.firstName?.[0] || 'A')}{(user?.lastName?.[0] || 'D')}
           </div>
-          <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base mt-3">Arthur Dent</h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Class Representative • ID REP102435</p>
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base mt-3">
+            {user?.firstName || 'Arthur'} {user?.lastName || 'Dent'}
+          </h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Class Representative • ID {user?.studentId || 'REP102435'}
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 shrink-0">
@@ -999,6 +1053,23 @@ const DashboardPage: React.FC = () => {
             <p className="text-base font-black text-slate-755 mt-1">
               {repIssues.filter(i => i.status !== 'Resolved').length}
             </p>
+          </div>
+        </div>
+
+        {/* Student Support Resolution Rate */}
+        <div className="bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-[1.5rem] p-5 shadow-soft shrink-0 space-y-3">
+          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <CheckCircle size={12} className="text-brand-primary" />
+            <span>Ticket Resolution Rate</span>
+          </h4>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs font-bold">
+              <span className="text-slate-500">Weekly Target</span>
+              <span className="text-brand-primary">92% Resolved</span>
+            </div>
+            <div className="w-full bg-[#f1edf7] rounded-full h-1.5">
+              <div className="bg-brand-primary h-1.5 rounded-full" style={{ width: '92%' }}></div>
+            </div>
           </div>
         </div>
 

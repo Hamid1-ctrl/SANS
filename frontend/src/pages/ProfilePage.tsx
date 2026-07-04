@@ -61,10 +61,12 @@ const ProfilePage: React.FC = () => {
             </p>
           </div>
 
-          <div className="w-full border-t border-slate-105 dark:border-slate-850 mt-6 pt-6 text-center">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Attendance</p>
-            <p className="text-lg font-black text-slate-750 dark:text-slate-300 mt-0.5">94.2%</p>
-          </div>
+          {user?.role !== 1 && (
+            <div className="w-full border-t border-slate-105 dark:border-slate-850 mt-6 pt-6 text-center">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Attendance</p>
+              <p className="text-lg font-black text-slate-750 dark:text-slate-300 mt-0.5">94.2%</p>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Account Details Fields */}
