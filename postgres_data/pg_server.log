@@ -1,0 +1,11 @@
+2026-07-04 18:21:14.839 GMT [12608] LOG:  starting PostgreSQL 17.10 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit
+2026-07-04 18:21:14.867 GMT [12608] LOG:  could not bind IPv6 address "::1": Permission denied
+2026-07-04 18:21:14.867 GMT [12608] LOG:  could not bind IPv4 address "127.0.0.1": Permission denied
+2026-07-04 18:21:14.868 GMT [12608] WARNING:  could not create listen socket for "localhost"
+2026-07-04 18:21:14.868 GMT [12608] FATAL:  could not create any TCP/IP sockets
+2026-07-04 18:21:14.893 GMT [12608] LOG:  database system is shut down
+2026-07-04 19:21:13.521 GMT [13400] LOG:  starting PostgreSQL 17.10 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit
+2026-07-04 19:21:13.542 GMT [13400] LOG:  listening on IPv6 address "::1", port 5433
+2026-07-04 19:21:13.543 GMT [13400] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2026-07-04 19:21:13.779 GMT [9868] LOG:  database system was shut down at 2026-07-04 18:20:55 GMT
+2026-07-04 19:21:13.884 GMT [13400] LOG:  database system is ready to accept connections

@@ -34,7 +34,7 @@ const Layout: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6fb] dark:bg-[#12101a] text-slate-500 font-bold text-xs select-none">
+      <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6fb] dark:bg-[#0F172A] text-slate-500 font-bold text-xs select-none">
         Loading SANS Workspace...
       </div>
     );
@@ -111,10 +111,10 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className={`h-screen overflow-hidden bg-[#f7f6fb] dark:bg-[#12101a] font-sans transition-colors duration-300 flex ${getThemeClass()}`}>
+    <div className={`h-screen overflow-hidden bg-[#f7f6fb] dark:bg-[#0F172A] font-sans transition-colors duration-300 flex ${getThemeClass()} ${theme === 'dark' ? 'dark' : ''}`}>
       
       {/* Sidebar: Fixed, custom-styled layout that adjusts dynamically based on the role */}
-      <aside className="w-24 h-full bg-white dark:bg-[#191624] border-r border-[#ece8f3] dark:border-slate-800/40 flex flex-col items-center py-4 shrink-0 relative z-50 overflow-y-auto">
+      <aside className="w-24 h-full bg-white dark:bg-[#1E293B] border-r border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] flex flex-col items-center py-4 shrink-0 relative z-50 overflow-y-auto">
         
         {/* Brand logo circular icon container */}
         <div className="mb-4">
@@ -135,21 +135,35 @@ const Layout: React.FC = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex flex-col items-center justify-center py-1.5 relative group transition-all duration-200 ${
-                  isActive
-                    ? 'text-brand-primary font-bold'
-                    : 'text-slate-455 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-350'
-                }`}
+                className="w-full flex flex-col items-center justify-center py-2 relative group transition-all duration-200 select-none cursor-pointer"
               >
                 {/* Active Indicator Bar on the Right Edge using dynamic brand colors */}
                 {isActive && (
-                  <span className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-7 bg-brand-primary rounded-l-md" />
+                  <span className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-7 bg-brand-primary rounded-l-md animate-pulse" />
                 )}
 
-                <div className={`p-1.5 rounded-xl transition-all duration-200 ${isActive ? 'bg-brand-primary-light text-brand-primary' : 'group-hover:bg-[#f8f7fa] dark:group-hover:bg-slate-800/20'}`}>
-                  <Icon size={18} className={isActive ? 'scale-105' : 'group-hover:scale-105'} />
+                {/* Icon Box carrying the rotating lightning border */}
+                <div className="relative p-[1.5px] rounded-xl overflow-hidden flex items-center justify-center shrink-0">
+                  {/* Rotating lightning border line */}
+                  <div className={`absolute inset-[-1000%] bg-[conic-gradient(from_0deg,transparent_20%,#3ea556_40%,#1e7a34_60%,transparent_80%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100 ${
+                    isActive ? 'opacity-100 animate-[spin_3s_linear_infinite]' : 'group-hover:animate-[spin_4s_linear_infinite]'
+                  }`} />
+                  
+                  {/* Inner Icon Box content */}
+                  <div className={`relative p-2 rounded-[10px] transition-all duration-200 flex items-center justify-center ${
+                    isActive 
+                      ? 'bg-white dark:bg-[#1F2937] text-brand-primary' 
+                      : 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-[#94A3B8] group-hover:text-brand-primary'
+                  }`}>
+                    <Icon size={18} className={isActive ? 'scale-105' : 'group-hover:scale-105'} />
+                  </div>
                 </div>
-                <span className="text-[9px] font-bold tracking-tight mt-0.5 opacity-90 select-none">
+
+                <span className={`text-[10px] font-extrabold tracking-tight mt-1 select-none transition-colors ${
+                  isActive 
+                    ? 'text-brand-primary' 
+                    : 'text-slate-600 dark:text-[#CBD5E1] group-hover:text-slate-800 dark:group-hover:text-[#F8FAFC]'
+                }`}>
                   {item.label}
                 </span>
               </button>
@@ -158,14 +172,14 @@ const Layout: React.FC = () => {
         </nav>
 
         {/* Sidebar Footer Logout Button */}
-        <div className="w-full px-2 border-t border-slate-100 dark:border-slate-800/40 pt-2 shrink-0">
+        <div className="w-full px-2 border-t border-slate-100 dark:border-[rgba(255,255,255,0.18)] pt-2 shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex flex-col items-center justify-center text-slate-455 hover:text-red-500 transition-colors py-1.5 cursor-pointer"
+            className="w-full flex flex-col items-center justify-center text-slate-500 dark:text-[#CBD5E1] hover:text-red-500 dark:hover:text-red-400 transition-colors py-2 cursor-pointer group"
             title="Log Out Account"
           >
-            <LogOut size={15} />
-            <span className="text-[8px] font-bold mt-0.5">Logout</span>
+            <LogOut size={16} className="text-slate-500 dark:text-[#94A3B8] group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors" />
+            <span className="text-[10px] font-extrabold mt-1">Logout</span>
           </button>
         </div>
       </aside>
@@ -173,14 +187,14 @@ const Layout: React.FC = () => {
       {/* Main Content Pane */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Header - transparent & fixed (will never scroll) */}
-        <header className="h-16 px-8 flex items-center justify-between z-40 bg-[#f7f6fb]/80 dark:bg-[#12101a]/80 backdrop-blur-md select-none border-b border-[#ece8f3]/35 dark:border-slate-800/20 shrink-0">
+        <header className="h-16 px-8 flex items-center justify-between z-40 bg-[#f7f6fb]/80 dark:bg-[#0F172A]/80 backdrop-blur-md select-none border-b border-[#ece8f3]/35 dark:border-[rgba(255,255,255,0.18)]/20 shrink-0">
           
           {/* Breadcrumb Navigation Trail */}
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 dark:text-slate-500">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 dark:text-[#94A3B8]">
             <span>SANS</span>
             <span>/</span>
             {getBreadcrumbs().map((b, i, arr) => (
-              <span key={i} className={i === arr.length - 1 ? 'text-slate-800 dark:text-slate-200 font-extrabold' : ''}>
+              <span key={i} className={i === arr.length - 1 ? 'text-slate-800 dark:text-[#CBD5E1] font-extrabold' : ''}>
                 {b}
               </span>
             ))}
@@ -192,15 +206,15 @@ const Layout: React.FC = () => {
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-1.5 text-slate-455 dark:text-slate-400 hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer"
+                className="relative p-1.5 text-slate-455 dark:text-[#94A3B8] hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer"
               >
                 <Bell size={16} />
                 <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#d946ef] rounded-full"></span>
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1a1625] border border-[#ece8f3] dark:border-slate-800/60 rounded-2xl shadow-large p-4 z-50 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#273449] border border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] rounded-2xl shadow-large p-4 z-50 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-[rgba(255,255,255,0.18)] pb-2">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inbox Notifications</span>
                     <button 
                       onClick={() => setShowNotifications(false)}
@@ -217,10 +231,10 @@ const Layout: React.FC = () => {
                     ].map((n, idx) => (
                       <div key={idx} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-xl transition-colors text-left">
                         <div className="flex justify-between items-start">
-                          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{n.title}</h4>
+                          <h4 className="text-xs font-bold text-slate-800 dark:text-[#CBD5E1]">{n.title}</h4>
                           <span className="text-[8px] text-slate-400 font-bold shrink-0">{n.time}</span>
                         </div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug mt-0.5">{n.desc}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] leading-snug mt-0.5">{n.desc}</p>
                       </div>
                     ))}
                   </div>
@@ -231,30 +245,36 @@ const Layout: React.FC = () => {
             {/* Theme selector */}
             <button
               onClick={toggleTheme}
-              className="p-1.5 text-slate-455 dark:text-slate-400 hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-slate-455 dark:text-[#94A3B8] hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer"
             >
               {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </button>
 
             <div className="h-6 w-px bg-[#ece8f3] dark:bg-slate-800" />
 
-            {/* User profile controls */}
+
+            {/* User profile display — click to view profile */}
             <div 
               onClick={() => navigate('/profile')}
-              className="flex items-center gap-3.5 cursor-pointer hover:opacity-90 group"
+              className="flex items-center gap-3.5 cursor-pointer hover:opacity-80 transition-opacity group"
+              title="View My Profile"
             >
               <div className="text-right hidden sm:block">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block group-hover:text-brand-primary transition-colors">
+                <span className="text-xs font-bold text-slate-700 dark:text-[#CBD5E1] block group-hover:text-brand-primary transition-colors">
                   {user?.firstName || 'John'} {user?.lastName || 'Doe'}
                 </span>
                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block -mt-0.5">
                   {getRoleLabel()}
                 </span>
               </div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-brand-primary/10">
-                {user?.firstName?.[0] || 'J'}{user?.lastName?.[0] || 'D'}
+              <div className="relative">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-brand-primary/10 ring-2 ring-transparent group-hover:ring-brand-primary/30 transition-all">
+                  {user?.firstName?.[0] || 'J'}{user?.lastName?.[0] || 'D'}
+                </div>
+                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white dark:border-[#12101a]"></span>
               </div>
             </div>
+
           </div>
         </header>
 
@@ -269,8 +289,8 @@ const Layout: React.FC = () => {
       {/* Keyboard Shortcuts Modal */}
       {showShortcuts && (
         <div className="fixed inset-0 bg-[#1e1b29]/40 backdrop-blur-sm z-100 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white dark:bg-[#1a1726] border border-[#ece8f3] dark:border-slate-850 rounded-[2rem] p-6 shadow-large animate-fade-in relative">
-            <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider mb-4">
+          <div className="w-full max-w-sm bg-white dark:bg-[#1F2937] border border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] rounded-[2rem] p-6 shadow-large animate-fade-in relative">
+            <h3 className="text-sm font-black text-slate-800 dark:text-[#F8FAFC] uppercase tracking-wider mb-4">
               Keyboard Shortcuts
             </h3>
             

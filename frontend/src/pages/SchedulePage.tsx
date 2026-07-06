@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar, MapPin, Clock } from 'lucide-react';
+import { useSchedules } from '../hooks/useSchedules';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { UserRole } from '../types';
 
 interface EventDetail {
   id: number;
@@ -10,28 +14,57 @@ interface EventDetail {
 }
 
 const SchedulePage: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: apiSchedules } = useSchedules();
   const [currentMonth] = useState('July 2026');
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
-  // Schedule mock events mapping
-  const events: Record<number, EventDetail[]> = {
-    2: [
-      { id: 1, title: 'Database Systems', time: '09:00 AM', type: 'class', color: 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300' }
-    ],
-    5: [
-      { id: 2, title: 'Exam: Soft. Design', time: '10:00 AM', type: 'exam', color: 'border-red-500 bg-red-500/10 text-red-700 dark:text-red-300' }
-    ],
-    9: [
-      { id: 3, title: 'Software Engineering', time: '01:00 PM', type: 'class', color: 'border-brand-green bg-brand-green-light text-brand-green dark:text-brand-green-medium' },
-      { id: 4, title: 'Lab Practice CS', time: '03:30 PM', type: 'lab', color: 'border-purple-500 bg-purple-550/10 text-purple-700 dark:text-purple-305' }
-    ],
-    15: [
-      { id: 5, title: 'Guest: AI Future', time: '03:00 PM', type: 'event', color: 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' }
-    ],
-    22: [
-      { id: 6, title: 'Cybersecurity Sem.', time: '11:00 AM', type: 'class', color: 'border-slate-500 bg-slate-500/10 text-slate-700 dark:text-slate-350' }
-    ]
+  const isLecturer = user?.role === UserRole.Lecturer;
+
+  // Build events from API schedules if available
+  const buildEventsFromApi = (): Record<number, EventDetail[]> => {
+    if (!apiSchedules || apiSchedules.length === 0) return {};
+    
+    const eventsMap: Record<number, EventDetail[]> = {};
+    apiSchedules.forEach((schedule, idx) => {
+      const day = new Date(schedule.startTime).getDate();
+      if (!eventsMap[day]) eventsMap[day] = [];
+      
+      const timeStr = new Date(schedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      eventsMap[day].push({
+        id: idx + 1,
+        title: schedule.title,
+        time: timeStr,
+        type: 'class',
+        color: ['border-brand-green bg-brand-green-light text-brand-green', 'border-amber-500 bg-amber-500/10 text-amber-700', 'border-purple-500 bg-purple-550/10 text-purple-700', 'border-emerald-500 bg-emerald-500/10 text-emerald-700', 'border-slate-500 bg-slate-500/10 text-slate-700'][idx % 5]
+      });
+    });
+    return eventsMap;
   };
+
+  // Schedule mock events mapping (fallback)
+  const events: Record<number, EventDetail[]> = Object.keys(buildEventsFromApi()).length > 0 
+    ? buildEventsFromApi()
+    : {
+        2: [
+          { id: 1, title: 'Database Systems', time: '09:00 AM', type: 'class', color: 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300' }
+        ],
+        5: [
+          { id: 2, title: 'Exam: Soft. Design', time: '10:00 AM', type: 'exam', color: 'border-red-500 bg-red-500/10 text-red-700 dark:text-red-300' }
+        ],
+        9: [
+          { id: 3, title: 'Software Engineering', time: '01:00 PM', type: 'class', color: 'border-brand-green bg-brand-green-light text-brand-green dark:text-brand-green-medium' },
+          { id: 4, title: 'Lab Practice CS', time: '03:30 PM', type: 'lab', color: 'border-purple-500 bg-purple-550/10 text-purple-700 dark:text-purple-305' }
+        ],
+        15: [
+          { id: 5, title: 'Guest: AI Future', time: '03:00 PM', type: 'event', color: 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' }
+        ],
+        22: [
+          { id: 6, title: 'Cybersecurity Sem.', time: '11:00 AM', type: 'class', color: 'border-slate-500 bg-slate-500/10 text-slate-700 dark:text-slate-350' }
+        ]
+      };
 
   const daysInMonth = 31;
   const startOffset = 2; // Wednesday start
@@ -51,10 +84,15 @@ const SchedulePage: React.FC = () => {
           </p>
         </div>
 
-        <button className="flex items-center gap-2 bg-brand-green text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-brand-green/25 hover:bg-brand-green/95 transition-all">
-          <Plus size={16} />
-          <span>New Timetable Entry</span>
-        </button>
+        {isLecturer && (
+          <button 
+            onClick={() => navigate('/schedule')}
+            className="flex items-center gap-2 bg-brand-green text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-brand-green/25 hover:bg-brand-green/95 transition-all"
+          >
+            <Plus size={16} />
+            <span>New Timetable Entry</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

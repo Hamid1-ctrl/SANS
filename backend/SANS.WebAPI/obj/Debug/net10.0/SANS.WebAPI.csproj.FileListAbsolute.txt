@@ -143,3 +143,4 @@ C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\obj\Debug\net10.0\SANS.WebAPI.pdb
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\obj\Debug\net10.0\SANS.WebAPI.genruntimeconfig.cache
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\obj\Debug\net10.0\ref\SANS.WebAPI.dll
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\obj\Debug\net10.0\SANS.WebAPI.sourcelink.json
+C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Microsoft.Bcl.Cryptography.dll

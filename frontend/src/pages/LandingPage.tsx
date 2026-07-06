@@ -60,9 +60,7 @@ const LandingPage: React.FC = () => {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
   const bgStyle = {
-    backgroundImage: theme === 'dark'
-      ? 'linear-gradient(to bottom, rgba(7, 19, 10, 0.95), rgba(7, 19, 10, 0.97)), url("/sans_landing_background.jpg")'
-      : 'linear-gradient(to bottom, rgba(252, 252, 253, 0.93), rgba(252, 252, 253, 0.96)), url("/sans_landing_background.jpg")',
+    backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.88)), url("/sans_landing_background.jpg")',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundAttachment: 'fixed' as const
@@ -83,7 +81,7 @@ const LandingPage: React.FC = () => {
   const roles = [
     { id: 'student', title: 'Student Feed', icon: GraduationCap, color: 'text-[#1e7a34] bg-[#1e7a34]/10 border-[#1e7a34]/20' },
     { id: 'lecturer', title: 'Faculty Console', icon: Users, color: 'text-[#1e7a34] bg-[#1e7a34]/10 border-[#1e7a34]/20' },
-    { id: 'rep', title: 'Liaison Deck', icon: Shield, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20' }
+    { id: 'rep', title: 'Liaison Deck', icon: Shield, color: 'text-[#1e7a34] bg-[#1e7a34]/10 border-[#1e7a34]/20' }
   ];
 
   const features = [
@@ -113,7 +111,7 @@ const LandingPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-[#fcfcfd] dark:bg-[#07130a] text-slate-800 dark:text-slate-100 font-sans transition-colors duration-300 overflow-x-hidden selection:bg-[#1e7a34]/20 selection:text-[#1e7a34]"
+      className="min-h-screen bg-white text-slate-800 font-sans overflow-x-hidden selection:bg-[#1e7a34]/20 selection:text-[#1e7a34]"
       style={bgStyle}
     >
       
@@ -122,18 +120,18 @@ const LandingPage: React.FC = () => {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
-        className="fixed top-0 left-0 right-0 z-50 py-4 bg-white/90 dark:bg-[#07130a]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/60 shadow-md shadow-slate-100/5 px-6 transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-50 py-4 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-md px-6 transition-all duration-300"
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#1e7a34] to-[#3ea556] text-white flex items-center justify-center font-black text-lg shadow-md shadow-brand-green/20">
               S
             </div>
-            <span className="text-slate-900 dark:text-white font-extrabold text-lg tracking-tight">SANS</span>
+            <span className="text-slate-900 font-extrabold text-lg tracking-tight">SANS</span>
           </div>
 
           {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-655 dark:text-slate-350">
+          <div className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-700">
             <a href="#features" className="hover:text-[#1e7a34] transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-[#1e7a34] transition-colors">How It Works</a>
             <a href="#roles" className="hover:text-[#1e7a34] transition-colors">Roles</a>
@@ -145,7 +143,7 @@ const LandingPage: React.FC = () => {
           <div className="hidden md:flex items-center gap-4">
             <button 
               onClick={() => navigate('/login')}
-              className="text-xs font-extrabold text-slate-700 dark:text-slate-200 hover:text-[#1e7a34] transition-colors px-4 py-2 cursor-pointer"
+              className="text-xs font-extrabold text-slate-700 hover:text-[#1e7a34] transition-colors px-4 py-2 cursor-pointer"
             >
               Sign In
             </button>
@@ -174,7 +172,7 @@ const LandingPage: React.FC = () => {
             exit={{ opacity: 0, y: -20 }}
             className="fixed top-[72px] left-6 right-6 bg-white dark:bg-[#0b170e] border border-slate-200/50 dark:border-slate-850 rounded-3xl p-6 shadow-large z-40 space-y-4 md:hidden"
           >
-            <div className="flex flex-col gap-4 text-sm font-bold text-slate-655 dark:text-slate-350">
+            <div className="flex flex-col gap-4 text-sm font-bold text-slate-700">
               <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-[#1e7a34] transition-colors py-1">Features</a>
               <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-[#1e7a34] transition-colors py-1">How It Works</a>
               <a href="#roles" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-[#1e7a34] transition-colors py-1">Roles</a>
@@ -217,11 +215,11 @@ const LandingPage: React.FC = () => {
             <span>Academic Portal Redefined</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.08]">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.08]">
             Never Miss an <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1e7a34] to-[#3ea556]">Academic Notice</span> Again.
           </h1>
 
-          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-semibold leading-relaxed max-w-lg">
+          <p className="text-sm md:text-base text-slate-600 font-semibold leading-relaxed max-w-lg">
             SANS consolidates course syllabus tracks, verified notice boards, and student queries into customized role dashboards for Students, Lecturers, and Class Reps.
           </p>
 
@@ -236,9 +234,17 @@ const LandingPage: React.FC = () => {
             
             <a 
               href="#roles" 
-              className="px-8 py-4 bg-white dark:bg-[#07130a] border border-[#1e7a34]/20 hover:border-[#1e7a34]/40 text-slate-700 dark:text-slate-200 font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+              className="relative p-[1.5px] rounded-2xl overflow-hidden flex items-center justify-center group active:scale-[0.98] transition-transform select-none shadow-sm"
+              style={{ width: 'fit-content' }}
             >
-              <span>Explore Demo</span>
+              {/* Rotating lightning border effect */}
+              <div className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_20%,#3ea556_40%,#1e7a34_60%,transparent_80%)] opacity-100 group-hover:animate-[spin_1.5s_linear_infinite]" />
+              
+              {/* Actual Button Content */}
+              <div className="relative px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-extrabold rounded-[14px] text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 w-full h-full">
+                <span>Explore Demo</span>
+                <Zap size={13} className="text-[#3ea556] fill-[#3ea556] animate-pulse" />
+              </div>
             </a>
           </div>
         </motion.div>
@@ -250,8 +256,8 @@ const LandingPage: React.FC = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="lg:col-span-7 flex flex-col items-center"
         >
-          {/* Role selector tabs */}
-          <div className="bg-white/90 dark:bg-[#0f1d13]/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/40 flex gap-2 mb-6 shadow-sm">
+          {/* Role selector tabs — independent separated buttons */}
+          <div className="flex flex-wrap gap-4 mb-6 select-none justify-center">
             {roles.map((r) => {
               const Icon = r.icon;
               const isActive = activeRole === r.id;
@@ -259,13 +265,13 @@ const LandingPage: React.FC = () => {
                 <button
                   key={r.id}
                   onClick={() => setActiveRole(r.id as any)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer border shadow-sm ${
                     isActive 
-                      ? 'bg-[#1e7a34] text-white shadow-md' 
-                      : 'text-slate-555 hover:text-[#1e7a34] dark:hover:text-white'
+                      ? 'bg-[#1e7a34] text-white border-[#1e7a34] scale-[1.03] shadow-md shadow-[#1e7a34]/20' 
+                      : 'bg-white/80 backdrop-blur-sm border-slate-200 text-slate-700 hover:border-[#1e7a34]/40 hover:text-[#1e7a34]'
                   }`}
                 >
-                  <Icon size={14} />
+                  <Icon size={14} className={isActive ? 'text-white' : 'text-[#1e7a34]'} />
                   <span>{r.title}</span>
                 </button>
               );
@@ -278,7 +284,7 @@ const LandingPage: React.FC = () => {
             <div className="bg-[#101912] px-4 py-3 border-b border-slate-800/40 flex items-center justify-between shrink-0 select-none">
               <div className="flex gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#1e7a34]"></span>
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
               </div>
               <div className="bg-[#050906] px-12 py-1 rounded-lg text-[9px] font-bold text-slate-500 tracking-wider">
@@ -320,13 +326,13 @@ const LandingPage: React.FC = () => {
 
                       {/* Content block */}
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-[#111c14] border border-slate-800/40 p-3 rounded-2xl space-y-1.5">
+                        <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-1.5">
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Notice from Dean</span>
                           <h5 className="text-[10px] font-extrabold text-white">Syllabus revision release</h5>
                           <p className="text-[9px] text-slate-400 font-semibold line-clamp-2">The syllabus guidelines have been updated for SE206 core tracks.</p>
                         </div>
                         
-                        <div className="bg-[#111c14] border border-slate-800/40 p-3 rounded-2xl space-y-2">
+                        <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-2">
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Deadlines Checker</span>
                           <div className="space-y-1.5">
                             <div className="flex justify-between items-center text-[9px] font-bold text-white">
@@ -360,18 +366,18 @@ const LandingPage: React.FC = () => {
 
                       {/* Content block */}
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-[#111c14] border border-slate-800/40 p-3 rounded-2xl space-y-2.5">
+                        <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-2.5">
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Rep notice approvals</span>
-                          <div className="p-2 bg-[#182a1d] border border-[#233f2b] rounded-xl flex justify-between items-center">
+                          <div className="p-2 bg-[#f0f7f2] border border-[#d6eedd] rounded-xl flex justify-between items-center">
                             <div>
                               <p className="text-[9px] font-bold text-white">Dean Committee Sync</p>
-                              <p className="text-[7px] text-slate-450 font-bold uppercase">Awaiting approval</p>
+                              <p className="text-[7px] text-slate-500 font-bold uppercase">Awaiting approval</p>
                             </div>
                             <button className="px-2 py-1 bg-[#1e7a34] hover:bg-[#258d3f] text-white text-[8px] font-black rounded-lg shrink-0">Verify</button>
                           </div>
                         </div>
 
-                        <div className="bg-[#111c14] border border-slate-800/40 p-3 rounded-2xl space-y-2">
+                        <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-2">
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Active Quizzes</span>
                           <div className="space-y-1 text-[8px] font-bold text-slate-300">
                             <div className="flex justify-between items-center">
@@ -398,33 +404,33 @@ const LandingPage: React.FC = () => {
                       className="space-y-4"
                     >
                       {/* Banner */}
-                      <div className="bg-gradient-to-r from-amber-600 to-amber-700 p-4 rounded-2xl text-white space-y-1 shadow-sm">
+                      <div className="bg-gradient-to-r from-[#1e7a34] to-[#3ea556] p-4 rounded-2xl text-white space-y-1 shadow-sm">
                         <h4 className="text-xs font-black">Liaison Deck: Arthur Dent</h4>
-                        <p className="text-[9px] text-amber-100 font-medium">Resolving student tickets. Open issues remaining: 1</p>
+                        <p className="text-[9px] text-[#f0f7f2] font-medium">Resolving student tickets. Open issues remaining: 1</p>
                       </div>
 
                       {/* Content block */}
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-[#111c14] border border-slate-800/40 p-3 rounded-2xl space-y-2">
-                          <span className="text-[8px] font-extrabold text-amber-400 uppercase tracking-widest">Support tickets Log</span>
+                        <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-2">
+                          <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Support tickets Log</span>
                           <div className="space-y-1.5">
-                            <div className="p-1.5 bg-[#182a1d] border border-slate-800/40 rounded-lg flex items-center justify-between text-[8px] font-bold">
+                            <div className="p-1.5 bg-[#f0f7f2] border border-slate-200/60 rounded-lg flex items-center justify-between text-[8px] font-bold">
                               <span className="text-white truncate">Lab 3 Database Outage</span>
-                              <span className="text-amber-400 shrink-0 font-extrabold">Open</span>
+                              <span className="text-[#3ea556] shrink-0 font-extrabold">Open</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="bg-[#111c14] border border-slate-800/40 p-3 rounded-2xl space-y-2 flex flex-col justify-between">
+                        <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-2 flex flex-col justify-between">
                           <div>
-                            <span className="text-[8px] font-extrabold text-amber-400 uppercase tracking-widest">Ticket Resolution Target</span>
+                            <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Ticket Resolution Target</span>
                             <div className="flex justify-between items-center text-[9px] font-bold text-white mt-1">
                               <span>Weekly Target</span>
                               <span>92% resolved</span>
                             </div>
                           </div>
-                          <div className="w-full bg-slate-800 rounded-full h-1 mt-1">
-                            <div className="bg-amber-500 h-1 rounded-full" style={{ width: '92%' }}></div>
+                          <div className="w-full bg-slate-200 rounded-full h-1 mt-1">
+                            <div className="bg-[#1e7a34] h-1 rounded-full" style={{ width: '92%' }}></div>
                           </div>
                         </div>
                       </div>
@@ -441,7 +447,7 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* TRUSTED / CREDIBILITY SECTION */}
-      <section className="border-y border-slate-200/55 dark:border-slate-800/20 bg-white/40 dark:bg-[#07130a]/30 py-12 px-6">
+      <section className="border-y border-slate-200/60 bg-white/40 backdrop-blur-sm py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="text-left">
             <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Reliable Collaboration</h3>
@@ -457,7 +463,7 @@ const LandingPage: React.FC = () => {
             ].map((item, idx) => {
               const Icon = item.icon;
               return (
-                <div key={idx} className="flex items-center gap-2.5 text-slate-655 dark:text-slate-350">
+                <div key={idx} className="flex items-center gap-2.5 text-slate-700">
                   <div className="w-8 h-8 rounded-lg bg-[#1e7a34]/5 text-[#1e7a34] dark:text-[#3ea556] flex items-center justify-center"><Icon size={15} /></div>
                   <span className="text-xs font-bold">{item.text}</span>
                 </div>
@@ -474,10 +480,10 @@ const LandingPage: React.FC = () => {
             <Layers size={11} />
             <span>Robust Feature Catalog</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
             Features Tailored for Higher Education
           </h2>
-          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+          <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed">
             From assignment logs to dean liaison minutes, SANS provides the exact tools required to streamline class communications.
           </p>
         </div>
@@ -490,16 +496,16 @@ const LandingPage: React.FC = () => {
               <motion.div 
                 key={idx}
                 whileHover={{ y: -4, scale: 1.01 }}
-                className="bg-white dark:bg-[#0c160f] border border-slate-200/50 dark:border-slate-800/40 rounded-3xl p-6 shadow-soft text-left space-y-4 hover:shadow-medium transition-all duration-300 group cursor-pointer"
+                className="bg-white/70 backdrop-blur-md border border-white/60 shadow-md rounded-3xl p-6 shadow-soft text-left space-y-4 hover:shadow-medium transition-all duration-300 group cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-2xl bg-[#f0f7f2] dark:bg-slate-900 text-[#1e7a34] dark:text-[#3ea556] flex items-center justify-center group-hover:bg-gradient-to-tr group-hover:from-[#1e7a34] group-hover:to-[#3ea556] group-hover:text-white transition-all shadow-sm">
                   <Icon size={16} />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-sm group-hover:text-[#1e7a34] transition-colors">
+                  <h3 className="font-extrabold text-slate-800 text-sm group-hover:text-[#1e7a34] transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-[11px] text-slate-455 dark:text-slate-400 leading-relaxed font-semibold">
+                  <p className="text-[11px] text-slate-600 leading-relaxed font-semibold">
                     {item.desc}
                   </p>
                 </div>
@@ -510,11 +516,11 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* HOW IT WORKS SECTION */}
-      <section id="how-it-works" className="border-t border-slate-200/55 dark:border-slate-800/20 bg-white/40 dark:bg-[#07130a]/30 py-24 px-6">
+      <section id="how-it-works" className="border-t border-slate-200/60 bg-white/40 backdrop-blur-sm py-24 px-6">
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center max-w-xl mx-auto space-y-3">
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">How SANS Coordinates Your Term</h2>
-            <p className="text-xs text-slate-505 dark:text-slate-400 font-semibold leading-relaxed">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">How SANS Coordinates Your Term</h2>
+            <p className="text-xs text-slate-600 font-semibold leading-relaxed">
               Unlock a unified workspace in four steps. Secure onboarding ensures authentication integrity.
             </p>
           </div>
@@ -527,9 +533,9 @@ const LandingPage: React.FC = () => {
               { num: '04', title: 'Stay Connected', desc: 'Receive real-time push notice updates and check deadlines.' }
             ].map((step, idx) => (
               <div key={idx} className="relative text-left space-y-3 p-4">
-                <span className="text-3xl font-black text-[#1e7a34]/10 dark:text-white/5 block">{step.num}</span>
-                <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-150">{step.title}</h4>
-                <p className="text-[11px] text-slate-455 dark:text-slate-400 font-semibold leading-relaxed">{step.desc}</p>
+                <span className="text-4xl font-black text-[#1e7a34] block mb-1">{step.num}</span>
+                <h4 className="text-sm font-extrabold text-slate-800">{step.title}</h4>
+                <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">{step.desc}</p>
                 {idx < 3 && (
                   <span className="hidden md:block absolute top-12 -right-4 w-8 h-px bg-slate-200 dark:bg-slate-800"></span>
                 )}
@@ -542,24 +548,24 @@ const LandingPage: React.FC = () => {
       {/* DASHBOARDS SHOWCASE */}
       <section id="roles" className="py-24 px-6 max-w-7xl mx-auto space-y-16">
         <div className="text-center max-w-2xl mx-auto space-y-4">
-          <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Unified Design. Role-Specific Dashboards.</h2>
-          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Unified Design. Role-Specific Dashboards.</h2>
+          <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed">
             Each role uses an application specifically tailored for their daily tasks, using consistent, premium UI design systems.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Student */}
-          <div className="bg-white dark:bg-[#0c160f] border border-slate-200/50 dark:border-slate-800/40 rounded-[2rem] p-8 shadow-soft flex flex-col justify-between hover:shadow-medium transition-all duration-300">
+          <div className="bg-white/70 backdrop-blur-md border border-white/60 shadow-md rounded-[2rem] p-8 shadow-soft flex flex-col justify-between hover:shadow-medium transition-all duration-300">
             <div className="space-y-6">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-[#1e7a34] flex items-center justify-center"><GraduationCap size={22} /></div>
               <div className="space-y-2">
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">Student Workspace</h3>
-                <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold leading-relaxed">
+                <h3 className="text-lg font-black text-slate-900">Student Workspace</h3>
+                <p className="text-xs text-slate-600 font-semibold leading-relaxed">
                   Track homework task submission checkmarks, register for class codes, view timetables, and download lecture notes.
                 </p>
               </div>
-              <ul className="space-y-3.5 pt-4 text-xs text-slate-655 dark:text-slate-350 font-bold">
+              <ul className="space-y-3.5 pt-4 text-xs text-slate-700 font-bold">
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />View verified notices</li>
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Dynamic credit load metrics</li>
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Attendance tracker</li>
@@ -568,23 +574,23 @@ const LandingPage: React.FC = () => {
             </div>
             <button 
               onClick={() => navigate('/login')} 
-              className="mt-8 w-full py-3 bg-[#f0f7f2] hover:bg-[#e1f0e5] text-[#1e7a34] hover:text-[#18642a] rounded-xl text-xs font-black border border-[#1e7a34]/15 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer shadow-sm"
+              className="mt-8 w-full py-3 bg-[#f0f7f2] hover:bg-[#1e7a34] hover:text-white text-[#1e7a34] rounded-xl text-xs font-black border border-[#1e7a34]/30 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer shadow-sm"
             >
               Enter Student Portal
             </button>
           </div>
 
           {/* Lecturer */}
-          <div className="bg-white dark:bg-[#0c160f] border border-slate-200/50 dark:border-slate-800/40 rounded-[2rem] p-8 shadow-soft flex flex-col justify-between hover:shadow-medium transition-all duration-300">
+          <div className="bg-white/70 backdrop-blur-md border border-white/60 shadow-md rounded-[2rem] p-8 shadow-soft flex flex-col justify-between hover:shadow-medium transition-all duration-300">
             <div className="space-y-6">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center"><Users size={22} /></div>
+              <div className="w-12 h-12 rounded-2xl bg-[#1e7a34]/10 text-[#1e7a34] flex items-center justify-center"><Users size={22} /></div>
               <div className="space-y-2">
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">Lecturer Workspace</h3>
-                <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold leading-relaxed">
+                <h3 className="text-lg font-black text-slate-900">Lecturer Workspace</h3>
+                <p className="text-xs text-slate-600 font-semibold leading-relaxed">
                   Post emergency class notices, manage syllabus status percentages, coordinate quiz allocations, and upload slides.
                 </p>
               </div>
-              <ul className="space-y-3.5 pt-4 text-xs text-slate-655 dark:text-slate-350 font-bold">
+              <ul className="space-y-3.5 pt-4 text-xs text-slate-700 font-bold">
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Verified notice creation</li>
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Quiz schedules creator</li>
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Approved handouts upload</li>
@@ -593,23 +599,23 @@ const LandingPage: React.FC = () => {
             </div>
             <button 
               onClick={() => navigate('/login')} 
-              className="mt-8 w-full py-3 bg-[#f0f7f2] hover:bg-[#e1f0e5] text-[#1e7a34] hover:text-[#18642a] rounded-xl text-xs font-black border border-[#1e7a34]/15 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer shadow-sm"
+              className="mt-8 w-full py-3 bg-[#1e7a34] hover:bg-[#258d3f] text-white rounded-xl text-xs font-black shadow-md shadow-[#1e7a34]/20 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
             >
               Enter Faculty Console
             </button>
           </div>
 
           {/* Rep */}
-          <div className="bg-white dark:bg-[#0c160f] border border-slate-200/50 dark:border-slate-800/40 rounded-[2rem] p-8 shadow-soft flex flex-col justify-between hover:shadow-medium transition-all duration-300">
+          <div className="bg-white/70 backdrop-blur-md border border-white/60 shadow-md rounded-[2rem] p-8 shadow-soft flex flex-col justify-between hover:shadow-medium transition-all duration-300">
             <div className="space-y-6">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center"><Shield size={22} /></div>
+              <div className="w-12 h-12 rounded-2xl bg-[#1e7a34]/10 text-[#1e7a34] flex items-center justify-center"><Shield size={22} /></div>
               <div className="space-y-2">
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">Liaison Deck</h3>
-                <p className="text-xs text-slate-455 dark:text-slate-400 font-semibold leading-relaxed">
+                <h3 className="text-lg font-black text-slate-900">Liaison Deck</h3>
+                <p className="text-xs text-slate-600 font-semibold leading-relaxed">
                   Log committee sync minutes, escalate student connectivity queries, compile directories, and invite classmates.
                 </p>
               </div>
-              <ul className="space-y-3.5 pt-4 text-xs text-slate-655 dark:text-slate-350 font-bold">
+              <ul className="space-y-3.5 pt-4 text-xs text-slate-700 font-bold">
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Add notices approval requests</li>
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Minute resolutions compiler</li>
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Student support ticketing</li>
@@ -618,7 +624,7 @@ const LandingPage: React.FC = () => {
             </div>
             <button 
               onClick={() => navigate('/login')} 
-              className="mt-8 w-full py-3 bg-[#f0f7f2] hover:bg-[#e1f0e5] text-[#1e7a34] hover:text-[#18642a] rounded-xl text-xs font-black border border-[#1e7a34]/15 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer shadow-sm"
+              className="mt-8 w-full py-3 bg-white hover:bg-[#f0f7f2] text-slate-800 rounded-xl text-xs font-black border-2 border-slate-800 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer shadow-sm"
             >
               Enter Liaison Deck
             </button>
@@ -627,12 +633,12 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* WHY CHOOSE SANS */}
-      <section id="why-sans" className="border-t border-slate-200/55 dark:border-slate-800/20 bg-white/40 dark:bg-[#07130a]/30 py-24 px-6">
+      <section id="why-sans" className="border-t border-slate-200/60 bg-white/40 backdrop-blur-sm py-24 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5 text-left space-y-4">
             <span className="text-xs font-black text-[#1e7a34] dark:text-[#3ea556] uppercase tracking-widest">Engineered for Academic Success</span>
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Why Institutions Choose SANS</h2>
-            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">Why Institutions Choose SANS</h2>
+            <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed">
               Standard group chats and announcement groups suffer from notice clutter, duplicate requests, and lack of verification. SANS solves this with role boundaries and customized dashboard workspaces.
             </p>
           </div>
@@ -644,12 +650,12 @@ const LandingPage: React.FC = () => {
               { title: 'Secure Onboarding', desc: 'Roster validation restricts access to authentic course participants.' },
               { title: 'Centralized Files', desc: 'No hunting through chat histories. Access files on clean Explorer tables.' }
             ].map((benefit, idx) => (
-              <div key={idx} className="bg-white dark:bg-[#0c160f] border border-slate-200/50 dark:border-slate-800/40 rounded-3xl p-6 shadow-soft text-left space-y-2">
-                <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-150 flex items-center gap-2">
+              <div key={idx} className="bg-white/70 backdrop-blur-md border border-white/60 shadow-md rounded-3xl p-6 shadow-soft text-left space-y-2">
+                <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
                   <CheckCircle size={15} className="text-[#1e7a34]" />
                   <span>{benefit.title}</span>
                 </h4>
-                <p className="text-[11px] text-slate-455 dark:text-slate-400 font-semibold leading-relaxed">{benefit.desc}</p>
+                <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">{benefit.desc}</p>
               </div>
             ))}
           </div>
@@ -660,22 +666,22 @@ const LandingPage: React.FC = () => {
       <section className="py-24 px-6 max-w-7xl mx-auto space-y-16">
         <div className="text-center max-w-xl mx-auto space-y-3">
           <span className="text-xs font-black text-[#1e7a34] dark:text-[#3ea556] uppercase tracking-widest">Endorsed by Academics</span>
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Fidelity Endorsements</h2>
-          <p className="text-xs text-slate-505 dark:text-slate-400 font-semibold leading-relaxed">
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Fidelity Endorsements</h2>
+          <p className="text-xs text-slate-600 font-semibold leading-relaxed">
             See what students and class representatives say about SANS.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {testimonials.map((test, idx) => (
-            <div key={idx} className="bg-white dark:bg-[#0c160f] border border-slate-200/50 dark:border-slate-800/40 rounded-3xl p-6 shadow-soft text-left flex flex-col justify-between space-y-6 hover:shadow-medium transition-all duration-300">
+            <div key={idx} className="bg-white/70 backdrop-blur-md border border-white/60 shadow-md rounded-3xl p-6 shadow-soft text-left flex flex-col justify-between space-y-6 hover:shadow-medium transition-all duration-300">
               <div className="space-y-4">
                 <div className="flex gap-1">
                   {[...Array(test.rating)].map((_, i) => (
                     <Star key={i} size={12} className="text-amber-500 fill-amber-500" />
                   ))}
                 </div>
-                <p className="text-[11px] text-slate-655 dark:text-slate-350 italic font-semibold leading-relaxed">
+                <p className="text-[11px] text-slate-700 italic font-semibold leading-relaxed">
                   "{test.feedback}"
                 </p>
               </div>
@@ -684,7 +690,7 @@ const LandingPage: React.FC = () => {
                   {test.avatar}
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-150">{test.name}</h4>
+                  <h4 className="text-xs font-black text-slate-800">{test.name}</h4>
                   <p className="text-[9px] text-slate-400 font-extrabold uppercase">{test.role}</p>
                 </div>
               </div>
@@ -694,7 +700,7 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* STATISTICS SECTION */}
-      <section className="border-y border-slate-200/55 dark:border-slate-800/20 bg-white/40 dark:bg-[#07130a]/30 py-20 px-6">
+      <section className="border-y border-slate-200/60 bg-white/40 backdrop-blur-sm py-20 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
             { label: 'Active Students', value: 1200 },
@@ -707,7 +713,7 @@ const LandingPage: React.FC = () => {
                 <CountUp to={stat.value} />
                 <span>+</span>
               </p>
-              <p className="text-[10px] text-slate-455 dark:text-slate-400 font-black uppercase tracking-widest">{stat.label}</p>
+              <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -716,8 +722,8 @@ const LandingPage: React.FC = () => {
       {/* FAQ SECTION */}
       <section id="faq" className="py-24 px-6 max-w-3xl mx-auto space-y-12">
         <div className="text-center space-y-3">
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Frequently Asked Questions</h2>
-          <p className="text-xs text-slate-505 dark:text-slate-400 font-semibold leading-relaxed">
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Frequently Asked Questions</h2>
+          <p className="text-xs text-slate-600 font-semibold leading-relaxed">
             Have questions about roles, files or notice approvals?
           </p>
         </div>
@@ -728,11 +734,11 @@ const LandingPage: React.FC = () => {
             return (
               <div 
                 key={idx} 
-                className="bg-white dark:bg-[#0c160f] border border-slate-200/50 dark:border-slate-800/40 rounded-2xl shadow-soft overflow-hidden"
+                className="bg-white/70 backdrop-blur-md border border-white/60 shadow-md rounded-2xl shadow-soft overflow-hidden"
               >
                 <button
                   onClick={() => setFaqOpen(isOpen ? null : idx)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left font-extrabold text-xs text-slate-800 dark:text-slate-150 cursor-pointer"
+                  className="w-full px-6 py-4 flex items-center justify-between text-left font-extrabold text-xs text-slate-800 cursor-pointer"
                 >
                   <span>{item.q}</span>
                   <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -746,7 +752,7 @@ const LandingPage: React.FC = () => {
                       exit={{ height: 0 }}
                       className="overflow-hidden"
                     >
-                      <p className="px-6 pb-5 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                      <p className="px-6 pb-5 text-[11px] text-slate-600 leading-relaxed font-semibold">
                         {item.a}
                       </p>
                     </motion.div>
@@ -783,7 +789,7 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-200/55 dark:border-slate-800/40 bg-white/55 dark:bg-[#07130a]/30 pt-16 pb-8 px-6">
+      <footer className="border-t border-slate-200/60 bg-white/55 backdrop-blur-sm pt-16 pb-8 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
           
           {/* Logo & Desc */}
@@ -792,9 +798,9 @@ const LandingPage: React.FC = () => {
               <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#1e7a34] to-[#3ea556] text-white flex items-center justify-center font-black text-base shadow-md">
                 S
               </div>
-              <span className="text-slate-900 dark:text-white font-extrabold text-base tracking-tight">SANS</span>
+              <span className="text-slate-900 font-extrabold text-base tracking-tight">SANS</span>
             </div>
-            <p className="text-[11px] text-slate-455 dark:text-slate-450 leading-relaxed font-semibold">
+            <p className="text-[11px] text-slate-455 dark:text-slate-500 leading-relaxed font-semibold">
               The Smart Academic Notification System coordinates class rosters, verified notice approvals, and files.
             </p>
           </div>
@@ -802,7 +808,7 @@ const LandingPage: React.FC = () => {
           {/* Links 1 */}
           <div className="space-y-4">
             <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Platform</h4>
-            <ul className="space-y-2 text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider">
+            <ul className="space-y-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
               <li><a href="#features" className="hover:text-[#1e7a34]">Features</a></li>
               <li><a href="#roles" className="hover:text-[#1e7a34]">User Workspaces</a></li>
               <li><a href="#how-it-works" className="hover:text-[#1e7a34]">How It Works</a></li>
@@ -812,7 +818,7 @@ const LandingPage: React.FC = () => {
           {/* Links 2 */}
           <div className="space-y-4">
             <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Security</h4>
-            <ul className="space-y-2 text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider">
+            <ul className="space-y-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
               <li><a href="#" className="hover:text-[#1e7a34]">Privacy Policy</a></li>
               <li><a href="#" className="hover:text-[#1e7a34]">Terms of Service</a></li>
               <li><a href="#" className="hover:text-[#1e7a34]">Institutional SLA</a></li>
@@ -822,7 +828,7 @@ const LandingPage: React.FC = () => {
           {/* Contact */}
           <div className="space-y-4">
             <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Contact Information</h4>
-            <p className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider leading-relaxed">
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider leading-relaxed">
               support@sans.edu<br />
               SANS Technical Team<br />
               Lab Annex 4, Campus CS
@@ -830,7 +836,7 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto border-t border-slate-100 dark:border-slate-800/40 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-wider">
+        <div className="max-w-7xl mx-auto border-t border-slate-100 dark:border-slate-800/40 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-black text-slate-500 uppercase tracking-wider">
           <span>Smart Academic Notification System © 2026</span>
           <div className="flex gap-6">
             <a href="#" className="hover:text-[#1e7a34]">Twitter</a>

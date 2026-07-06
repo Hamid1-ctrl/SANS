@@ -27,6 +27,7 @@ const MyClassesPage: React.FC = () => {
   const { user } = useAuth();
   const [activeClassId, setActiveClassId] = useState<string>('c1');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteEmailError, setInviteEmailError] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [classCodeError, setClassCodeError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -42,7 +43,10 @@ const MyClassesPage: React.FC = () => {
 
   const handleJoinClass = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!joinCode.trim()) return;
+    if (!joinCode.trim()) {
+      setClassCodeError('Please enter a class code before you can proceed.');
+      return;
+    }
     
     // Simulate successful join
     if (joinCode.toUpperCase() === 'SE206' || joinCode.toUpperCase() === 'CS101') {
@@ -66,7 +70,11 @@ const MyClassesPage: React.FC = () => {
 
   const handleInviteStudent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail.trim()) return;
+    if (!inviteEmail.trim()) {
+      setInviteEmailError('Please enter a student email before you can proceed.');
+      return;
+    }
+    setInviteEmailError('');
     setSuccessMsg(`Invitation sent to ${inviteEmail}!`);
     setInviteEmail('');
     setTimeout(() => setSuccessMsg(''), 3000);
@@ -133,11 +141,14 @@ const MyClassesPage: React.FC = () => {
               type="text"
               placeholder="e.g. CS101"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
+              onChange={(e) => {
+                setJoinCode(e.target.value);
+                if (classCodeError) setClassCodeError('');
+              }}
               className="w-full px-4 py-3 bg-slate-50 border border-[#ece8f3] rounded-xl text-xs focus:outline-none focus:border-brand-primary font-semibold text-center uppercase shadow-sm"
             />
             {classCodeError && (
-              <p className="text-[10px] text-red-500 font-bold pl-1">{classCodeError}</p>
+              <p className="text-[10px] text-red-500 font-bold pl-1 select-none animate-pulse">{classCodeError}</p>
             )}
             
             <button
@@ -296,9 +307,15 @@ const MyClassesPage: React.FC = () => {
               type="email"
               placeholder="student.email@sans.edu"
               value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
+              onChange={(e) => {
+                setInviteEmail(e.target.value);
+                if (inviteEmailError) setInviteEmailError('');
+              }}
               className="w-full px-4 py-2.5 bg-slate-50 border border-[#ece8f3] rounded-xl text-xs focus:outline-none focus:border-brand-primary font-semibold shadow-sm"
             />
+            {inviteEmailError && (
+              <p className="text-[10px] text-red-500 font-bold pl-1 select-none animate-pulse">{inviteEmailError}</p>
+            )}
             <button
               type="submit"
               className="w-full py-2.5 bg-brand-primary text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-premium cursor-pointer"

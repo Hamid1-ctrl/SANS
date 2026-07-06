@@ -39,10 +39,10 @@ const SettingsPage: React.FC = () => {
 
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
+        <h1 className="text-3xl font-extrabold text-slate-800 dark:text-[#F8FAFC] tracking-tight">
           Settings
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 font-medium">
+        <p className="text-slate-500 dark:text-[#94A3B8] font-medium">
           Manage your SANS application preferences, notification integrations, and password credentials.
         </p>
       </div>
@@ -50,7 +50,7 @@ const SettingsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* PANEL 1: App Theme Configuration */}
-        <div className="bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-[2.5rem] p-6 shadow-soft space-y-4">
+        <div className="bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] rounded-[2.5rem] p-6 shadow-soft space-y-4">
           <h2 className="text-base font-black text-slate-800 mb-3 flex items-center gap-2">
             {theme === 'light' ? <Sun size={18} className="text-brand-primary" /> : <Moon size={18} className="text-brand-primary" />}
             <span>App Theme Preference</span>
@@ -59,12 +59,12 @@ const SettingsPage: React.FC = () => {
             Shift between light mode and dark mode representation values to adjust display contrast.
           </p>
 
-          <div className="bg-slate-50 dark:bg-[#1a1726] rounded-2xl p-1 flex">
+          <div className="bg-slate-50 dark:bg-[#1F2937] rounded-2xl p-1 flex">
             <button
               onClick={() => { if (theme !== 'light') toggleTheme(); }}
               className={`flex-1 text-center py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 theme === 'light'
-                  ? 'bg-white dark:bg-[#2c263f] text-brand-primary shadow-sm'
+                  ? 'bg-white dark:bg-[#334155] text-brand-primary shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -75,7 +75,7 @@ const SettingsPage: React.FC = () => {
               onClick={() => { if (theme !== 'dark') toggleTheme(); }}
               className={`flex-1 text-center py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 theme === 'dark'
-                  ? 'bg-white dark:bg-[#2c263f] text-brand-primary shadow-sm'
+                  ? 'bg-white dark:bg-[#334155] text-brand-primary shadow-sm'
                   : 'text-slate-550 hover:text-slate-700'
               }`}
             >
@@ -86,7 +86,7 @@ const SettingsPage: React.FC = () => {
         </div>
 
         {/* PANEL 2: Notifications settings */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-[2.5rem] p-8 shadow-soft space-y-6">
+        <div className="lg:col-span-2 bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] rounded-[2.5rem] p-8 shadow-soft space-y-6">
           <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
             <Bell className="text-brand-primary" size={18} />
             <span>Notification Integrations</span>

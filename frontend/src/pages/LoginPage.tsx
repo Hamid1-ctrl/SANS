@@ -27,18 +27,25 @@ const LoginPage: React.FC = () => {
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Login failed:', error);
-      setLoginError(error?.message || 'Login failed. Please verify your credentials.');
+      setLoginError(error?.response?.data?.detail || error?.response?.data?.message || error?.message || 'Login failed. Please verify your credentials.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-brand-green dark:bg-[#113a1a] flex items-center justify-center p-6 relative font-sans transition-colors duration-300">
+    <div 
+      className="min-h-screen flex items-center justify-center p-6 relative font-sans transition-colors duration-300"
+      style={{
+        backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.88)), url("/sans_landing_background.jpg")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
       
       {/* Outer Card with Tablet framing and premium glass lifting ring */}
-      <div className="w-full max-w-5xl bg-white dark:bg-[#191624] border border-white/20 dark:border-slate-800/40 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] ring-[12px] ring-white/10 dark:ring-white/5 overflow-hidden flex flex-col md:flex-row min-h-[620px]">
+      <div className="w-full max-w-5xl bg-white border border-slate-150 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12),0_10px_30px_rgba(30,122,52,0.08)] ring-[12px] ring-slate-100/50 overflow-hidden flex flex-col md:flex-row min-h-[620px] relative z-10">
         
         {/* Left Side: Custom Lottie Player Panel */}
-        <div className="w-full md:w-1/2 bg-[#f3f0f7] dark:bg-[#151221] p-12 flex flex-col justify-between items-center relative overflow-hidden shrink-0 select-none">
+        <div className="w-full md:w-1/2 bg-[#1E293B] p-12 flex flex-col justify-between items-center relative overflow-hidden shrink-0 select-none">
           
           <div className="absolute top-10 left-10 w-48 h-48 rounded-full bg-brand-green/5 blur-3xl"></div>
           
@@ -47,7 +54,7 @@ const LoginPage: React.FC = () => {
             <div className="w-9 h-9 rounded-full bg-brand-green text-white flex items-center justify-center font-black text-xs shadow-sm">
               S
             </div>
-            <span className="text-slate-850 dark:text-white font-extrabold text-sm tracking-tight">SANS</span>
+            <span className="text-[#F8FAFC] font-extrabold text-sm tracking-tight">SANS</span>
           </div>
 
           {/* Lottie Animation Player loaded from Public assets folder */}
@@ -57,17 +64,17 @@ const LoginPage: React.FC = () => {
 
           {/* Left panel caption details */}
           <div className="text-center">
-            <h3 className="text-sm font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">
+            <h3 className="text-sm font-extrabold text-[#F8FAFC] uppercase tracking-wider">
               A Cleaner Academic Workspace
             </h3>
-            <p className="text-[11px] text-slate-455 dark:text-slate-400 font-bold mt-1.5 max-w-[240px] leading-relaxed">
+            <p className="text-[11px] text-[#CBD5E1] font-bold mt-1.5 max-w-[240px] leading-relaxed">
               Consolidate schedules, review lecture items, and manage alerts without AI clutter.
             </p>
           </div>
         </div>
 
         {/* Right Side: Form Sign In Panel */}
-        <div className="flex-1 p-12 flex flex-col justify-between">
+        <div className="flex-1 p-12 flex flex-col justify-between bg-white">
           <div className="self-end text-xs font-bold text-slate-450">
             Smart Portal 2.0
           </div>

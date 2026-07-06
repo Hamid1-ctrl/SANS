@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SANS.Domain.Entities;
+using SANS.Domain.Enums;
 
 namespace SANS.Infrastructure.Data;
 
@@ -271,5 +272,70 @@ public class AppDbContext : DbContext
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+
+        // Seed initial Department
+        var departmentId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        modelBuilder.Entity<Department>().HasData(new Department
+        {
+            Id = departmentId,
+            Name = "Computer Science & Software Engineering",
+            Code = "CSSE",
+            Description = "Core computing department",
+            IsActive = true,
+            CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, DateTimeKind.Utc),
+            IsDeleted = false
+        });
+
+        // Seed initial Users (password is "password")
+        modelBuilder.Entity<User>().HasData(
+            new User
+            {
+                Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                Email = "student.sans@sans.edu",
+                PasswordHash = "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
+                FirstName = "Student",
+                LastName = "User",
+                StudentId = "SANS-STU-2026",
+                PhoneNumber = "+15551234567",
+                Role = UserRole.Student,
+                DepartmentId = departmentId,
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, DateTimeKind.Utc),
+                CreatedBy = "System",
+                IsDeleted = false
+            },
+            new User
+            {
+                Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                Email = "lecturer.sans@sans.edu",
+                PasswordHash = "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
+                FirstName = "Lecturer",
+                LastName = "User",
+                StudentId = "SANS-LEC-2026",
+                PhoneNumber = "+15559876543",
+                Role = UserRole.Lecturer,
+                DepartmentId = departmentId,
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, DateTimeKind.Utc),
+                CreatedBy = "System",
+                IsDeleted = false
+            },
+            new User
+            {
+                Id = Guid.Parse("44444444-4444-4444-4444-444444444444"),
+                Email = "rep.sans@sans.edu",
+                PasswordHash = "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
+                FirstName = "Rep",
+                LastName = "User",
+                StudentId = "SANS-REP-2026",
+                PhoneNumber = "+15554321098",
+                Role = UserRole.ClassRepresentative,
+                DepartmentId = departmentId,
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, DateTimeKind.Utc),
+                CreatedBy = "System",
+                IsDeleted = false
+            }
+        );
     }
 }

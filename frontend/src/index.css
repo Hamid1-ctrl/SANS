@@ -2,6 +2,8 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Plus Jakarta Sans', sans-serif;
 
@@ -18,12 +20,12 @@
   --color-brand-plum: #581c87;
   --color-brand-lavender: #f1edf7;
   
-  --color-page-bg: #f7f6fb;
-  --color-card-bg: #ffffff;
+  --color-page-bg: var(--page-bg);
+  --color-card-bg: var(--card-bg);
   
-  --color-text-dark: #1e1b29;
-  --color-text-muted: #736d88;
-  --color-border-light: #ece8f3;
+  --color-text-dark: var(--text-dark);
+  --color-text-muted: var(--text-muted);
+  --color-border-light: var(--border-light);
 
   --shadow-soft: 0 4px 20px rgba(30, 122, 52, 0.015);
   --shadow-medium: 0 8px 30px rgba(30, 122, 52, 0.03);
@@ -34,11 +36,72 @@
 
 @layer base {
   :root {
+    /* Default theme colors (light mode) */
+    --page-bg: #f7f6fb;
+    --card-bg: #ffffff;
+    --text-dark: #1e1b29;
+    --text-muted: #736d88;
+    --border-light: #ece8f3;
+
     /* Student Theme (Darker Green) default */
     --color-primary: #1e7a34;
     --color-primary-light: #f0f7f2;
     --color-primary-medium: #3ea556;
     --shadow-glow: 0 12px 35px -8px rgba(30, 122, 52, 0.12);
+  }
+
+  .dark {
+    /* Premium Enterprise SaaS Dark Mode values (LumenTrade inspired) */
+    --page-bg: #0E1113;
+    --card-bg: #16191C;
+    --text-dark: #F1F5F9;
+    --text-muted: #8E9AA8;
+    --border-light: rgba(255, 255, 255, 0.05);
+
+    /* Mint/emerald accents from image in dark mode */
+    --color-primary: #00B37E;
+    --color-primary-light: rgba(0, 179, 126, 0.12);
+    --color-primary-medium: #00E6A2;
+    --shadow-glow: 0 12px 35px -8px rgba(0, 179, 126, 0.2);
+
+    /* Overrides for hardcoded Tailwind classes inside dark mode */
+    --color-page-bg: #0E1113 !important;
+    --color-card-bg: #16191C !important;
+    --color-border-light: rgba(255, 255, 255, 0.05) !important;
+
+    & [class*="bg-[#1E293B]"] {
+      background-color: #111315 !important;
+    }
+    & [class*="bg-[#0F172A]"] {
+      background-color: #0E1113 !important;
+    }
+    & [class*="bg-[#1F2937]"] {
+      background-color: #16191C !important;
+    }
+    & [class*="bg-[#334155]"] {
+      background-color: #1D2125 !important;
+    }
+    & [class*="bg-[#374151]"] {
+      background-color: #242830 !important;
+    }
+    & [class*="border-[rgba(255,255,255,0.18)]"] {
+      border-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    & [class*="text-[#1e7a34]"] {
+      color: #00B37E !important;
+    }
+    & [class*="bg-[#1e7a34]"] {
+      background-color: #00B37E !important;
+    }
+    & [class*="hover:bg-[#258d3f]"]:hover {
+      background-color: #00B37E !important;
+    }
+    & [class*="hover:border-[#1e7a34]"]:hover {
+      border-color: #00B37E !important;
+    }
+    & [class*="focus:border-[#1e7a34]"]:focus {
+      border-color: #00B37E !important;
+    }
   }
 
   .theme-student {
@@ -49,17 +112,17 @@
   }
 
   .theme-lecturer {
-    --color-primary: #5243d6; /* Royal Iris */
-    --color-primary-light: #f2f0fc;
-    --color-primary-medium: #8378f5;
-    --shadow-glow: 0 12px 35px -8px rgba(82, 67, 214, 0.15);
+    --color-primary: #1e7a34;
+    --color-primary-light: #f0f7f2;
+    --color-primary-medium: #3ea556;
+    --shadow-glow: 0 12px 35px -8px rgba(30, 122, 52, 0.12);
   }
 
   .theme-rep {
-    --color-primary: #d97706; /* Warm Amber */
-    --color-primary-light: #fef7ec;
-    --color-primary-medium: #f59e0b;
-    --shadow-glow: 0 12px 35px -8px rgba(217, 119, 6, 0.15);
+    --color-primary: #1e7a34; /* Same SANS Green as Student */
+    --color-primary-light: #f0f7f2;
+    --color-primary-medium: #3ea556;
+    --shadow-glow: 0 12px 35px -8px rgba(30, 122, 52, 0.12);
   }
 
   body {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Send, 
@@ -12,6 +12,8 @@ import {
   ChevronRight,
   FileText
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useMessages } from '../hooks/useMessages';
 
 interface ChatUser {
   id: number;
@@ -32,9 +34,28 @@ interface ChatUser {
 }
 
 const MessagesPage: React.FC = () => {
+  const { user: currentUser } = useAuth();
+  const { data: apiMessages } = useMessages();
+
   const [selectedUser, setSelectedUser] = useState<number | null>(1);
   const [messageInput, setMessageInput] = useState('');
   const [activeSegment, setActiveSegment] = useState<'chats' | 'groups'>('chats');
+
+  // If API messages are available, use them
+  useEffect(() => {
+    if (apiMessages && apiMessages.length > 0) {
+      const apiFormatted = apiMessages.map((msg, idx) => ({
+        id: idx + 1,
+        sender: msg.senderId === currentUser?.id ? 'me' as const : 'them' as const,
+        text: msg.content,
+        time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'text' as const
+      }));
+      if (apiFormatted.length > 0) {
+        setChatMessages(apiFormatted);
+      }
+    }
+  }, [apiMessages, currentUser]);
 
   const users: ChatUser[] = [
     {
@@ -100,8 +121,8 @@ const MessagesPage: React.FC = () => {
       gradient: 'from-orange-550 to-red-655',
       phone: '+1 (555) 876-5432',
       email: 'z.beeble@sans.edu',
-      stat1Label: 'GPA',
-      stat1Value: '2.92',
+      stat1Label: 'Registered Credits',
+      stat1Value: '16',
       stat2Label: 'Attendance',
       stat2Value: '81%'
     }
@@ -127,10 +148,10 @@ const MessagesPage: React.FC = () => {
       ...chatMessages,
       {
         id: chatMessages.length + 1,
-        sender: 'me',
+        sender: 'me' as const,
         text: messageInput,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: 'text'
+        type: 'text' as const
       }
     ]);
     setMessageInput('');

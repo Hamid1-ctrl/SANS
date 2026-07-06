@@ -8,6 +8,7 @@ const ProfilePage: React.FC = () => {
   const getRoleName = (roleVal: number | undefined) => {
     if (roleVal === 1) return 'Lecturer';
     if (roleVal === 2) return 'Course Representative';
+    if (roleVal === 3) return 'Administrator';
     return 'Student';
   };
 
@@ -24,10 +25,10 @@ const ProfilePage: React.FC = () => {
     <div className="p-8 space-y-6 h-[calc(100vh-64px)] overflow-y-auto">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
+        <h1 className="text-3xl font-extrabold text-slate-800 dark:text-[#F8FAFC] tracking-tight">
           My Profile
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 font-medium">
+        <p className="text-slate-500 dark:text-[#94A3B8] font-medium">
           View your academic registration details, contact credentials, and user authorization permissions.
         </p>
       </div>
@@ -35,16 +36,16 @@ const ProfilePage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Side: Avatar Card */}
-        <div className="bg-white dark:bg-[#191624] rounded-[2rem] border border-[#ece8f3] dark:border-slate-800/40 shadow-soft p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <div className="bg-white dark:bg-[#1E293B] rounded-[2rem] border border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] shadow-soft p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
           {/* Decorative Top Background Banner */}
           <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-br from-brand-green to-brand-green-medium opacity-90"></div>
 
           {/* Profile Circle Avatar */}
           <div className="relative z-10 mt-10">
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-brand-green to-brand-green-medium text-white text-4xl font-extrabold flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-md shadow-brand-green/15 select-none">
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-brand-green to-brand-green-medium text-white text-4xl font-extrabold flex items-center justify-center border-4 border-white dark:border-[rgba(255,255,255,0.18)] shadow-md shadow-brand-green/15 select-none">
               {(user?.firstName?.[0] || 'J')}{(user?.lastName?.[0] || 'D')}
             </div>
-            <button className="absolute bottom-0 right-0 p-2 bg-[#1e1b29] hover:bg-slate-850 text-white rounded-full border border-white dark:border-slate-800 transition-all shadow-sm">
+            <button className="absolute bottom-0 right-0 p-2 bg-[#1e1b29] hover:bg-slate-850 text-white rounded-full border border-white dark:border-[rgba(255,255,255,0.18)] transition-all shadow-sm">
               <Camera size={14} />
             </button>
           </div>
@@ -62,21 +63,21 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {user?.role !== 1 && (
-            <div className="w-full border-t border-slate-105 dark:border-slate-850 mt-6 pt-6 text-center">
+            <div className="w-full border-t border-slate-105 dark:border-[rgba(255,255,255,0.18)] mt-6 pt-6 text-center">
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Attendance</p>
-              <p className="text-lg font-black text-slate-750 dark:text-slate-300 mt-0.5">94.2%</p>
+              <p className="text-lg font-black text-slate-750 dark:text-[#CBD5E1] mt-0.5">94.2%</p>
             </div>
           )}
         </div>
 
         {/* Right Side: Account Details Fields */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 shadow-soft p-8">
+        <div className="lg:col-span-2 bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] shadow-soft p-8">
           <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-100 dark:border-slate-855">
-            <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg">
+            <h3 className="font-extrabold text-slate-800 dark:text-[#F8FAFC] text-lg">
               Registration Information
             </h3>
             
-            <button className="px-4.5 py-2 border border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-305 hover:bg-slate-50 dark:hover:bg-slate-800/35 rounded-xl text-xs font-bold transition-all">
+            <button className="px-4.5 py-2 border border-slate-200 dark:border-[rgba(255,255,255,0.18)] text-slate-655 dark:text-slate-305 hover:bg-slate-50 dark:hover:bg-slate-800/35 rounded-xl text-xs font-bold transition-all">
               Request Info Update
             </button>
           </div>
@@ -87,7 +88,7 @@ const ProfilePage: React.FC = () => {
               const Icon = field.icon;
               return (
                 <div key={idx} className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-slate-450 dark:text-slate-400 uppercase tracking-wider">
+                  <label className="text-xs font-extrabold text-slate-450 dark:text-[#94A3B8] uppercase tracking-wider">
                     {field.label}
                   </label>
                   <div className="relative flex items-center">
@@ -95,7 +96,7 @@ const ProfilePage: React.FC = () => {
                       type="text"
                       defaultValue={field.value}
                       disabled
-                      className="w-full pl-11 pr-4 py-3 rounded-xl text-xs bg-slate-50/70 dark:bg-slate-900/50 text-slate-655 dark:text-slate-305 border border-slate-100 dark:border-slate-800 cursor-not-allowed font-semibold focus:outline-none"
+                      className="w-full pl-11 pr-4 py-3 rounded-xl text-xs bg-slate-50/70 dark:bg-[#1F2937]/50 text-slate-655 dark:text-slate-305 border border-slate-100 dark:border-[rgba(255,255,255,0.18)] cursor-not-allowed font-semibold focus:outline-none"
                     />
                     <Icon className="absolute left-4 text-slate-400 dark:text-slate-505" size={14} />
                   </div>
