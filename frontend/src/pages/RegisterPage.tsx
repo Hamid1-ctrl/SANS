@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 import type { RegisterRequest } from '../types';
-import { ArrowRight, GraduationCap, Users, Award, Check, Mail, Lock, Hash, Phone } from 'lucide-react';
+import { ArrowRight, GraduationCap, Users, Award, Check, Mail, Lock, Hash, Phone, Building, Clock, BookOpen } from 'lucide-react';
+
+// The fixed OTP code that is "sent" to the user's email
+const VALID_OTP = '714529';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,10 +31,20 @@ const RegisterPage: React.FC = () => {
     phoneNumber: '',
     classCode: '',  // Class Representative tailored field
     department: '', // Lecturer tailored field
+    officeNumber: '',
+    officeHours: '',
+    specialization: '',
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [registerError, setRegisterError] = useState<string | null>(null);
+
+  // Google sign-up intermediate email step
+  const [showGoogleEmail, setShowGoogleEmail] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleEmailError, setGoogleEmailError] = useState<string | null>(null);
+  const [googlePassword, setGooglePassword] = useState('');
+  const [googlePasswordError, setGooglePasswordError] = useState<string | null>(null);
   
   // OTP Verification Code state (6 digits)
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
@@ -152,6 +165,15 @@ const RegisterPage: React.FC = () => {
       if (!formData.department.trim()) {
         tempErrors.department = 'Lecturer Department is required';
       }
+      if (!formData.officeNumber.trim()) {
+        tempErrors.officeNumber = 'Office Number is required (e.g. Room 402)';
+      }
+      if (!formData.officeHours.trim()) {
+        tempErrors.officeHours = 'Office Hours are required (e.g. Mon/Wed 2-4 PM)';
+      }
+      if (!formData.specialization.trim()) {
+        tempErrors.specialization = 'Academic Specialization is required (e.g. PhD, AI)';
+      }
     }
     
     setErrors(tempErrors);
@@ -170,8 +192,48 @@ const RegisterPage: React.FC = () => {
       setErrors({ otp: 'Please enter the complete 6-digit verification code' });
       return;
     }
+    if (otpCode !== VALID_OTP) {
+      setErrors({ otp: 'Invalid verification code. Please check your email and try again.' });
+      return;
+    }
     // Proceed to Step 3 (Choose Role)
     setStep(3);
+  };
+
+  // Google sign-up email step handler
+  const handleGoogleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setGoogleEmailError(null);
+    setGooglePasswordError(null);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!googleEmail.trim()) {
+      setGoogleEmailError('Please enter your Google email address');
+      return;
+    }
+    if (!emailRegex.test(googleEmail)) {
+      setGoogleEmailError('Please enter a valid email address');
+      return;
+    }
+    if (!googlePassword.trim()) {
+      setGooglePasswordError('Please enter your account password');
+      return;
+    }
+    if (googlePassword.length < 6) {
+      setGooglePasswordError('Password must be at least 6 characters');
+      return;
+    }
+
+    // Fill the form with Google email details and go to OTP step
+    setFormData(prev => ({
+      ...prev,
+      email: googleEmail,
+      password: googlePassword,
+      confirmPassword: googlePassword,
+    }));
+    setShowGoogleEmail(false);
+    setOtp(['', '', '', '', '', '']);
+    setStep(2);
   };
 
   const handleNextStep3 = () => {
@@ -191,7 +253,10 @@ const RegisterPage: React.FC = () => {
         lastName: formData.lastName,
         studentId: formData.studentId, // holds Student ID or Staff ID
         phoneNumber: formData.phoneNumber,
-        role: selectedRole
+        role: selectedRole,
+        officeNumber: selectedRole === UserRole.Lecturer ? formData.officeNumber : undefined,
+        officeHours: selectedRole === UserRole.Lecturer ? formData.officeHours : undefined,
+        specialization: selectedRole === UserRole.Lecturer ? formData.specialization : undefined
       };
       await registerUser(fullPayload);
       navigate('/login');
@@ -234,10 +299,10 @@ const RegisterPage: React.FC = () => {
 
           <div className="text-center">
             <h3 className="text-sm font-extrabold text-[#F8FAFC] uppercase tracking-wider">
-              Step-by-step Registration
+              Create Your SANS Account
             </h3>
             <p className="text-[11px] text-[#CBD5E1] font-bold mt-1.5 max-w-[240px] leading-relaxed">
-              Verify your email address, establish your credential codes, and complete your tailored academic profile.
+              Sign up with your university email, choose your role, and connect with your classes.
             </p>
           </div>
         </div>
@@ -336,6 +401,7 @@ const RegisterPage: React.FC = () => {
                 <div className="flex justify-center">
                   <button
                     type="button"
+                    onClick={() => setShowGoogleEmail(true)}
                     className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-[#fbfbfe] dark:hover:bg-slate-900 text-slate-655 flex items-center justify-center gap-2.5 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
                   >
                     <img src="/icons8-google.svg" alt="Google" className="w-4 h-4 shrink-0" />
@@ -343,6 +409,68 @@ const RegisterPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Google Email + Password Overlay */}
+              {showGoogleEmail && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+                  <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 space-y-5">
+                    <div className="flex items-center gap-3">
+                      <img src="/icons8-google.svg" alt="Google" className="w-6 h-6" />
+                      <div>
+                        <h3 className="text-lg font-black text-slate-800 tracking-tight">Sign up with Google</h3>
+                        <p className="text-[10px] text-slate-455 font-bold uppercase tracking-wider">Enter your Google account details</p>
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleGoogleEmailSubmit} className="space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Email Address</label>
+                        <input
+                          type="email"
+                          value={googleEmail}
+                          onChange={(e) => { setGoogleEmail(e.target.value); setGoogleEmailError(null); }}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#fbfbfe] text-slate-800 text-xs placeholder:text-slate-400 focus:outline-none focus:border-brand-green/30 transition-all font-semibold shadow-sm"
+                          placeholder="you@example.com"
+                          autoFocus
+                        />
+                        {googleEmailError && (
+                          <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{googleEmailError}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Account Password</label>
+                        <input
+                          type="password"
+                          value={googlePassword}
+                          onChange={(e) => { setGooglePassword(e.target.value); setGooglePasswordError(null); }}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#fbfbfe] text-slate-800 text-xs placeholder:text-slate-400 focus:outline-none focus:border-brand-green/30 transition-all font-semibold shadow-sm"
+                          placeholder="Create a password (min 6 characters)"
+                        />
+                        {googlePasswordError && (
+                          <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{googlePasswordError}</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => { setShowGoogleEmail(false); setGoogleEmailError(null); setGooglePasswordError(null); }}
+                          className="px-5 py-3 border border-slate-200 text-slate-655 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all shadow-sm flex-1 uppercase tracking-wider cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-5 py-3 bg-brand-green hover:bg-brand-green/95 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-premium flex-1 transition-all active:scale-[0.98] cursor-pointer"
+                        >
+                          Send OTP Code
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -356,6 +484,11 @@ const RegisterPage: React.FC = () => {
                 <p className="text-xs text-slate-455 font-bold uppercase tracking-wider">
                   We sent a 6-digit OTP code to {formData.email || 'your email'}
                 </p>
+              </div>
+
+              {/* OTP hint banner */}
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-700 font-semibold text-center leading-relaxed">
+                📧 Demo verification code: <span className="font-black tracking-widest">{VALID_OTP}</span>
               </div>
 
               <form onSubmit={handleVerifyOtp} className="space-y-6">
@@ -569,20 +702,70 @@ const RegisterPage: React.FC = () => {
 
                 {/* TAILORED FIELD: Lecturer Department */}
                 {selectedRole === UserRole.Lecturer && (
-                  <div className="relative animate-fade-in">
-                    <input
-                      type="text"
-                      name="department"
-                      value={formData.department}
-                      onChange={handleChange}
-                      placeholder="Lecturer Department (e.g. Computer Science)"
-                      className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-805 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
-                    />
-                    <Award className="absolute left-4 top-3.5 text-slate-400" size={14} />
-                    {errors.department && (
-                      <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{errors.department}</p>
-                    )}
-                  </div>
+                  <>
+                    <div className="relative animate-fade-in">
+                      <input
+                        type="text"
+                        name="department"
+                        value={formData.department}
+                        onChange={handleChange}
+                        placeholder="Lecturer Department (e.g. Computer Science)"
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-805 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
+                      />
+                      <Award className="absolute left-4 top-3.5 text-slate-400" size={14} />
+                      {errors.department && (
+                        <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{errors.department}</p>
+                      )}
+                    </div>
+
+                    {/* Lecturer Office Number */}
+                    <div className="relative animate-fade-in">
+                      <input
+                        type="text"
+                        name="officeNumber"
+                        value={formData.officeNumber}
+                        onChange={handleChange}
+                        placeholder="Office Number (e.g. Room 402, Block C)"
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-805 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
+                      />
+                      <Building className="absolute left-4 top-3.5 text-slate-400" size={14} />
+                      {errors.officeNumber && (
+                        <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{errors.officeNumber}</p>
+                      )}
+                    </div>
+
+                    {/* Lecturer Office Hours */}
+                    <div className="relative animate-fade-in">
+                      <input
+                        type="text"
+                        name="officeHours"
+                        value={formData.officeHours}
+                        onChange={handleChange}
+                        placeholder="Office Hours (e.g. Mon/Wed 2:00 PM - 4:00 PM)"
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-805 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
+                      />
+                      <Clock className="absolute left-4 top-3.5 text-slate-400" size={14} />
+                      {errors.officeHours && (
+                        <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{errors.officeHours}</p>
+                      )}
+                    </div>
+
+                    {/* Lecturer Specialization */}
+                    <div className="relative animate-fade-in">
+                      <input
+                        type="text"
+                        name="specialization"
+                        value={formData.specialization}
+                        onChange={handleChange}
+                        placeholder="Academic Specialization (e.g. PhD, Artificial Intelligence)"
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-805 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
+                      />
+                      <BookOpen className="absolute left-4 top-3.5 text-slate-400" size={14} />
+                      {errors.specialization && (
+                        <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{errors.specialization}</p>
+                      )}
+                    </div>
+                  </>
                 )}
 
                 {/* Step navigation buttons */}

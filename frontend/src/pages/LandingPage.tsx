@@ -85,15 +85,15 @@ const LandingPage: React.FC = () => {
   ];
 
   const features = [
-    { title: 'Smart Announcements', desc: 'Verified notifications sent directly from convener faculty channels.', icon: MegaphoneIcon },
-    { title: 'Assignment Tracking', desc: 'Dynamic timeline checklists highlighting upcoming deadlines and due items.', icon: Clock },
-    { title: 'Quiz Scheduling', desc: 'Secure evaluation portal allowing professors to schedule exams on active rosters.', icon: Target },
-    { title: 'Timetable Management', desc: 'Personal schedule view displaying lecture locations, hours, and calendar intervals.', icon: Calendar },
-    { title: 'Learning Resources', desc: 'Role-protected file explorer allowing download and download access parameters.', icon: BookOpen },
-    { title: 'Real-Time Notifications', desc: 'Dynamic bell alerts displaying instant system changes and notice approvals.', icon: Bell },
-    { title: 'Class Workspaces', desc: 'Segmented dashboards designed for customized workflows and dashboards.', icon: Layers },
-    { title: 'Secure Messaging', desc: 'Live discussion boards and direct channels linking classmates with instructors.', icon: MessageSquare },
-    { title: 'File Distribution', desc: 'Class reps can upload handouts and lecture design pdf files cleanly.', icon: FileText }
+    { title: 'Smart Announcements', desc: 'Direct notifications published by course lecturers and administrators.', icon: MegaphoneIcon },
+    { title: 'Assignment Tracking', desc: 'A clear list of all your coursework deadlines and submission schedules.', icon: Clock },
+    { title: 'Quiz Scheduling', desc: 'Allows instructors to set and notify students of upcoming quizzes and exams.', icon: Target },
+    { title: 'Timetable Management', desc: 'A unified calendar view of your lectures, tutorials, and exam rooms.', icon: Calendar },
+    { title: 'Learning Resources', desc: 'A shared drive to access handouts, lecture slides, and notes.', icon: BookOpen },
+    { title: 'Real-Time Notifications', desc: 'Immediate notifications for syllabus changes and urgent updates.', icon: Bell },
+    { title: 'Class Workspaces', desc: 'Personalized portals tailored for students, reps, and lecturers.', icon: Layers },
+    { title: 'Secure Messaging', desc: 'Direct question-and-answer threads between classmates and conveners.', icon: MessageSquare },
+    { title: 'File Distribution', desc: 'Class representatives can share study guides and reference materials.', icon: FileText }
   ];
 
   const testimonials = [
@@ -116,52 +116,54 @@ const LandingPage: React.FC = () => {
     >
       
       {/* Sticky Navigation Bar */}
-      <motion.nav 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="fixed top-0 left-0 right-0 z-50 py-4 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-md px-6 transition-all duration-300"
-      >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#1e7a34] to-[#3ea556] text-white flex items-center justify-center font-black text-lg shadow-md shadow-brand-green/20">
-              S
+      <div className="fixed top-4 left-0 right-0 z-50 px-6 flex justify-center w-full">
+        <motion.nav 
+          initial={{ y: -100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-7xl bg-white/75 dark:bg-slate-900/75 backdrop-blur-md border border-white/50 dark:border-slate-800/40 shadow-[0_8px_32px_0_rgba(15,23,42,0.06)] rounded-2xl px-6 py-3.5 transition-all duration-300"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#1e7a34] to-[#3ea556] text-white flex items-center justify-center font-black text-lg shadow-md shadow-brand-green/20">
+                S
+              </div>
+              <span className="text-slate-900 font-extrabold text-lg tracking-tight">SANS</span>
             </div>
-            <span className="text-slate-900 font-extrabold text-lg tracking-tight">SANS</span>
-          </div>
 
-          {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-700">
-            <a href="#features" className="hover:text-[#1e7a34] transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-[#1e7a34] transition-colors">How It Works</a>
-            <a href="#roles" className="hover:text-[#1e7a34] transition-colors">Roles</a>
-            <a href="#why-sans" className="hover:text-[#1e7a34] transition-colors">Benefits</a>
-            <a href="#faq" className="hover:text-[#1e7a34] transition-colors">FAQ</a>
-          </div>
+            {/* Desktop Links */}
+            <div className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-700">
+              <a href="#features" className="hover:text-[#1e7a34] transition-colors">Features</a>
+              <a href="#how-it-works" className="hover:text-[#1e7a34] transition-colors">How It Works</a>
+              <a href="#roles" className="hover:text-[#1e7a34] transition-colors">Roles</a>
+              <a href="#why-sans" className="hover:text-[#1e7a34] transition-colors">Benefits</a>
+              <a href="#faq" className="hover:text-[#1e7a34] transition-colors">FAQ</a>
+            </div>
 
-          {/* Navigation CTAs */}
-          <div className="hidden md:flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/login')}
-              className="text-xs font-extrabold text-slate-700 hover:text-[#1e7a34] transition-colors px-4 py-2 cursor-pointer"
-            >
-              Sign In
+            {/* Navigation CTAs */}
+            <div className="hidden md:flex items-center gap-4">
+              <button 
+                onClick={() => navigate('/login')}
+                className="text-xs font-extrabold text-slate-700 hover:text-[#1e7a34] transition-colors px-4 py-2 cursor-pointer"
+              >
+                Sign In
+              </button>
+              
+              <button 
+                onClick={() => navigate('/register')}
+                className="px-6 py-2.5 bg-[#1e7a34] hover:bg-[#258d3f] text-white rounded-xl text-xs font-black shadow-md shadow-brand-green/10 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer border border-[#2b9b47]"
+              >
+                Get Started
+              </button>
+            </div>
+
+            {/* Mobile Menu Icon */}
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            
-            <button 
-              onClick={() => navigate('/register')}
-              className="px-6 py-2.5 bg-[#1e7a34] hover:bg-[#258d3f] text-white rounded-xl text-xs font-black shadow-md shadow-brand-green/10 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer border border-[#2b9b47]"
-            >
-              Get Started
-            </button>
           </div>
-
-          {/* Mobile Menu Icon */}
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-      </motion.nav>
+        </motion.nav>
+      </div>
 
       {/* Mobile Menu Dropdown */}
       <AnimatePresence>
@@ -170,7 +172,7 @@ const LandingPage: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-[72px] left-6 right-6 bg-white dark:bg-[#0b170e] border border-slate-200/50 dark:border-slate-850 rounded-3xl p-6 shadow-large z-40 space-y-4 md:hidden"
+            className="fixed top-[88px] left-6 right-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-white/50 dark:border-slate-800/40 rounded-3xl p-6 shadow-large z-45 space-y-4 md:hidden"
           >
             <div className="flex flex-col gap-4 text-sm font-bold text-slate-700">
               <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-[#1e7a34] transition-colors py-1">Features</a>
@@ -212,7 +214,7 @@ const LandingPage: React.FC = () => {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#f0f7f2] dark:bg-[#1e7a34]/15 border border-[#1e7a34]/15 rounded-full text-[#1e7a34] dark:text-[#3ea556] text-[10px] font-black uppercase tracking-widest">
             <Sparkles size={12} />
-            <span>Academic Portal Redefined</span>
+            <span>Verified Campus Coordination</span>
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.08]">
@@ -451,7 +453,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="text-left">
             <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Reliable Collaboration</h3>
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1">SANS provides secure academic synchronization pipelines.</p>
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1">SANS ensures real-time schedule alignment and updates.</p>
           </div>
           
           <div className="flex flex-wrap items-center justify-start gap-8 lg:gap-12">
@@ -519,9 +521,9 @@ const LandingPage: React.FC = () => {
       <section id="how-it-works" className="border-t border-slate-200/60 bg-white/40 backdrop-blur-sm py-24 px-6">
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center max-w-xl mx-auto space-y-3">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">How SANS Coordinates Your Term</h2>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Get Started in 4 Easy Steps</h2>
             <p className="text-xs text-slate-600 font-semibold leading-relaxed">
-              Unlock a unified workspace in four steps. Secure onboarding ensures authentication integrity.
+              Set up your profile, join your classes, and stay updated with official announcements.
             </p>
           </div>
 
@@ -548,9 +550,9 @@ const LandingPage: React.FC = () => {
       {/* DASHBOARDS SHOWCASE */}
       <section id="roles" className="py-24 px-6 max-w-7xl mx-auto space-y-16">
         <div className="text-center max-w-2xl mx-auto space-y-4">
-          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Unified Design. Role-Specific Dashboards.</h2>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Tailored Portals for Every Campus Role</h2>
           <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed">
-            Each role uses an application specifically tailored for their daily tasks, using consistent, premium UI design systems.
+            SANS provides clean interfaces optimized for students, instructors, and representatives.
           </p>
         </div>
 
@@ -636,16 +638,16 @@ const LandingPage: React.FC = () => {
       <section id="why-sans" className="border-t border-slate-200/60 bg-white/40 backdrop-blur-sm py-24 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5 text-left space-y-4">
-            <span className="text-xs font-black text-[#1e7a34] dark:text-[#3ea556] uppercase tracking-widest">Engineered for Academic Success</span>
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">Why Institutions Choose SANS</h2>
+            <span className="text-xs font-black text-[#1e7a34] dark:text-[#3ea556] uppercase tracking-widest">Designed to Streamline Communication</span>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">Why Universities Choose SANS</h2>
             <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed">
-              Standard group chats and announcement groups suffer from notice clutter, duplicate requests, and lack of verification. SANS solves this with role boundaries and customized dashboard workspaces.
+              Standard group chats suffer from message noise, unverified info, and duplicate questions. SANS eliminates this confusion with dedicated roles and channels.
             </p>
           </div>
 
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {[
-              { title: 'Zero Notice Clutter', desc: 'No repetitive messages. High-priority announcements are highlighted.' },
+              { title: 'No Message Noise', desc: 'No repetitive messages. High-priority announcements are highlighted.' },
               { title: 'Role Boundaries', desc: 'Students, instructors, and representatives use workspaces matching their tasks.' },
               { title: 'Secure Onboarding', desc: 'Roster validation restricts access to authentic course participants.' },
               { title: 'Centralized Files', desc: 'No hunting through chat histories. Access files on clean Explorer tables.' }

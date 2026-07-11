@@ -40,6 +40,9 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.Property(e => e.PhoneNumber).HasMaxLength(20);
             entity.Property(e => e.StudentId).HasMaxLength(50);
+            entity.Property(e => e.OfficeNumber).HasMaxLength(50);
+            entity.Property(e => e.OfficeHours).HasMaxLength(100);
+            entity.Property(e => e.Specialization).HasMaxLength(200);
             
             entity.HasOne(e => e.Department)
                 .WithMany(d => d.Users)

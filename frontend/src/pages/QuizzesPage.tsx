@@ -135,7 +135,7 @@ const QuizzesPage: React.FC = () => {
                   value={newQuizTitle}
                   onChange={(e) => setNewQuizTitle(e.target.value)}
                   placeholder="e.g. Logic foundations"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand-primary"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1F2937] text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary"
                 />
               </div>
 
@@ -144,10 +144,10 @@ const QuizzesPage: React.FC = () => {
                 <select
                   value={newQuizCourse}
                   onChange={(e) => setNewQuizCourse(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand-primary cursor-pointer"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1F2937] text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary cursor-pointer"
                 >
-                  <option>Artificial Intelligence</option>
-                  <option>Database Systems</option>
+                  <option className="dark:bg-[#1F2937]">Artificial Intelligence</option>
+                  <option className="dark:bg-[#1F2937]">Database Systems</option>
                 </select>
               </div>
             </div>
@@ -159,7 +159,7 @@ const QuizzesPage: React.FC = () => {
                   type="date" 
                   value={newQuizDate}
                   onChange={(e) => setNewQuizDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand-primary cursor-pointer"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1F2937] text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary cursor-pointer"
                 />
               </div>
 
@@ -169,13 +169,13 @@ const QuizzesPage: React.FC = () => {
                   type="number" 
                   value={newQuizPoints}
                   onChange={(e) => setNewQuizPoints(Number(e.target.value))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand-primary"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1F2937] text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary"
                 />
               </div>
             </div>
 
             {/* Dynamic Questions Builder */}
-            <div className="pt-4 border-t border-slate-100 space-y-3">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/40 space-y-3">
               <div className="flex justify-between items-center">
                 <h4 className="text-[10px] font-bold text-slate-405 uppercase tracking-widest">Questionnaire items</h4>
                 <button
@@ -197,7 +197,7 @@ const QuizzesPage: React.FC = () => {
                       value={question}
                       onChange={(e) => handleQuestionChange(idx, e.target.value)}
                       placeholder="Enter question prompt..."
-                      className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary"
+                      className="flex-1 px-4 py-2 bg-slate-50 dark:bg-[#1F2937]/50 text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary"
                     />
                     {questions.length > 1 && (
                       <button
@@ -233,7 +233,7 @@ const QuizzesPage: React.FC = () => {
 
             <div className="space-y-3.5 pt-2">
               {quizzes.map(item => (
-                <div key={item.id} className="p-4 bg-slate-50/50 border border-slate-100 rounded-2xl flex flex-col justify-between shadow-sm">
+                <div key={item.id} className="p-4 bg-slate-50/50 dark:bg-[#1F2937]/50 border border-slate-100 dark:border-slate-800/40 rounded-2xl flex flex-col justify-between shadow-sm">
                   <div>
                     <div className="flex justify-between items-start">
                       <span className="text-[8px] font-extrabold text-brand-primary bg-brand-primary-light px-2 py-0.5 rounded uppercase">
@@ -242,7 +242,7 @@ const QuizzesPage: React.FC = () => {
                     </div>
                     <h4 className="font-extrabold text-slate-805 text-xs mt-2">{item.title}</h4>
                   </div>
-                  <div className="border-t border-slate-100 pt-3 mt-3 flex items-center justify-between text-[9px] text-slate-400 font-bold">
+                  <div className="border-t border-slate-100 dark:border-slate-800/40 pt-3 mt-3 flex items-center justify-between text-[9px] text-slate-400 font-bold">
                     <span>{item.questionsCount} Questions • {item.points} pts</span>
                     <span className="flex items-center gap-1">
                       <Calendar size={10} />

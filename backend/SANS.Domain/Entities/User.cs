@@ -16,6 +16,9 @@ public class User : AuditableEntity
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
     public string? ProfileImageUrl { get; set; }
+    public string? OfficeNumber { get; set; }
+    public string? OfficeHours { get; set; }
+    public string? Specialization { get; set; }
     
     // Navigation properties
     public Department? Department { get; set; }

@@ -51,6 +51,9 @@ export interface User {
   profileImageUrl?: string;
   createdAt: string;
   updatedAt?: string;
+  officeNumber?: string;
+  officeHours?: string;
+  specialization?: string;
 }
 
 export interface Department {
@@ -221,4 +224,7 @@ export interface RegisterRequest {
   studentId: string;
   phoneNumber: string;
   role: UserRole;
+  officeNumber?: string;
+  officeHours?: string;
+  specialization?: string;
 }

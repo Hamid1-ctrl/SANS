@@ -31,6 +31,9 @@
   --shadow-medium: 0 8px 30px rgba(30, 122, 52, 0.03);
   --shadow-large: 0 16px 40px rgba(30, 122, 52, 0.05);
 
+  --color-slate-150: #EEF2F6;
+  --color-slate-855: #1E293B;
+
   --backdrop-blur-xs: 2px;
 }
 
@@ -101,6 +104,35 @@
     }
     & [class*="focus:border-[#1e7a34]"]:focus {
       border-color: #00B37E !important;
+    }
+
+    /* High contrast text overrides for slate color families in dark mode */
+    & [class*="text-slate-950"], & .text-slate-950,
+    & [class*="text-slate-900"], & .text-slate-900,
+    & [class*="text-slate-855"], & .text-slate-855,
+    & [class*="text-slate-850"], & .text-slate-850,
+    & [class*="text-slate-805"], & .text-slate-805,
+    & [class*="text-slate-800"], & .text-slate-800,
+    & [class*="text-slate-750"], & .text-slate-750,
+    & [class*="text-slate-700"], & .text-slate-700,
+    & [class*="text-slate-150"], & .text-slate-150 {
+      color: #F1F5F9 !important;
+    }
+    & [class*="text-slate-655"], & .text-slate-655,
+    & [class*="text-slate-650"], & .text-slate-650,
+    & [class*="text-slate-600"], & .text-slate-600,
+    & [class*="text-slate-505"], & .text-slate-505,
+    & [class*="text-slate-500"], & .text-slate-500,
+    & [class*="text-slate-455"], & .text-slate-455,
+    & [class*="text-slate-450"], & .text-slate-450,
+    & [class*="text-slate-400"], & .text-slate-400 {
+      color: #8E9AA8 !important;
+    }
+
+    /* Dark mode border overrides for slate custom border classes */
+    & [class*="border-slate-855"], & .border-slate-855,
+    & [class*="border-slate-150"], & .border-slate-150 {
+      border-color: rgba(255, 255, 255, 0.05) !important;
     }
   }
 

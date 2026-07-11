@@ -67,7 +67,10 @@ public class AuthService : IAuthService
         string lastName,
         string studentId,
         string phoneNumber,
-        int role)
+        int role,
+        string? officeNumber = null,
+        string? officeHours = null,
+        string? specialization = null)
     {
         if (await _userRepository.EmailExistsAsync(email))
         {
@@ -89,6 +92,9 @@ public class AuthService : IAuthService
             StudentId = studentId,
             PhoneNumber = phoneNumber,
             Role = (UserRole)role,
+            OfficeNumber = officeNumber,
+            OfficeHours = officeHours,
+            Specialization = specialization,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };

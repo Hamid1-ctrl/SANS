@@ -29,7 +29,10 @@ public class AuthController : ControllerBase
                 model.LastName,
                 model.StudentId,
                 model.PhoneNumber,
-                model.Role);
+                model.Role,
+                model.OfficeNumber,
+                model.OfficeHours,
+                model.Specialization);
 
             return Ok(new
             {
@@ -150,7 +153,10 @@ public class AuthController : ControllerBase
             user.DepartmentId,
             user.ProfileImageUrl,
             user.LastLoginAt,
-            user.CreatedAt
+            user.CreatedAt,
+            user.OfficeNumber,
+            user.OfficeHours,
+            user.Specialization
         };
     }
 }
@@ -164,6 +170,9 @@ public class RegisterModel
     public string PhoneNumber { get; set; } = string.Empty;
     public string StudentId { get; set; } = string.Empty;
     public int Role { get; set; }
+    public string? OfficeNumber { get; set; }
+    public string? OfficeHours { get; set; }
+    public string? Specialization { get; set; }
 }
 
 public class LoginModel

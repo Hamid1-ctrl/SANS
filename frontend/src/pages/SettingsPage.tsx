@@ -95,7 +95,7 @@ const SettingsPage: React.FC = () => {
           <form onSubmit={handleSaveNotifications} className="space-y-4">
             
             {/* Email Alerts toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#1F2937]/50 rounded-2xl border border-slate-100 dark:border-slate-800/40">
               <div className="flex items-start gap-3">
                 <Mail className="text-brand-primary mt-0.5" size={16} />
                 <div>
@@ -112,7 +112,7 @@ const SettingsPage: React.FC = () => {
             </div>
 
             {/* Push alerts */}
-            <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#1F2937]/50 rounded-2xl border border-slate-100 dark:border-slate-800/40">
               <div className="flex items-start gap-3">
                 <Smartphone className="text-brand-primary mt-0.5" size={16} />
                 <div>
@@ -129,7 +129,7 @@ const SettingsPage: React.FC = () => {
             </div>
 
             {/* Chat alerts */}
-            <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#1F2937]/50 rounded-2xl border border-slate-100 dark:border-slate-800/40">
               <div className="flex items-start gap-3">
                 <Eye className="text-brand-primary mt-0.5" size={16} />
                 <div>

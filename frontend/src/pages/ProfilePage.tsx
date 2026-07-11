@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Mail, Phone, Hash, Award, ShieldAlert, Camera } from 'lucide-react';
+import { User, Mail, Phone, Hash, Award, ShieldAlert, Camera, Building, Clock, BookOpen } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -18,7 +18,12 @@ const ProfilePage: React.FC = () => {
     { label: 'Email Address', value: user?.email || 'john.doe@sans.edu', icon: Mail },
     { label: 'Student / Staff ID', value: user?.studentId || 'STU102435', icon: Hash },
     { label: 'Phone Number', value: user?.phoneNumber || '+1 (555) 234-5678', icon: Phone },
-    { label: 'Role / Designation', value: getRoleName(user?.role), icon: Award }
+    { label: 'Role / Designation', value: getRoleName(user?.role), icon: Award },
+    ...(user?.role === 1 ? [
+      { label: 'Office Location', value: user?.officeNumber || 'Room 402, Block C', icon: Building },
+      { label: 'Office Hours', value: user?.officeHours || 'Mon/Wed 2:00 PM - 4:00 PM', icon: Clock },
+      { label: 'Specialization', value: user?.specialization || 'PhD, Artificial Intelligence', icon: BookOpen }
+    ] : [])
   ];
 
   return (
@@ -54,7 +59,7 @@ const ProfilePage: React.FC = () => {
             <h2 className="text-xl font-extrabold text-slate-855 dark:text-slate-150">
               {user?.firstName || 'John'} {user?.lastName || 'Doe'}
             </h2>
-            <p className="text-xs font-bold text-slate-450 dark:text-slate-455 uppercase tracking-widest">
+            <p className="text-xs font-bold text-slate-500 dark:text-brand-primary uppercase tracking-widest">
               {getRoleName(user?.role)}
             </p>
             <p className="text-xs text-brand-green font-semibold mt-1">

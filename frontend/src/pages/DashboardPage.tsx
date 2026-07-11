@@ -23,7 +23,8 @@ import {
   Activity,
   Layers,
   Shield,
-  Megaphone
+  Megaphone,
+  Building
 } from 'lucide-react';
 
 interface Announcement {
@@ -908,6 +909,37 @@ const DashboardPage: React.FC = () => {
           <div className="bg-[#f0f7f2] dark:bg-[#1F2937] border border-[#d6eedd] dark:border-[rgba(255,255,255,0.18)] rounded-2xl p-3 text-center">
             <p className="text-[9px] font-bold text-[#1e7a34]/60 uppercase">Students</p>
             <p className="text-base font-black text-[#1e7a34] mt-0.5">102</p>
+          </div>
+        </div>
+
+        {/* Office & Academic Details card */}
+        <div className="bg-[#f0f7f2] dark:bg-[#1F2937] border border-[#d6eedd] dark:border-[rgba(255,255,255,0.18)] rounded-2xl p-4 space-y-3.5 shrink-0">
+          <h4 className="text-[10px] font-bold text-[#1e7a34]/60 dark:text-brand-primary uppercase tracking-widest px-0.5">Office & Academics</h4>
+          
+          <div className="space-y-3">
+            <div className="flex items-start gap-2.5 text-xs">
+              <Building size={14} className="text-[#1e7a34] dark:text-brand-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-450 uppercase">Office Location</p>
+                <p className="font-extrabold text-slate-800 dark:text-[#CBD5E1]">{user?.officeNumber || 'Room 402, Block C'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 text-xs">
+              <Clock size={14} className="text-[#1e7a34] dark:text-brand-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-450 uppercase">Office Hours</p>
+                <p className="font-extrabold text-slate-800 dark:text-[#CBD5E1]">{user?.officeHours || 'Mon/Wed 2:00 PM - 4:00 PM'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 text-xs">
+              <BookOpen size={14} className="text-[#1e7a34] dark:text-brand-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-450 uppercase">Specialization</p>
+                <p className="font-extrabold text-slate-800 dark:text-[#CBD5E1]">{user?.specialization || 'PhD, Artificial Intelligence'}</p>
+              </div>
+            </div>
           </div>
         </div>
 
