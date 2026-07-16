@@ -54,6 +54,8 @@ export interface User {
   officeNumber?: string;
   officeHours?: string;
   specialization?: string;
+  bio?: string;
+  departmentName?: string;
 }
 
 export interface Department {
@@ -227,4 +229,45 @@ export interface RegisterRequest {
   officeNumber?: string;
   officeHours?: string;
   specialization?: string;
+  firebaseUid?: string;
+}
+
+export interface ClassWorkspace {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  lecturerName: string;
+  studentsCount: number;
+}
+
+export interface Bookmark {
+  id: string;
+  entityType: string;
+  entityId: string;
+  createdAt: string;
+  details: {
+    title: string;
+    description: string;
+    publishedAt?: string;
+    isVerified?: boolean;
+    status?: string;
+    tags?: string;
+    dueDate?: string;
+    maxPoints?: number;
+    fileUrl?: string;
+    fileType?: string;
+    fileSize?: number;
+    category?: string;
+  };
+}
+
+export interface Quiz {
+  id: string;
+  title: string;
+  course: string;
+  date: string;
+  points: number;
+  questionsCount: number;
+  classWorkspaceId: string;
 }

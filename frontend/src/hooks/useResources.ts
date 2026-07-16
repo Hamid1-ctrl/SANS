@@ -2,11 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 import type { LearningResource } from '../types';
 
-export const useResources = () => {
+export const useResources = (classId?: string) => {
   return useQuery({
-    queryKey: ['resources'],
+    queryKey: ['resources', classId],
     queryFn: async () => {
-      const response = await api.get<LearningResource[]>('/resources');
+      const response = await api.get<LearningResource[]>('/resources', {
+        params: classId ? { classId } : {}
+      });
       return response.data;
     },
   });

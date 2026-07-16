@@ -14,8 +14,10 @@ public class Schedule : AuditableEntity
     public bool IsRecurring { get; set; }
     public string? RecurrencePattern { get; set; }
     public Guid? InstructorId { get; set; }
+    public Guid? ClassWorkspaceId { get; set; }
     
     // Navigation properties
     public Department Department { get; set; } = null!;
     public User? Instructor { get; set; }
+    public ClassWorkspace? ClassWorkspace { get; set; }
 }

@@ -2,11 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 import type { Announcement } from '../types';
 
-export const useAnnouncements = () => {
+export const useAnnouncements = (classId?: string) => {
   return useQuery({
-    queryKey: ['announcements'],
+    queryKey: ['announcements', classId],
     queryFn: async () => {
-      const response = await api.get<Announcement[]>('/announcements');
+      const response = await api.get<Announcement[]>('/announcements', {
+        params: classId ? { classId } : {}
+      });
       return response.data;
     },
   });

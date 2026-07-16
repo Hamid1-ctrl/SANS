@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar, MapPin, Clock } from 'lucide-react';
 import { useSchedules } from '../hooks/useSchedules';
 import { useAuth } from '../contexts/AuthContext';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../types';
 
@@ -16,7 +17,8 @@ interface EventDetail {
 const SchedulePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data: apiSchedules } = useSchedules();
+  const { activeClass } = useWorkspace();
+  const { data: apiSchedules } = useSchedules(activeClass?.id);
   const [currentMonth] = useState('July 2026');
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 

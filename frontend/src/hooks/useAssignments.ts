@@ -2,11 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 import type { Assignment, AssignmentSubmission } from '../types';
 
-export const useAssignments = () => {
+export const useAssignments = (classId?: string) => {
   return useQuery({
-    queryKey: ['assignments'],
+    queryKey: ['assignments', classId],
     queryFn: async () => {
-      const response = await api.get<Assignment[]>('/assignments');
+      const response = await api.get<Assignment[]>('/assignments', {
+        params: classId ? { classId } : {}
+      });
       return response.data;
     },
   });

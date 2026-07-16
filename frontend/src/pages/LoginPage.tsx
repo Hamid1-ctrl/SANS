@@ -102,12 +102,7 @@ const LoginPage: React.FC = () => {
       setOtpError('Please enter the complete 6-digit verification code');
       return;
     }
-    if (otpCode !== VALID_OTP) {
-      setOtpError('Invalid verification code. Please check your email and try again.');
-      return;
-    }
-
-    // OTP is valid — attempt real backend login with the entered credentials
+    // Accept any 6-digit code (demo code '714529' or any user-entered code) for mock verification
     setIsVerifying(true);
     setOtpError(null);
     try {
@@ -196,7 +191,7 @@ const LoginPage: React.FC = () => {
         {/* Right Side: Form Sign In Panel */}
         <div className="flex-1 p-12 flex flex-col justify-between bg-white">
           <div className="self-end text-xs font-bold text-slate-450">
-            Smart Portal 2.0
+            Smart Portal
           </div>
 
           {/* ─── STEP: Normal Credentials Login ─── */}

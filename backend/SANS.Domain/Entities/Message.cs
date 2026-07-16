@@ -8,6 +8,7 @@ public class Message : AuditableEntity
     public Guid SenderId { get; set; }
     public Guid ReceiverId { get; set; }
     public Guid? ChannelId { get; set; }
+    public Guid? ClassWorkspaceId { get; set; }
     public bool IsRead { get; set; }
     public DateTime? ReadAt { get; set; }
     public string? AttachmentUrl { get; set; }
@@ -16,4 +17,5 @@ public class Message : AuditableEntity
     public User Sender { get; set; } = null!;
     public User Receiver { get; set; } = null!;
     public Channel? Channel { get; set; }
+    public ClassWorkspace? ClassWorkspace { get; set; }
 }

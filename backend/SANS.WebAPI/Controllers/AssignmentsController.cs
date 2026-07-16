@@ -4,6 +4,7 @@ using System.Security.Claims;
 using SANS.Application.Interfaces;
 using SANS.Domain.Entities;
 using SANS.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace SANS.WebAPI.Controllers;
 
@@ -13,17 +14,46 @@ namespace SANS.WebAPI.Controllers;
 public class AssignmentsController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly SANS.Infrastructure.Data.AppDbContext _context;
 
-    public AssignmentsController(IUnitOfWork unitOfWork)
+    public AssignmentsController(IUnitOfWork unitOfWork, SANS.Infrastructure.Data.AppDbContext context)
     {
         _unitOfWork = unitOfWork;
+        _context = context;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? classId)
     {
-        var assignments = await _unitOfWork.Assignments.GetAllAsync();
-        return Ok(assignments.Where(a => !a.IsDeleted));
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
+        {
+            return Unauthorized();
+        }
+
+        var dbUser = await _context.Users.FindAsync(userId);
+        if (dbUser == null) return NotFound();
+
+        var query = _context.Assignments.Where(a => !a.IsDeleted);
+
+        if (classId.HasValue)
+        {
+            query = query.Where(a => a.ClassWorkspaceId == classId.Value);
+        }
+        else
+        {
+            if (dbUser.Role == UserRole.Lecturer)
+            {
+                query = query.Where(a => a.ClassWorkspace != null && a.ClassWorkspace.LecturerId == userId);
+            }
+            else
+            {
+                query = query.Where(a => a.ClassWorkspace != null && a.ClassWorkspace.Students.Any(s => s.Id == userId));
+            }
+        }
+
+        var list = await query.ToListAsync();
+        return Ok(list);
     }
 
     [HttpGet("department/{departmentId}")]
@@ -68,11 +98,40 @@ public class AssignmentsController : ControllerBase
             DepartmentId = model.DepartmentId,
             CreatedByUserId = userId,
             AttachmentUrl = model.AttachmentUrl,
+            ClassWorkspaceId = model.ClassWorkspaceId,
             CreatedAt = DateTime.UtcNow
         };
 
         await _unitOfWork.Assignments.AddAsync(assignment);
-        await _unitOfWork.SaveChangesAsync();
+
+        if (model.ClassWorkspaceId.HasValue)
+        {
+            var classWorkspace = await _context.ClassWorkspaces
+                .Include(c => c.Students)
+                .FirstOrDefaultAsync(c => c.Id == model.ClassWorkspaceId.Value && !c.IsDeleted);
+
+            if (classWorkspace != null)
+            {
+                foreach (var student in classWorkspace.Students)
+                {
+                    var notification = new Notification
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = "New Assignment Published",
+                        Message = $"Assignment '{model.Title}' ({model.MaxPoints} pts) has been uploaded for {classWorkspace.Name}.",
+                        Type = NotificationType.Alert,
+                        Priority = NotificationPriority.Normal,
+                        IsRead = false,
+                        UserId = student.Id,
+                        ClassWorkspaceId = classWorkspace.Id,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _context.Notifications.AddAsync(notification);
+                }
+            }
+        }
+
+        await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = assignment.Id }, assignment);
     }
@@ -188,6 +247,7 @@ public class CreateAssignmentModel
     public int? LateSubmissionPenalty { get; set; }
     public Guid DepartmentId { get; set; }
     public string? AttachmentUrl { get; set; }
+    public Guid? ClassWorkspaceId { get; set; }
 }
 
 public class UpdateAssignmentModel

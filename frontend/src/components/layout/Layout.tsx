@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useTheme } from './ThemeProvider';
 import { 
   Home,
@@ -22,11 +23,19 @@ import {
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
+import { useNotifications, useMarkAllNotificationsAsRead, useMarkNotificationAsRead } from '../../hooks/useNotifications';
+
 const Layout: React.FC = () => {
   const { user, isLoading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const { classes, activeClass, setActiveClass } = useWorkspace();
+  
+  const { data: notificationsList } = useNotifications();
+  const markAllRead = useMarkAllNotificationsAsRead();
+  const markRead = useMarkNotificationAsRead();
+  const unreadCount = Array.isArray(notificationsList) ? notificationsList.filter(n => !n.isRead).length : 0;
   
   // Show / Hide keyboard shortcuts modal helper
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -68,6 +77,7 @@ const Layout: React.FC = () => {
         return [
           { path: '/dashboard', icon: Home, label: 'Home' },
           { path: '/announcements', icon: Megaphone, label: 'Class Notices' },
+          { path: '/quizzes', icon: Beaker, label: 'Quizzes' },
           { path: '/resources', icon: FolderOpen, label: 'Shared Files' },
           { path: '/classes', icon: Users, label: 'My Classes' },
           { path: '/messages', icon: MessageSquare, label: 'Chat' },
@@ -79,6 +89,7 @@ const Layout: React.FC = () => {
           { path: '/dashboard', icon: Home, label: 'Home' },
           { path: '/announcements', icon: Megaphone, label: 'Important Announcements' },
           { path: '/schedule', icon: Calendar, label: 'Timetable' },
+          { path: '/quizzes', icon: Beaker, label: 'Quizzes' },
           { path: '/assignments', icon: Clock, label: 'Deadlines' },
           { path: '/classes', icon: GraduationCap, label: 'My Classes' },
           { path: '/resources', icon: BookOpen, label: 'Resources' },
@@ -189,15 +200,41 @@ const Layout: React.FC = () => {
         {/* Header - transparent & fixed (will never scroll) */}
         <header className="h-16 px-8 flex items-center justify-between z-40 bg-[#f7f6fb]/80 dark:bg-[#0F172A]/80 backdrop-blur-md select-none border-b border-[#ece8f3]/35 dark:border-[rgba(255,255,255,0.18)]/20 shrink-0">
           
-          {/* Breadcrumb Navigation Trail */}
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 dark:text-[#94A3B8]">
-            <span>SANS</span>
-            <span>/</span>
-            {getBreadcrumbs().map((b, i, arr) => (
-              <span key={i} className={i === arr.length - 1 ? 'text-slate-800 dark:text-[#CBD5E1] font-extrabold' : ''}>
-                {b}
-              </span>
-            ))}
+          {/* Breadcrumb Navigation Trail & Workspace Selector */}
+          <div className="flex items-center gap-5 text-xs font-semibold text-slate-400 dark:text-[#94A3B8]">
+            <div className="flex items-center gap-2">
+              <span>SANS</span>
+              <span>/</span>
+              {getBreadcrumbs().map((b, i, arr) => (
+                <span key={i} className={i === arr.length - 1 ? 'text-slate-800 dark:text-[#CBD5E1] font-extrabold' : ''}>
+                  {b}
+                </span>
+              ))}
+            </div>
+
+            {/* Class Workspace Selector Dropdown */}
+            <div className="relative pl-2 border-l border-slate-200 dark:border-slate-800">
+              <select
+                value={activeClass?.id || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'all') {
+                    setActiveClass(null);
+                  } else {
+                    const cls = classes.find(c => c.id === val);
+                    if (cls) setActiveClass(cls);
+                  }
+                }}
+                className="pl-3 pr-8 py-1.5 bg-[#f0f7f2] dark:bg-slate-800 border border-[#d6eedd] dark:border-slate-700/60 rounded-xl text-[10px] font-bold text-slate-700 dark:text-[#CBD5E1] focus:outline-none cursor-pointer shadow-sm hover:border-[#1e7a34]/30 dark:hover:border-slate-600 transition-all appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231e7a34%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-[position:right_10px_center] bg-no-repeat"
+              >
+                <option value="all">🌐 All Classes</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    📚 {cls.code} - {cls.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Right Header Navigation Controls */}
@@ -209,34 +246,55 @@ const Layout: React.FC = () => {
                 className="relative p-1.5 text-slate-455 dark:text-[#94A3B8] hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer"
               >
                 <Bell size={16} />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#d946ef] rounded-full"></span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#d946ef] rounded-full animate-pulse"></span>
+                )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#273449] border border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] rounded-2xl shadow-large p-4 z-50 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-[rgba(255,255,255,0.18)] pb-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inbox Notifications</span>
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-large p-4 z-50 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                    <span className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest">Inbox Notifications</span>
                     <button 
-                      onClick={() => setShowNotifications(false)}
+                      onClick={async () => {
+                        await markAllRead.mutateAsync();
+                        setShowNotifications(false);
+                      }}
                       className="text-[9px] font-bold text-brand-primary hover:underline cursor-pointer"
                     >
                       Clear all
                     </button>
                   </div>
                   <div className="space-y-2.5 max-h-60 overflow-y-auto">
-                    {[
-                      { title: 'Notice approved by Faculty', time: '10 mins ago', desc: 'Dr. Jenkins approved Syllabus Update notice.' },
-                      { title: 'New assignment deadline', time: '1 hour ago', desc: 'Software Engineering Assignment 4 published.' },
-                      { title: 'Meeting scheduled', time: '2 hours ago', desc: 'Dean liaison meeting booked for Thursday.' }
-                    ].map((n, idx) => (
-                      <div key={idx} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-xl transition-colors text-left">
-                        <div className="flex justify-between items-start">
-                          <h4 className="text-xs font-bold text-slate-800 dark:text-[#CBD5E1]">{n.title}</h4>
-                          <span className="text-[8px] text-slate-400 font-bold shrink-0">{n.time}</span>
+                    {!Array.isArray(notificationsList) || notificationsList.length === 0 ? (
+                      <p className="text-[10px] font-semibold text-slate-400 text-center py-4">Your inbox is clean!</p>
+                    ) : (
+                      notificationsList.slice(0, 10).map((n) => (
+                        <div 
+                          key={n.id} 
+                          onClick={async () => {
+                            await markRead.mutateAsync(n.id);
+                            setShowNotifications(false);
+                            if (n.title.toLowerCase().includes('quiz')) {
+                              navigate('/quizzes');
+                            } else if (n.title.toLowerCase().includes('assignment')) {
+                              navigate('/assignments');
+                            } else if (n.title.toLowerCase().includes('announcement')) {
+                              navigate('/announcements');
+                            } else if (n.title.toLowerCase().includes('session')) {
+                              navigate('/schedule');
+                            }
+                          }}
+                          className={`p-2 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-xl transition-colors text-left cursor-pointer border-l-2 ${n.isRead ? 'border-transparent opacity-60' : 'border-brand-primary font-semibold'}`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <h4 className="text-xs font-bold text-slate-800 dark:text-[#CBD5E1]">{n.title}</h4>
+                            <span className="text-[8px] text-slate-400 font-bold shrink-0">{new Date(n.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] leading-snug mt-0.5">{n.message}</p>
                         </div>
-                        <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] leading-snug mt-0.5">{n.desc}</p>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               )}

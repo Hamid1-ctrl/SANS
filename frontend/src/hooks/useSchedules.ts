@@ -2,11 +2,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 import type { Schedule } from '../types';
 
-export const useSchedules = () => {
+export const useSchedules = (classId?: string) => {
   return useQuery({
-    queryKey: ['schedules'],
+    queryKey: ['schedules', classId],
     queryFn: async () => {
-      const response = await api.get<Schedule[]>('/schedules');
+      const response = await api.get<Schedule[]>('/schedules', {
+        params: classId ? { classId } : {}
+      });
+      return response.data;
+    },
+  });
+};
+
+export const useCalendarEvents = (classId?: string) => {
+  return useQuery({
+    queryKey: ['calendar', classId],
+    queryFn: async () => {
+      const response = await api.get<any[]>('/schedules/calendar', {
+        params: classId ? { classId } : {}
+      });
       return response.data;
     },
   });

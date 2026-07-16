@@ -15,9 +15,11 @@ public class Notification : AuditableEntity
     public Guid? AnnouncementId { get; set; }
     public Guid? AssignmentId { get; set; }
     public string? ActionUrl { get; set; }
+    public Guid? ClassWorkspaceId { get; set; }
     
     // Navigation properties
     public User User { get; set; } = null!;
     public Announcement? Announcement { get; set; }
     public Assignment? Assignment { get; set; }
+    public ClassWorkspace? ClassWorkspace { get; set; }
 }

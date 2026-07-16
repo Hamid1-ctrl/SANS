@@ -24,6 +24,10 @@ public class AppDbContext : DbContext
     public DbSet<Schedule> Schedules { get; set; }
     public DbSet<Exam> Exams { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<ClassWorkspace> ClassWorkspaces { get; set; }
+    public DbSet<Bookmark> Bookmarks { get; set; }
+    public DbSet<AnnouncementEngagement> AnnouncementEngagements { get; set; }
+    public DbSet<Quiz> Quizzes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +39,8 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Email).IsUnique();
             entity.HasIndex(e => e.StudentId).IsUnique();
+            entity.HasIndex(e => e.FirebaseUid).IsUnique();
+            entity.Property(e => e.FirebaseUid).HasMaxLength(128);
             entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
@@ -275,6 +281,101 @@ public class AppDbContext : DbContext
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+
+        // ClassWorkspace configuration
+        modelBuilder.Entity<ClassWorkspace>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(20);
+            entity.HasIndex(e => e.Code).IsUnique();
+
+            entity.HasOne(e => e.Lecturer)
+                .WithMany()
+                .HasForeignKey(e => e.LecturerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(e => e.Students)
+                .WithMany(u => u.EnrolledClasses)
+                .UsingEntity(j => j.ToTable("ClassEnrollments"));
+        });
+
+        // Bookmark configuration
+        modelBuilder.Entity<Bookmark>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // AnnouncementEngagement configuration
+        modelBuilder.Entity<AnnouncementEngagement>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ActionType).IsRequired().HasMaxLength(50);
+            
+            entity.HasOne(e => e.Announcement)
+                .WithMany(a => a.Engagements)
+                .HasForeignKey(e => e.AnnouncementId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Modify existing entity relations to include ClassWorkspace nullable foreign key
+        modelBuilder.Entity<Announcement>()
+            .HasOne(e => e.ClassWorkspace)
+            .WithMany(c => c.Announcements)
+            .HasForeignKey(e => e.ClassWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Assignment>()
+            .HasOne(e => e.ClassWorkspace)
+            .WithMany(c => c.Assignments)
+            .HasForeignKey(e => e.ClassWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<LearningResource>()
+            .HasOne(e => e.ClassWorkspace)
+            .WithMany(c => c.LearningResources)
+            .HasForeignKey(e => e.ClassWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Schedule>()
+            .HasOne(e => e.ClassWorkspace)
+            .WithMany(c => c.Schedules)
+            .HasForeignKey(e => e.ClassWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Channel>()
+            .HasOne(e => e.ClassWorkspace)
+            .WithMany(c => c.Channels)
+            .HasForeignKey(e => e.ClassWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Notification>()
+            .HasOne(e => e.ClassWorkspace)
+            .WithMany()
+            .HasForeignKey(e => e.ClassWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Quiz>()
+            .HasOne(e => e.ClassWorkspace)
+            .WithMany(c => c.Quizzes)
+            .HasForeignKey(e => e.ClassWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Message>()
+            .HasOne(e => e.ClassWorkspace)
+            .WithMany()
+            .HasForeignKey(e => e.ClassWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Seed initial Department
         var departmentId = Guid.Parse("11111111-1111-1111-1111-111111111111");

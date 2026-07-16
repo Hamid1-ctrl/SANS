@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../components/layout/ThemeProvider';
+
 import { 
   ArrowRight, 
   Shield, 
@@ -54,7 +54,6 @@ const CountUp: React.FC<{ to: number; duration?: number }> = ({ to, duration = 2
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { theme } = useTheme();
   const [activeRole, setActiveRole] = useState<'student' | 'lecturer' | 'rep'>('student');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);

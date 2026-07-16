@@ -20,7 +20,7 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? classId)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
@@ -29,7 +29,15 @@ public class NotificationsController : ControllerBase
         }
 
         var notifications = await _unitOfWork.Notifications.GetByUserIdAsync(userId);
-        return Ok(notifications.Where(n => !n.IsDeleted));
+        var query = notifications.Where(n => !n.IsDeleted);
+
+        if (classId.HasValue)
+        {
+            query = query.Where(n => n.ClassWorkspaceId == classId.Value);
+        }
+
+        var list = query.OrderByDescending(n => n.CreatedAt).ToList();
+        return Ok(list);
     }
 
     [HttpGet("unread")]

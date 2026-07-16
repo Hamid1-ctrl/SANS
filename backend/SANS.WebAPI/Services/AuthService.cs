@@ -70,10 +70,27 @@ public class AuthService : IAuthService
         int role,
         string? officeNumber = null,
         string? officeHours = null,
-        string? specialization = null)
+        string? specialization = null,
+        string? firebaseUid = null)
     {
-        if (await _userRepository.EmailExistsAsync(email))
+        // Check if this email already exists in DB
+        var existingUser = await _userRepository.GetByEmailAsync(email);
+        if (existingUser != null)
         {
+            // If a fresh Firebase UID is provided and different from the stored one,
+            // this is a re-registration after account self-healing — re-link and return.
+            if (!string.IsNullOrEmpty(firebaseUid) && existingUser.FirebaseUid != firebaseUid)
+            {
+                existingUser.FirebaseUid = firebaseUid;
+                existingUser.LastLoginAt = DateTime.UtcNow;
+                await _userRepository.UpdateAsync(existingUser);
+                await _unitOfWork.SaveChangesAsync();
+
+                var relinkAccessToken = GenerateAccessToken(existingUser);
+                var relinkRefreshToken = await GenerateRefreshTokenAsync(existingUser);
+                await _unitOfWork.SaveChangesAsync();
+                return (relinkAccessToken, relinkRefreshToken.Token, existingUser);
+            }
             throw new InvalidOperationException("Email already exists");
         }
 
@@ -86,7 +103,7 @@ public class AuthService : IAuthService
         {
             Id = Guid.NewGuid(),
             Email = email,
-            PasswordHash = await HashPasswordAsync(password),
+            PasswordHash = string.IsNullOrEmpty(password) ? string.Empty : await HashPasswordAsync(password),
             FirstName = firstName,
             LastName = lastName,
             StudentId = studentId,
@@ -95,6 +112,7 @@ public class AuthService : IAuthService
             OfficeNumber = officeNumber,
             OfficeHours = officeHours,
             Specialization = specialization,
+            FirebaseUid = firebaseUid,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -104,6 +122,7 @@ public class AuthService : IAuthService
 
         var accessToken = GenerateAccessToken(user);
         var refreshToken = await GenerateRefreshTokenAsync(user);
+        await _unitOfWork.SaveChangesAsync();
 
         return (accessToken, refreshToken.Token, user);
     }

@@ -19,6 +19,9 @@ public class User : AuditableEntity
     public string? OfficeNumber { get; set; }
     public string? OfficeHours { get; set; }
     public string? Specialization { get; set; }
+    public string? Bio { get; set; }
+    public string? DepartmentName { get; set; }
+    public string? FirebaseUid { get; set; }
     
     // Navigation properties
     public Department? Department { get; set; }
@@ -27,4 +30,5 @@ public class User : AuditableEntity
     public ICollection<AssignmentSubmission> AssignmentSubmissions { get; set; } = new List<AssignmentSubmission>();
     public ICollection<Message> SentMessages { get; set; } = new List<Message>();
     public ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
+    public ICollection<ClassWorkspace> EnrolledClasses { get; set; } = new List<ClassWorkspace>();
 }

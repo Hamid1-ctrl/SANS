@@ -32,7 +32,8 @@ public class AuthController : ControllerBase
                 model.Role,
                 model.OfficeNumber,
                 model.OfficeHours,
-                model.Specialization);
+                model.Specialization,
+                model.FirebaseUid);
 
             return Ok(new
             {
@@ -173,6 +174,7 @@ public class RegisterModel
     public string? OfficeNumber { get; set; }
     public string? OfficeHours { get; set; }
     public string? Specialization { get; set; }
+    public string? FirebaseUid { get; set; }
 }
 
 public class LoginModel

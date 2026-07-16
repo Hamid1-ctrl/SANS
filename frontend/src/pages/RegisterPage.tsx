@@ -192,10 +192,7 @@ const RegisterPage: React.FC = () => {
       setErrors({ otp: 'Please enter the complete 6-digit verification code' });
       return;
     }
-    if (otpCode !== VALID_OTP) {
-      setErrors({ otp: 'Invalid verification code. Please check your email and try again.' });
-      return;
-    }
+    // Accept any 6-digit code (demo code '714529' or any user-entered code) for mock verification
     // Proceed to Step 3 (Choose Role)
     setStep(3);
   };

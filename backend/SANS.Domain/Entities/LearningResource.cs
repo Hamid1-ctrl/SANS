@@ -14,8 +14,10 @@ public class LearningResource : AuditableEntity
     public Guid DepartmentId { get; set; }
     public Guid UploadedByUserId { get; set; }
     public int DownloadCount { get; set; }
+    public Guid? ClassWorkspaceId { get; set; }
     
     // Navigation properties
     public Department Department { get; set; } = null!;
     public User UploadedByUser { get; set; } = null!;
+    public ClassWorkspace? ClassWorkspace { get; set; }
 }
