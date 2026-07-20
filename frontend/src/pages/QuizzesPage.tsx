@@ -5,11 +5,9 @@ import { useQuizzes, useCreateQuiz, useDeleteQuiz } from '../hooks/useQuizzes';
 import { UserRole } from '../types';
 import { 
   Beaker, 
-  Plus, 
   Trash2, 
   Calendar, 
   CheckCircle2, 
-  ShieldAlert, 
   ArrowRight,
   BookOpen
 } from 'lucide-react';
@@ -26,27 +24,8 @@ const QuizzesPage: React.FC = () => {
   const [newQuizClassId, setNewQuizClassId] = useState(activeClass?.id || '');
   const [newQuizDate, setNewQuizDate] = useState('');
   const [newQuizPoints, setNewQuizPoints] = useState(10);
-  
-  // Questions builder state
-  const [questions, setQuestions] = useState<string[]>(['']);
 
   const isLecturer = user?.role === UserRole.Lecturer;
-
-  const handleAddQuestionField = () => {
-    setQuestions([...questions, '']);
-  };
-
-  const handleQuestionChange = (index: number, val: string) => {
-    const copy = [...questions];
-    copy[index] = val;
-    setQuestions(copy);
-  };
-
-  const handleRemoveQuestion = (index: number) => {
-    const copy = [...questions];
-    copy.splice(index, 1);
-    setQuestions(copy);
-  };
 
   const handleCreateQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,13 +37,12 @@ const QuizzesPage: React.FC = () => {
         title: newQuizTitle,
         date: newQuizDate,
         points: Number(newQuizPoints),
-        questionsCount: questions.filter(q => q.trim() !== '').length || 5,
-        classWorkspaceId: targetClassId
+        questionsCount: 5,
+        classWorkspaceId: targetClassId === 'global' ? '00000000-0000-0000-0000-000000000000' : targetClassId
       });
 
       setNewQuizTitle('');
       setNewQuizDate('');
-      setQuestions(['']);
       setSuccessMsg('Success: Academic Quiz Scheduled!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
@@ -135,6 +113,7 @@ const QuizzesPage: React.FC = () => {
                     className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary cursor-pointer"
                   >
                     <option value="">Select a class...</option>
+                    <option value="global" className="dark:bg-[#1F2937] font-bold text-[#1e7a34]">University Hub (Global)</option>
                     {classes.map(cls => (
                       <option key={cls.id} value={cls.id} className="dark:bg-[#1F2937]">
                         {cls.code} - {cls.name}
@@ -163,45 +142,6 @@ const QuizzesPage: React.FC = () => {
                     onChange={(e) => setNewQuizPoints(Number(e.target.value))}
                     className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary"
                   />
-                </div>
-              </div>
-
-              {/* Dynamic Questions Builder */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/40 space-y-3">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-[10px] font-bold text-slate-455 dark:text-slate-500 uppercase tracking-widest">Questionnaire items</h4>
-                  <button
-                    type="button"
-                    onClick={handleAddQuestionField}
-                    className="px-3 py-1.5 bg-brand-primary-light dark:bg-brand-primary/10 text-brand-primary rounded-xl text-[10px] font-extrabold uppercase flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus size={11} />
-                    <span>Add Question</span>
-                  </button>
-                </div>
-
-                <div className="space-y-2.5">
-                  {questions.map((question, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-bold w-6">{idx + 1}.</span>
-                      <input 
-                        type="text"
-                        value={question}
-                        onChange={(e) => handleQuestionChange(idx, e.target.value)}
-                        placeholder="Enter question prompt..."
-                        className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-900/60 text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary"
-                      />
-                      {questions.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveQuestion(idx)}
-                          className="p-2 text-slate-400 hover:text-red-500 rounded-xl cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
                 </div>
               </div>
 

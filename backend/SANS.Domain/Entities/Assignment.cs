@@ -14,13 +14,15 @@ public class Assignment : AuditableEntity
     public AssignmentStatus Status { get; set; }
     public bool AllowLateSubmission { get; set; }
     public decimal? LateSubmissionPenalty { get; set; }
-    public Guid DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
     public Guid CreatedByUserId { get; set; }
     public string? AttachmentUrl { get; set; }
+    public string? AttachmentFileName { get; set; }
+    public long? AttachmentFileSize { get; set; }
     public Guid? ClassWorkspaceId { get; set; }
     
     // Navigation properties
-    public Department Department { get; set; } = null!;
+    public Department? Department { get; set; }
     public User CreatedByUser { get; set; } = null!;
     public ClassWorkspace? ClassWorkspace { get; set; }
     public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();

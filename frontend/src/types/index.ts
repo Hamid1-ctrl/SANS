@@ -7,6 +7,15 @@ export const UserRole = {
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
+export const AccountStatus = {
+  Pending: 0,
+  Verified: 1,
+  Rejected: 2,
+  Suspended: 3,
+} as const;
+
+export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus];
+
 export const AssignmentStatus = {
   Draft: 0,
   Published: 1,
@@ -45,6 +54,7 @@ export interface User {
   phoneNumber: string;
   studentId: string;
   role: UserRole;
+  status: AccountStatus;
   departmentId?: string;
   isActive: boolean;
   lastLoginAt?: string;
@@ -81,6 +91,13 @@ export interface Announcement {
   viewCount: number;
   createdAt: string;
   updatedAt?: string;
+  classWorkspaceId?: string;
+  isVerified?: boolean;
+  status?: string;
+  tags?: string;
+  createdBy?: string;
+  priority?: string;   // "Urgent" | "Important" | "General"
+  category?: string;   // "General" | "Exam" | "Assignment" | "Event" | "Resource" | "Meeting"
 }
 
 export interface Notification {
@@ -113,8 +130,12 @@ export interface Assignment {
   departmentId: string;
   createdById: string;
   attachmentUrl?: string;
+  attachmentFileName?: string;  // Original filename for display
+  attachmentFileSize?: number;  // File size in bytes for display
   createdAt: string;
   updatedAt?: string;
+  classWorkspaceId?: string;
+  createdBy?: string;           // Display name of creator
 }
 
 export interface AssignmentSubmission {
@@ -148,6 +169,7 @@ export interface LearningResource {
   downloadCount: number;
   createdAt: string;
   updatedAt?: string;
+  classWorkspaceId?: string;
 }
 
 export interface Message {
@@ -188,6 +210,7 @@ export interface Schedule {
   instructorId?: string;
   createdAt: string;
   updatedAt?: string;
+  classWorkspaceId?: string;
 }
 
 export interface Exam {
@@ -238,7 +261,15 @@ export interface ClassWorkspace {
   code: string;
   description: string;
   lecturerName: string;
+  lecturerId?: string;
+  hasLecturer?: boolean;
   studentsCount: number;
+  courseCode?: string;
+  departmentText?: string;
+  academicLevel?: string;
+  semester?: string;
+  createdByUserId?: string;
+  createdBy?: string;          // Name of creator (for available classes view)
 }
 
 export interface Bookmark {

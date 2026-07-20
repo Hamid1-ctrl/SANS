@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using SANS.Application.Interfaces.Services;
 using SANS.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace SANS.WebAPI.Controllers;
 
@@ -17,9 +18,25 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [HttpGet("test-db")]
+    [AllowAnonymous]
+    public async Task<IActionResult> TestDb()
+    {
+        var db = HttpContext.RequestServices.GetRequiredService<SANS.Infrastructure.Data.AppDbContext>();
+        var depts = await db.Departments.Select(d => new { d.Id, d.Name }).ToListAsync();
+        var classes = await db.ClassWorkspaces.Select(c => new { c.Id, c.Name, c.LecturerId }).ToListAsync();
+        var users = await db.Users.Select(u => new { u.Id, u.FirstName, u.Email, u.Role, u.DepartmentId }).ToListAsync();
+        return Ok(new { depts, classes, users });
+    }
+
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterModel model)
     {
+        if (model.Role == 2) // UserRole.ClassRepresentative
+        {
+            return BadRequest(new { Message = "Registration as a Course Representative is not permitted. Please register as a Student first." });
+        }
+
         try
         {
             var (accessToken, refreshToken, user) = await _authService.RegisterAsync(
@@ -150,6 +167,7 @@ public class AuthController : ControllerBase
             user.PhoneNumber,
             user.StudentId,
             Role = (int)user.Role,
+            Status = (int)user.Status,
             user.IsActive,
             user.DepartmentId,
             user.ProfileImageUrl,

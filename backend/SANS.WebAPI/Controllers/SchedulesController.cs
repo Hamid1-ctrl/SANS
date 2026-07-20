@@ -46,14 +46,8 @@ public class SchedulesController : ControllerBase
         }
         else
         {
-            if (dbUser.Role == UserRole.Lecturer)
-            {
-                query = query.Where(s => s.ClassWorkspace != null && s.ClassWorkspace.LecturerId == userId);
-            }
-            else
-            {
-                query = query.Where(s => s.ClassWorkspace != null && s.ClassWorkspace.Students.Any(stu => stu.Id == userId));
-            }
+            // Schedules are class-specific and only shown inside a class workspace
+            return Ok(new List<Schedule>());
         }
 
         var list = await query.ToListAsync();
@@ -165,6 +159,36 @@ public class SchedulesController : ControllerBase
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
         {
             return Unauthorized();
+        }
+
+        var dbUser = await _context.Users.FindAsync(userId);
+        if (dbUser == null) return NotFound();
+
+        // Enforce role-based access control
+        if (dbUser.Role != UserRole.Lecturer && dbUser.Role != UserRole.ClassRepresentative && dbUser.Role != UserRole.Administrator)
+        {
+            return Forbid();
+        }
+
+        // Prevent pending/suspended lecturers from scheduling sessions
+        if (dbUser.Role == UserRole.Lecturer && dbUser.Status != AccountStatus.Verified)
+        {
+            return Forbid();
+        }
+
+        if (model.ClassWorkspaceId.HasValue)
+        {
+            var classWorkspace = await _context.ClassWorkspaces.FindAsync(model.ClassWorkspaceId.Value);
+            if (classWorkspace == null || classWorkspace.IsDeleted)
+            {
+                return NotFound(new { Message = "Class workspace not found" });
+            }
+
+            // Verify representative scope
+            if (dbUser.Role == UserRole.ClassRepresentative && classWorkspace.ClassRepresentativeId != userId)
+            {
+                return Forbid();
+            }
         }
 
         var schedule = new Schedule

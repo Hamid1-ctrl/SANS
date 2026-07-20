@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Download, Folder, SlidersHorizontal, ChevronRight, UploadCloud, X, FileText, CheckCircle, AlertCircle, BookOpen, Trash2, CheckCircle2 } from 'lucide-react';
+import { Download, UploadCloud, CheckCircle, AlertCircle, Trash2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useResources } from '../hooks/useResources';
@@ -43,9 +43,9 @@ const ResourcesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const isStudent = user?.role === UserRole.Student;
   const { data: apiResources, isLoading } = useResources(activeClass?.id);
-  const [selectedFolder, setSelectedFolder] = useState('all');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [resScope, setResScope] = useState<'class' | 'global'>('class');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -74,8 +74,9 @@ const ResourcesPage: React.FC = () => {
   }, []);
 
   const uploadFileToServer = async (file: File, uploadId: string) => {
-    const targetClassId = activeClass?.id || (classes.length > 0 ? classes[0].id : '');
-    if (!targetClassId) {
+    const isGlobal = user?.role === UserRole.ClassRepresentative ? false : resScope === 'global';
+    const targetClassId = isGlobal ? undefined : (activeClass?.id || (Array.isArray(classes) && classes.length > 0 ? classes[0].id : ''));
+    if (!isGlobal && !targetClassId) {
       setUploadedFiles(prev => prev.map(f => f.id === uploadId ? { ...f, status: 'error' } : f));
       return;
     }
@@ -85,9 +86,13 @@ const ResourcesPage: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', file.name.substring(0, file.name.lastIndexOf('.')) || file.name);
-      formData.append('description', 'Uploaded via SANS resources manager.');
+      formData.append('description', isGlobal ? 'Uploaded globally to University Hub.' : 'Uploaded via SANS resources manager.');
       formData.append('category', 'Document');
-      formData.append('classWorkspaceId', targetClassId);
+      if (isGlobal) {
+        formData.append('isGlobal', 'true');
+      } else if (targetClassId) {
+        formData.append('classWorkspaceId', targetClassId);
+      }
 
       // Show upload progress while request is in flight
       setUploadedFiles(prev => prev.map(f => f.id === uploadId ? { ...f, progress: 30 } : f));
@@ -241,6 +246,20 @@ const ResourcesPage: React.FC = () => {
                 <span>Upload Resources</span>
               </h3>
               
+              {user?.role !== UserRole.ClassRepresentative && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Target Location</label>
+                  <select 
+                    value={resScope} 
+                    onChange={(e) => setResScope(e.target.value as 'class' | 'global')}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-805 dark:text-white cursor-pointer"
+                  >
+                    <option value="class">This Course Workspace Only ({activeClass?.code || 'None Selected'})</option>
+                    <option value="global">University Hub (Visible to all students)</option>
+                  </select>
+                </div>
+              )}
+
               <div 
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}

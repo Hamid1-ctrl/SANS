@@ -12,6 +12,7 @@ public class User : AuditableEntity
     public string PhoneNumber { get; set; } = string.Empty;
     public string StudentId { get; set; } = string.Empty;
     public UserRole Role { get; set; }
+    public AccountStatus Status { get; set; } = AccountStatus.Verified;
     public Guid? DepartmentId { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }

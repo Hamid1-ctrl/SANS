@@ -47,17 +47,15 @@ public class AnnouncementsController : ControllerBase
         }
         else
         {
-            if (dbUser.Role == UserRole.Lecturer)
-            {
-                query = query.Where(a => a.ClassWorkspace != null && a.ClassWorkspace.LecturerId == userId);
-            }
-            else
-            {
-                query = query.Where(a => a.ClassWorkspace != null && a.ClassWorkspace.Students.Any(s => s.Id == userId));
-            }
+            // University Hub context: return only global/university announcements
+            query = query.Where(a => a.IsGlobal || a.ClassWorkspaceId == null);
         }
 
-        var list = await query.OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.CreatedAt).ToListAsync();
+        var list = await query
+            .OrderByDescending(a => a.IsPinned)
+            .ThenBy(a => a.Priority == "Urgent" ? 0 : a.Priority == "Important" ? 1 : 2)
+            .ThenByDescending(a => a.CreatedAt)
+            .ToListAsync();
         return Ok(list);
     }
 
@@ -118,6 +116,18 @@ public class AnnouncementsController : ControllerBase
         var dbUser = await _context.Users.FindAsync(userId);
         if (dbUser == null) return NotFound();
 
+        // Enforce verified status for lecturers
+        if (dbUser.Role == UserRole.Lecturer && dbUser.Status != AccountStatus.Verified)
+        {
+            return Forbid();
+        }
+
+        // Prevent Course Representatives from posting global university announcements
+        if (dbUser.Role == UserRole.ClassRepresentative && model.IsGlobal)
+        {
+            return Forbid();
+        }
+
         // Default verification settings based on role
         var status = "General";
         var isVerified = false;
@@ -131,6 +141,35 @@ public class AnnouncementsController : ControllerBase
         {
             status = "PendingApproval";
             isVerified = false;
+        }
+
+        if (model.IsGlobal)
+        {
+            var announcement = new Announcement
+            {
+                Id = Guid.NewGuid(),
+                Title = model.Title,
+                Content = model.Content,
+                IsGlobal = true,
+                DepartmentId = model.DepartmentId,
+                TargetRoleId = !string.IsNullOrEmpty(model.TargetRoleId) ? Guid.Parse(model.TargetRoleId) : null,
+                PublishedAt = model.PublishedAt ?? DateTime.UtcNow,
+                ExpiresAt = model.ExpiresAt,
+                IsPinned = model.IsPinned,
+                ClassWorkspaceId = null,
+                IsVerified = isVerified,
+                Status = status,
+                Tags = model.Tags,
+                Priority = model.Priority ?? "General",
+                Category = model.Category ?? "General",
+                CreatedBy = $"{dbUser.FirstName} {dbUser.LastName}",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.Announcements.AddAsync(announcement);
+            await _context.SaveChangesAsync();
+
+            return Ok(announcement);
         }
 
         var targetClassIds = new List<Guid>();
@@ -158,6 +197,12 @@ public class AnnouncementsController : ControllerBase
 
             if (classWorkspace == null) continue;
 
+            // Security: Enforce class-scoped Course Representative checks
+            if (dbUser.Role == UserRole.ClassRepresentative && classWorkspace.ClassRepresentativeId != userId)
+            {
+                return Forbid();
+            }
+
             var announcement = new Announcement
             {
                 Id = Guid.NewGuid(),
@@ -173,6 +218,8 @@ public class AnnouncementsController : ControllerBase
                 IsVerified = isVerified,
                 Status = status,
                 Tags = model.Tags,
+                Priority = model.Priority ?? "General",
+                Category = model.Category ?? "General",
                 ViewCount = 0,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = $"{dbUser.FirstName} {dbUser.LastName}"
@@ -187,10 +234,12 @@ public class AnnouncementsController : ControllerBase
                 var notification = new Notification
                 {
                     Id = Guid.NewGuid(),
-                    Title = "New Announcement",
+                    Title = model.Priority == "Urgent" ? "🔴 URGENT Announcement" : "New Announcement",
                     Message = $"'{model.Title}' has been posted in {classWorkspace.Name}.",
                     Type = NotificationType.Alert,
-                    Priority = NotificationPriority.Normal,
+                    Priority = model.Priority == "Urgent" ? NotificationPriority.Urgent
+                        : model.Priority == "Important" ? NotificationPriority.High
+                        : NotificationPriority.Normal,
                     IsRead = false,
                     UserId = student.Id,
                     ClassWorkspaceId = classWorkspace.Id,
@@ -227,6 +276,8 @@ public class AnnouncementsController : ControllerBase
         announcement.ExpiresAt = model.ExpiresAt;
         announcement.IsPinned = model.IsPinned;
         announcement.Tags = model.Tags;
+        announcement.Priority = model.Priority ?? "General";
+        announcement.Category = model.Category ?? "General";
         announcement.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -350,6 +401,8 @@ public class CreateAnnouncementModel
     public Guid? ClassWorkspaceId { get; set; }
     public Guid[]? ClassWorkspaceIds { get; set; }
     public string? Tags { get; set; }
+    public string? Priority { get; set; } = "General";  // "Urgent" | "Important" | "General"
+    public string? Category { get; set; } = "General"; // "General" | "Exam" | "Assignment" | "Event" | "Resource" | "Meeting"
 }
 
 public class UpdateAnnouncementModel
@@ -362,5 +415,7 @@ public class UpdateAnnouncementModel
     public DateTime? ExpiresAt { get; set; }
     public bool IsPinned { get; set; }
     public string? Tags { get; set; }
+    public string? Priority { get; set; } = "General";
+    public string? Category { get; set; } = "General";
 }
 

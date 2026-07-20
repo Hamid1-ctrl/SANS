@@ -34,25 +34,37 @@ public class AssignmentsController : ControllerBase
         var dbUser = await _context.Users.FindAsync(userId);
         if (dbUser == null) return NotFound();
 
-        var query = _context.Assignments.Where(a => !a.IsDeleted);
+        IQueryable<Assignment> query;
 
         if (classId.HasValue)
         {
-            query = query.Where(a => a.ClassWorkspaceId == classId.Value);
+            query = _context.Assignments
+                .Where(a => !a.IsDeleted && a.ClassWorkspaceId == classId.Value);
+        }
+        else if (dbUser.Role == UserRole.Lecturer)
+        {
+            // Get all class workspace IDs this lecturer owns
+            var lecturerClassIds = await _context.ClassWorkspaces
+                .Where(c => c.LecturerId == userId && !c.IsDeleted)
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            query = _context.Assignments
+                .Where(a => !a.IsDeleted && a.ClassWorkspaceId != null && lecturerClassIds.Contains(a.ClassWorkspaceId!.Value));
         }
         else
         {
-            if (dbUser.Role == UserRole.Lecturer)
-            {
-                query = query.Where(a => a.ClassWorkspace != null && a.ClassWorkspace.LecturerId == userId);
-            }
-            else
-            {
-                query = query.Where(a => a.ClassWorkspace != null && a.ClassWorkspace.Students.Any(s => s.Id == userId));
-            }
+            // Get all class workspace IDs this student/rep is enrolled in
+            var enrolledClassIds = await _context.ClassWorkspaces
+                .Where(c => !c.IsDeleted && c.Students.Any(s => s.Id == userId))
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            query = _context.Assignments
+                .Where(a => !a.IsDeleted && a.ClassWorkspaceId != null && enrolledClassIds.Contains(a.ClassWorkspaceId!.Value));
         }
 
-        var list = await query.ToListAsync();
+        var list = await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
         return Ok(list);
     }
 
@@ -83,6 +95,48 @@ public class AssignmentsController : ControllerBase
             return Unauthorized();
         }
 
+        var dbUser = await _context.Users.FindAsync(userId);
+        if (dbUser == null) return NotFound();
+
+        // Enforce role-based permission checks
+        if (dbUser.Role != UserRole.Lecturer && dbUser.Role != UserRole.Administrator)
+        {
+            return Forbid();
+        }
+
+        // Enforce verified status for lecturers
+        if (dbUser.Role == UserRole.Lecturer && dbUser.Status != AccountStatus.Verified)
+        {
+            return Forbid();
+        }
+
+        if (model.ClassWorkspaceId.HasValue)
+        {
+            var classWorkspace = await _context.ClassWorkspaces.FindAsync(model.ClassWorkspaceId.Value);
+            if (classWorkspace == null || classWorkspace.IsDeleted)
+            {
+                return NotFound(new { Message = "Target class workspace not found" });
+            }
+
+            // Verify they own/teach this class workspace
+            if (classWorkspace.LecturerId != userId && dbUser.Role != UserRole.Administrator)
+            {
+                return Forbid();
+            }
+        }
+
+        // DepartmentId is now optional — try to resolve from user if available, but don't fail if not
+        Guid? resolvedDeptId = null;
+        if (model.DepartmentId.HasValue && model.DepartmentId.Value != Guid.Empty)
+        {
+            resolvedDeptId = model.DepartmentId.Value;
+        }
+        else if (dbUser.DepartmentId.HasValue)
+        {
+            resolvedDeptId = dbUser.DepartmentId.Value;
+        }
+        // If still null, that's fine — DepartmentId is nullable on Assignment
+
         var assignment = new Assignment
         {
             Id = Guid.NewGuid(),
@@ -95,11 +149,14 @@ public class AssignmentsController : ControllerBase
             Status = AssignmentStatus.Published,
             AllowLateSubmission = model.AllowLateSubmission,
             LateSubmissionPenalty = model.LateSubmissionPenalty,
-            DepartmentId = model.DepartmentId,
+            DepartmentId = resolvedDeptId,
             CreatedByUserId = userId,
             AttachmentUrl = model.AttachmentUrl,
+            AttachmentFileName = model.AttachmentFileName,
+            AttachmentFileSize = model.AttachmentFileSize,
             ClassWorkspaceId = model.ClassWorkspaceId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = $"{dbUser.FirstName} {dbUser.LastName}"
         };
 
         await _unitOfWork.Assignments.AddAsync(assignment);
@@ -245,8 +302,10 @@ public class CreateAssignmentModel
     public int MaxPoints { get; set; }
     public bool AllowLateSubmission { get; set; }
     public int? LateSubmissionPenalty { get; set; }
-    public Guid DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
     public string? AttachmentUrl { get; set; }
+    public string? AttachmentFileName { get; set; }
+    public long? AttachmentFileSize { get; set; }
     public Guid? ClassWorkspaceId { get; set; }
 }
 

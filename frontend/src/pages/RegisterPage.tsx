@@ -1,16 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 import type { RegisterRequest } from '../types';
-import { ArrowRight, GraduationCap, Users, Award, Check, Mail, Lock, Hash, Phone, Building, Clock, BookOpen } from 'lucide-react';
+import { ArrowRight, GraduationCap, Award, Check, Mail, Lock, Hash, Phone, Building, Clock, BookOpen } from 'lucide-react';
 
 // The fixed OTP code that is "sent" to the user's email
 const VALID_OTP = '714529';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { register: registerUser } = useAuth();
+  const location = useLocation();
+  const { register: registerUser, loginWithGoogle, registerWithGoogle } = useAuth();
   
   // 4-Step state tracking:
   // Step 1: Create Account (Email, Pass, Confirm Pass)
@@ -19,6 +20,9 @@ const RegisterPage: React.FC = () => {
   // Step 4: Complete Profile (Tailored based on Role)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.Student);
+  const [isGoogleSignUp, setIsGoogleSignUp] = useState(false);
+  const [googleUid, setGoogleUid] = useState('');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
   // State-driven form values
   const [formData, setFormData] = useState({
@@ -39,15 +43,25 @@ const RegisterPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [registerError, setRegisterError] = useState<string | null>(null);
 
-  // Google sign-up intermediate email step
-  const [showGoogleEmail, setShowGoogleEmail] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [googleEmailError, setGoogleEmailError] = useState<string | null>(null);
-  const [googlePassword, setGooglePassword] = useState('');
-  const [googlePasswordError, setGooglePasswordError] = useState<string | null>(null);
-  
   // OTP Verification Code state (6 digits)
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state && state.isGoogleSignUp) {
+      setIsGoogleSignUp(true);
+      setGoogleUid(state.firebaseUid || '');
+      setFormData(prev => ({
+        ...prev,
+        email: state.email || '',
+        firstName: state.firstName || '',
+        lastName: state.lastName || '',
+        password: '',
+        confirmPassword: ''
+      }));
+      setStep(3); // Skip straight to role selection
+    }
+  }, [location.state]);
   const otpRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -197,40 +211,34 @@ const RegisterPage: React.FC = () => {
     setStep(3);
   };
 
-  // Google sign-up email step handler
-  const handleGoogleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setGoogleEmailError(null);
-    setGooglePasswordError(null);
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!googleEmail.trim()) {
-      setGoogleEmailError('Please enter your Google email address');
-      return;
+  // Google sign-up popup handler
+  const handleGoogleSignUp = async () => {
+    setRegisterError(null);
+    setIsGoogleLoading(true);
+    try {
+      const result = await loginWithGoogle();
+      if (result.isNewUser) {
+        setIsGoogleSignUp(true);
+        setGoogleUid(result.firebaseUid || '');
+        setFormData(prev => ({
+          ...prev,
+          email: result.email || '',
+          firstName: result.firstName || '',
+          lastName: result.lastName || '',
+          password: '',
+          confirmPassword: ''
+        }));
+        setStep(3); // Skip straight to role selection
+      } else {
+        // Already registered on SANS backend, redirect to dashboard
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Google Sign-Up failed:', error);
+      setRegisterError(error?.message || 'Google Sign-Up failed. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
     }
-    if (!emailRegex.test(googleEmail)) {
-      setGoogleEmailError('Please enter a valid email address');
-      return;
-    }
-    if (!googlePassword.trim()) {
-      setGooglePasswordError('Please enter your account password');
-      return;
-    }
-    if (googlePassword.length < 6) {
-      setGooglePasswordError('Password must be at least 6 characters');
-      return;
-    }
-
-    // Fill the form with Google email details and go to OTP step
-    setFormData(prev => ({
-      ...prev,
-      email: googleEmail,
-      password: googlePassword,
-      confirmPassword: googlePassword,
-    }));
-    setShowGoogleEmail(false);
-    setOtp(['', '', '', '', '', '']);
-    setStep(2);
   };
 
   const handleNextStep3 = () => {
@@ -255,8 +263,25 @@ const RegisterPage: React.FC = () => {
         officeHours: selectedRole === UserRole.Lecturer ? formData.officeHours : undefined,
         specialization: selectedRole === UserRole.Lecturer ? formData.specialization : undefined
       };
-      await registerUser(fullPayload);
-      navigate('/login');
+
+      if (isGoogleSignUp) {
+        await registerWithGoogle({
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          studentId: formData.studentId,
+          phoneNumber: formData.phoneNumber,
+          role: selectedRole,
+          officeNumber: selectedRole === UserRole.Lecturer ? formData.officeNumber : undefined,
+          officeHours: selectedRole === UserRole.Lecturer ? formData.officeHours : undefined,
+          specialization: selectedRole === UserRole.Lecturer ? formData.specialization : undefined,
+          firebaseUid: googleUid
+        });
+        navigate('/dashboard');
+      } else {
+        await registerUser(fullPayload);
+        navigate('/login');
+      }
     } catch (error: any) {
       console.error('Registration failed:', error);
       setRegisterError(error?.response?.data?.detail || error?.response?.data?.message || error?.message || 'Registration failed. Please try again.');
@@ -398,76 +423,15 @@ const RegisterPage: React.FC = () => {
                 <div className="flex justify-center">
                   <button
                     type="button"
-                    onClick={() => setShowGoogleEmail(true)}
-                    className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-[#fbfbfe] dark:hover:bg-slate-900 text-slate-655 flex items-center justify-center gap-2.5 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                    onClick={handleGoogleSignUp}
+                    disabled={isGoogleLoading}
+                    className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-[#fbfbfe] dark:hover:bg-slate-900 text-slate-655 flex items-center justify-center gap-2.5 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-60"
                   >
                     <img src="/icons8-google.svg" alt="Google" className="w-4 h-4 shrink-0" />
-                    <span>Google Account</span>
+                    <span>{isGoogleLoading ? 'Connecting to Google...' : 'Google Account'}</span>
                   </button>
                 </div>
               </div>
-
-              {/* Google Email + Password Overlay */}
-              {showGoogleEmail && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-                  <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 space-y-5">
-                    <div className="flex items-center gap-3">
-                      <img src="/icons8-google.svg" alt="Google" className="w-6 h-6" />
-                      <div>
-                        <h3 className="text-lg font-black text-slate-800 tracking-tight">Sign up with Google</h3>
-                        <p className="text-[10px] text-slate-455 font-bold uppercase tracking-wider">Enter your Google account details</p>
-                      </div>
-                    </div>
-
-                    <form onSubmit={handleGoogleEmailSubmit} className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Email Address</label>
-                        <input
-                          type="email"
-                          value={googleEmail}
-                          onChange={(e) => { setGoogleEmail(e.target.value); setGoogleEmailError(null); }}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#fbfbfe] text-slate-800 text-xs placeholder:text-slate-400 focus:outline-none focus:border-brand-green/30 transition-all font-semibold shadow-sm"
-                          placeholder="you@example.com"
-                          autoFocus
-                        />
-                        {googleEmailError && (
-                          <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{googleEmailError}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Account Password</label>
-                        <input
-                          type="password"
-                          value={googlePassword}
-                          onChange={(e) => { setGooglePassword(e.target.value); setGooglePasswordError(null); }}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#fbfbfe] text-slate-800 text-xs placeholder:text-slate-400 focus:outline-none focus:border-brand-green/30 transition-all font-semibold shadow-sm"
-                          placeholder="Create a password (min 6 characters)"
-                        />
-                        {googlePasswordError && (
-                          <p className="text-[10px] font-bold text-red-500 mt-1 pl-1">{googlePasswordError}</p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => { setShowGoogleEmail(false); setGoogleEmailError(null); setGooglePasswordError(null); }}
-                          className="px-5 py-3 border border-slate-200 text-slate-655 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all shadow-sm flex-1 uppercase tracking-wider cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-5 py-3 bg-brand-green hover:bg-brand-green/95 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-premium flex-1 transition-all active:scale-[0.98] cursor-pointer"
-                        >
-                          Send OTP Code
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -549,10 +513,9 @@ const RegisterPage: React.FC = () => {
               </div>
 
               {/* Grid cards */}
-              <div className="grid grid-cols-3 gap-3.5 pt-2">
+              <div className="grid grid-cols-2 gap-3.5 pt-2">
                 {[
                   { role: UserRole.Student, label: 'Student', icon: GraduationCap },
-                  { role: UserRole.ClassRepresentative, label: 'Class Rep', icon: Users },
                   { role: UserRole.Lecturer, label: 'Lecturer', icon: Award },
                 ].map((item) => {
                   const isSelected = selectedRole === item.role;
@@ -613,7 +576,7 @@ const RegisterPage: React.FC = () => {
                   Complete profile
                 </h2>
                 <p className="text-xs text-slate-455 font-bold uppercase tracking-wider">
-                  Fill in your identity details ({selectedRole === UserRole.Student ? 'Student' : selectedRole === UserRole.Lecturer ? 'Lecturer' : 'Class Rep'})
+                  Fill in your identity details ({selectedRole === UserRole.Student ? 'Student' : 'Lecturer'})
                 </p>
               </div>
 

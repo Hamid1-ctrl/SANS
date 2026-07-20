@@ -37,18 +37,14 @@ const AnalyticsPage: React.FC = () => {
           Performance Analytics
         </h1>
         <p className="text-slate-500 dark:text-slate-400 font-medium">
-          Monitor course attendance registries, average student performance indicators, and submission rates.
+          Monitor average student performance indicators and submission rates.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Core KPIs row */}
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl p-5 shadow-soft">
-            <span className="text-[9px] font-bold text-slate-400 uppercase">Avg Attendance</span>
-            <p className="text-2xl font-black text-brand-primary mt-1">96.8%</p>
-          </div>
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-[#191624] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl p-5 shadow-soft">
             <span className="text-[9px] font-bold text-slate-400 uppercase">Average Grade</span>
             <p className="text-2xl font-black text-brand-primary mt-1">A- (88%)</p>

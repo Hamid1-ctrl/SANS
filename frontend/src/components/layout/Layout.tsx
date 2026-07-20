@@ -16,10 +16,9 @@ import {
   Moon,
   Sun,
   Bell,
-  CheckSquare,
   Beaker,
   GraduationCap,
-  Users
+  Shield
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -53,49 +52,90 @@ const Layout: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
+  // Redirect Administrator role to Admin Panel on general pages
+  if (user.role === UserRole.Administrator && 
+      (location.pathname === '/dashboard' || 
+       location.pathname === '/classes' || 
+       location.pathname === '/analytics')) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // Blocker page for non-verified lecturer accounts
+  if (user.role === UserRole.Lecturer && user.status !== undefined && user.status !== 1) { // 1: Verified
+    let statusTitle = "Account Awaiting Verification";
+    let statusDesc = "Your lecturer account request has been received and is awaiting verification. You will gain access once approved.";
+
+    if (user.status === 2) { // Rejected
+      statusTitle = "Registration Rejected";
+      statusDesc = "Your lecturer account request has been rejected. Please contact the administrator.";
+    } else if (user.status === 3) { // Suspended
+      statusTitle = "Account Suspended";
+      statusDesc = "Your account has been suspended. Please contact the administrator for details.";
+    }
+
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6fb] dark:bg-[#0F172A] p-6 transition-colors duration-300">
+        <div className="max-w-md w-full border border-slate-105 dark:border-slate-800/40 rounded-3xl p-8 bg-white dark:bg-[#1E293B] shadow-large text-center space-y-6">
+          <div className="mx-auto w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 mb-2">
+            <Megaphone size={28} className="text-[#1e7a34]" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">{statusTitle}</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">{statusDesc}</p>
+          </div>
+          <button 
+            onClick={() => { logout(); navigate('/login'); }}
+            className="w-full py-3 bg-[#1e7a34] text-white text-xs font-bold rounded-2xl hover:bg-[#258d3f] transition-all cursor-pointer shadow-soft"
+          >
+            Logout / Sign In Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  // Define custom Navigation Items based on the Logged-in User Role
-  const getNavItems = () => {
-    switch (user?.role) {
-      case UserRole.Lecturer:
-        return [
-          { path: '/dashboard', icon: Home, label: 'Home' },
-          { path: '/announcements', icon: Megaphone, label: 'Verified News' },
-          { path: '/assignments', icon: CheckSquare, label: 'Assignments' },
-          { path: '/quizzes', icon: Beaker, label: 'Quizzes' },
-          { path: '/schedule', icon: Calendar, label: 'Timetable' },
-          { path: '/classes', icon: GraduationCap, label: 'My Classes' },
-          { path: '/resources', icon: FolderOpen, label: 'Resources' },
-          { path: '/messages', icon: MessageSquare, label: 'Messages' },
-          { path: '/settings', icon: Settings, label: 'Settings' },
-        ];
-      case UserRole.ClassRepresentative:
-        return [
-          { path: '/dashboard', icon: Home, label: 'Home' },
-          { path: '/announcements', icon: Megaphone, label: 'Class Notices' },
-          { path: '/quizzes', icon: Beaker, label: 'Quizzes' },
-          { path: '/resources', icon: FolderOpen, label: 'Shared Files' },
-          { path: '/classes', icon: Users, label: 'My Classes' },
-          { path: '/messages', icon: MessageSquare, label: 'Chat' },
-          { path: '/settings', icon: Settings, label: 'Settings' },
-        ];
-      case UserRole.Student:
-      default:
-        return [
-          { path: '/dashboard', icon: Home, label: 'Home' },
-          { path: '/announcements', icon: Megaphone, label: 'Important Announcements' },
-          { path: '/schedule', icon: Calendar, label: 'Timetable' },
-          { path: '/quizzes', icon: Beaker, label: 'Quizzes' },
-          { path: '/assignments', icon: Clock, label: 'Deadlines' },
-          { path: '/classes', icon: GraduationCap, label: 'My Classes' },
-          { path: '/resources', icon: BookOpen, label: 'Resources' },
-          { path: '/messages', icon: MessageSquare, label: 'Chat' },
-          { path: '/settings', icon: Settings, label: 'Settings' },
-        ];
+  interface NavItem {
+    path: string;
+    icon: any;
+    label: string;
+    isActive?: boolean;
+    onClick?: () => void;
+  }
+
+  // Define custom Navigation Items based on active workspace level
+  const getNavItems = (): NavItem[] => {
+    if (user?.role === UserRole.Administrator) {
+      return [
+        { path: '/admin', icon: Shield, label: 'Admin Panel' },
+        { path: '/settings', icon: Settings, label: 'Settings' },
+      ];
+    }
+
+    if (!activeClass) {
+      // LEVEL 1: UNIVERSITY HUB
+      const items = [
+        { path: '/dashboard', icon: Home, label: 'University Hub' },
+        { path: '/classes', icon: GraduationCap, label: 'My Classes' },
+        { path: '/settings', icon: Settings, label: 'Settings' },
+      ];
+      return items;
+    } else {
+      // LEVEL 2: CLASS WORKSPACE
+      return [
+        { path: '/dashboard', icon: BookOpen, label: 'Overview' },
+        { path: '/announcements', icon: Megaphone, label: 'Announcements' },
+        { path: '/assignments', icon: Clock, label: 'Assignments' },
+        { path: '/quizzes', icon: Beaker, label: 'Quizzes' },
+        { path: '/resources', icon: FolderOpen, label: 'Learning Resources' },
+        { path: '/schedule', icon: Calendar, label: 'Timetable' },
+        { path: '/discussion', icon: MessageSquare, label: 'Discussion' },
+        { path: '/settings', icon: Settings, label: 'Settings' },
+      ];
     }
   };
 
@@ -103,12 +143,14 @@ const Layout: React.FC = () => {
 
   // Dynamic Theme Class binding based on user role
   const getThemeClass = () => {
+    if (user?.role === UserRole.Administrator) return 'theme-lecturer';
     if (user?.role === UserRole.Lecturer) return 'theme-lecturer';
     if (user?.role === UserRole.ClassRepresentative) return 'theme-rep';
     return 'theme-student';
   };
 
   const getRoleLabel = () => {
+    if (user?.role === UserRole.Administrator) return 'Administrator';
     if (user?.role === UserRole.Lecturer) return 'Lecturer';
     if (user?.role === UserRole.ClassRepresentative) return 'Course Rep';
     return 'Student';
@@ -141,11 +183,18 @@ const Layout: React.FC = () => {
         <nav className="flex-1 w-full space-y-1.5 px-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            // Allow isActive override
+            const isActive = item.isActive !== undefined ? item.isActive : (location.pathname === item.path);
             return (
               <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
+                key={item.path + '-' + item.label}
+                onClick={() => {
+                  if (item.onClick) {
+                    item.onClick();
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
                 className="w-full flex flex-col items-center justify-center py-2 relative group transition-all duration-200 select-none cursor-pointer"
               >
                 {/* Active Indicator Bar on the Right Edge using dynamic brand colors */}
@@ -197,8 +246,7 @@ const Layout: React.FC = () => {
 
       {/* Main Content Pane */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Header - transparent & fixed (will never scroll) */}
-        <header className="h-16 px-8 flex items-center justify-between z-40 bg-[#f7f6fb]/80 dark:bg-[#0F172A]/80 backdrop-blur-md select-none border-b border-[#ece8f3]/35 dark:border-[rgba(255,255,255,0.18)]/20 shrink-0">
+        <header className="h-16 px-8 flex items-center justify-between z-40 bg-white dark:bg-[#1E293B] select-none border-b border-[#ece8f3] dark:border-slate-800/85 shrink-0 shadow-sm transition-colors duration-200">
           
           {/* Breadcrumb Navigation Trail & Workspace Selector */}
           <div className="flex items-center gap-5 text-xs font-semibold text-slate-400 dark:text-[#94A3B8]">
@@ -213,92 +261,98 @@ const Layout: React.FC = () => {
             </div>
 
             {/* Class Workspace Selector Dropdown */}
-            <div className="relative pl-2 border-l border-slate-200 dark:border-slate-800">
-              <select
-                value={activeClass?.id || 'all'}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === 'all') {
-                    setActiveClass(null);
-                  } else {
-                    const cls = classes.find(c => c.id === val);
-                    if (cls) setActiveClass(cls);
-                  }
-                }}
-                className="pl-3 pr-8 py-1.5 bg-[#f0f7f2] dark:bg-slate-800 border border-[#d6eedd] dark:border-slate-700/60 rounded-xl text-[10px] font-bold text-slate-700 dark:text-[#CBD5E1] focus:outline-none cursor-pointer shadow-sm hover:border-[#1e7a34]/30 dark:hover:border-slate-600 transition-all appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231e7a34%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-[position:right_10px_center] bg-no-repeat"
-              >
-                <option value="all">🌐 All Classes</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    📚 {cls.code} - {cls.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {!activeClass && user.role !== UserRole.Administrator && (
+              <div className="relative pl-2 border-l border-slate-200 dark:border-slate-800">
+                <select
+                  value="all"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'all') {
+                      setActiveClass(null);
+                    } else {
+                      const cls = Array.isArray(classes) ? classes.find(c => c.id === val) : null;
+                      if (cls) setActiveClass(cls);
+                    }
+                  }}
+                  className="pl-3 pr-8 py-1.5 bg-[#f0f7f2] dark:bg-slate-800 border border-[#d6eedd] dark:border-slate-700/60 rounded-xl text-[10px] font-bold text-slate-700 dark:text-[#CBD5E1] focus:outline-none cursor-pointer shadow-sm hover:border-[#1e7a34]/30 dark:hover:border-slate-600 transition-all appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231e7a34%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-[position:right_10px_center] bg-no-repeat"
+                >
+                  <option value="all">🌐 All Classes</option>
+                  {Array.isArray(classes) && classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      📚 {cls.code} - {cls.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Right Header Navigation Controls */}
           <div className="flex items-center gap-6">
             {/* Bell notification */}
-            <div className="relative">
-              <button 
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-1.5 text-slate-455 dark:text-[#94A3B8] hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer"
-              >
-                <Bell size={16} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#d946ef] rounded-full animate-pulse"></span>
-                )}
-              </button>
+            {user?.role !== UserRole.Administrator && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-1.5 text-slate-455 dark:text-[#94A3B8] hover:bg-[#ece8f3]/40 dark:hover:bg-slate-800/20 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Bell size={16} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 bg-red-500 rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-sm border border-white dark:border-slate-900 animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
 
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-large p-4 z-50 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                    <span className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest">Inbox Notifications</span>
-                    <button 
-                      onClick={async () => {
-                        await markAllRead.mutateAsync();
-                        setShowNotifications(false);
-                      }}
-                      className="text-[9px] font-bold text-brand-primary hover:underline cursor-pointer"
-                    >
-                      Clear all
-                    </button>
-                  </div>
-                  <div className="space-y-2.5 max-h-60 overflow-y-auto">
-                    {!Array.isArray(notificationsList) || notificationsList.length === 0 ? (
-                      <p className="text-[10px] font-semibold text-slate-400 text-center py-4">Your inbox is clean!</p>
-                    ) : (
-                      notificationsList.slice(0, 10).map((n) => (
-                        <div 
-                          key={n.id} 
-                          onClick={async () => {
-                            await markRead.mutateAsync(n.id);
-                            setShowNotifications(false);
-                            if (n.title.toLowerCase().includes('quiz')) {
-                              navigate('/quizzes');
-                            } else if (n.title.toLowerCase().includes('assignment')) {
-                              navigate('/assignments');
-                            } else if (n.title.toLowerCase().includes('announcement')) {
-                              navigate('/announcements');
-                            } else if (n.title.toLowerCase().includes('session')) {
-                              navigate('/schedule');
-                            }
-                          }}
-                          className={`p-2 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-xl transition-colors text-left cursor-pointer border-l-2 ${n.isRead ? 'border-transparent opacity-60' : 'border-brand-primary font-semibold'}`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <h4 className="text-xs font-bold text-slate-800 dark:text-[#CBD5E1]">{n.title}</h4>
-                            <span className="text-[8px] text-slate-400 font-bold shrink-0">{new Date(n.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/40 rounded-2xl shadow-large p-4 z-50 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                      <span className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest">Inbox Notifications</span>
+                      <button 
+                        onClick={async () => {
+                          await markAllRead.mutateAsync();
+                          setShowNotifications(false);
+                        }}
+                        className="text-[9px] font-bold text-brand-primary hover:underline cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    <div className="space-y-2.5 max-h-60 overflow-y-auto">
+                      {!Array.isArray(notificationsList) || notificationsList.length === 0 ? (
+                        <p className="text-[10px] font-semibold text-slate-400 text-center py-4">Your inbox is clean!</p>
+                      ) : (
+                        notificationsList.slice(0, 10).map((n) => (
+                          <div 
+                            key={n.id} 
+                            onClick={async () => {
+                              await markRead.mutateAsync(n.id);
+                              setShowNotifications(false);
+                              if (n.title.toLowerCase().includes('quiz')) {
+                                navigate('/quizzes');
+                              } else if (n.title.toLowerCase().includes('assignment')) {
+                                navigate('/assignments');
+                              } else if (n.title.toLowerCase().includes('announcement')) {
+                                navigate('/announcements');
+                              } else if (n.title.toLowerCase().includes('session')) {
+                                navigate('/schedule');
+                              }
+                            }}
+                            className={`p-2 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-xl transition-colors text-left cursor-pointer border-l-2 ${n.isRead ? 'border-transparent opacity-60' : 'border-brand-primary font-semibold'}`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <h4 className="text-xs font-bold text-slate-800 dark:text-[#CBD5E1]">{n.title}</h4>
+                              <span className="text-[8px] text-slate-400 font-bold shrink-0">{new Date(n.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            </div>
+                            <p className="text-[10px] text-slate-505 dark:text-[#94A3B8] leading-snug mt-0.5">{n.message}</p>
                           </div>
-                          <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] leading-snug mt-0.5">{n.message}</p>
-                        </div>
-                      ))
-                    )}
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Theme selector */}
             <button
@@ -326,8 +380,12 @@ const Layout: React.FC = () => {
                 </span>
               </div>
               <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-brand-primary/10 ring-2 ring-transparent group-hover:ring-brand-primary/30 transition-all">
-                  {user?.firstName?.[0] || 'J'}{user?.lastName?.[0] || 'D'}
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-brand-primary to-brand-primary-medium flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-brand-primary/10 ring-2 ring-transparent group-hover:ring-brand-primary/30 transition-all">
+                  {user?.profileImageUrl ? (
+                    <img src={user.profileImageUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{user?.firstName?.[0] || 'J'}{user?.lastName?.[0] || 'D'}</span>
+                  )}
                 </div>
                 <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white dark:border-[#12101a]"></span>
               </div>

@@ -85,6 +85,8 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Content).IsRequired();
+            entity.Property(e => e.Priority).HasMaxLength(20).HasDefaultValue("General");
+            entity.Property(e => e.Category).HasMaxLength(50).HasDefaultValue("General");
             
             entity.HasOne(e => e.Department)
                 .WithMany(d => d.Announcements)
@@ -126,7 +128,8 @@ public class AppDbContext : DbContext
             entity.HasOne(e => e.Department)
                 .WithMany(d => d.Assignments)
                 .HasForeignKey(e => e.DepartmentId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
                 
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
@@ -289,11 +292,22 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Code).IsRequired().HasMaxLength(20);
             entity.HasIndex(e => e.Code).IsUnique();
+            entity.Property(e => e.CourseCode).HasMaxLength(20);
+            entity.Property(e => e.DepartmentText).HasMaxLength(200);
+            entity.Property(e => e.AcademicLevel).HasMaxLength(50);
+            entity.Property(e => e.Semester).HasMaxLength(50);
 
             entity.HasOne(e => e.Lecturer)
                 .WithMany()
                 .HasForeignKey(e => e.LecturerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ClassRepresentative)
+                .WithMany()
+                .HasForeignKey(e => e.ClassRepresentativeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasMany(e => e.Students)
                 .WithMany(u => u.EnrolledClasses)
@@ -402,6 +416,7 @@ public class AppDbContext : DbContext
                 StudentId = "SANS-STU-2026",
                 PhoneNumber = "+15551234567",
                 Role = UserRole.Student,
+                Status = AccountStatus.Verified,
                 DepartmentId = departmentId,
                 IsActive = true,
                 CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, DateTimeKind.Utc),
@@ -418,6 +433,7 @@ public class AppDbContext : DbContext
                 StudentId = "SANS-LEC-2026",
                 PhoneNumber = "+15559876543",
                 Role = UserRole.Lecturer,
+                Status = AccountStatus.Verified,
                 DepartmentId = departmentId,
                 IsActive = true,
                 CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, DateTimeKind.Utc),
@@ -434,6 +450,24 @@ public class AppDbContext : DbContext
                 StudentId = "SANS-REP-2026",
                 PhoneNumber = "+15554321098",
                 Role = UserRole.ClassRepresentative,
+                Status = AccountStatus.Verified,
+                DepartmentId = departmentId,
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, DateTimeKind.Utc),
+                CreatedBy = "System",
+                IsDeleted = false
+            },
+            new User
+            {
+                Id = Guid.Parse("55555555-5555-5555-5555-555555555555"),
+                Email = "admin.sans@sans.edu",
+                PasswordHash = "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
+                FirstName = "Admin",
+                LastName = "User",
+                StudentId = "SANS-ADM-2026",
+                PhoneNumber = "+15550000000",
+                Role = UserRole.Administrator,
+                Status = AccountStatus.Verified,
                 DepartmentId = departmentId,
                 IsActive = true,
                 CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, DateTimeKind.Utc),

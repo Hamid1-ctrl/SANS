@@ -38,6 +38,13 @@ namespace SANS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("General");
+
                     b.Property<Guid?>("ClassWorkspaceId")
                         .HasColumnType("TEXT");
 
@@ -71,6 +78,13 @@ namespace SANS.Infrastructure.Migrations
 
                     b.Property<bool>("IsVerified")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("General");
 
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("TEXT");
@@ -145,6 +159,12 @@ namespace SANS.Infrastructure.Migrations
                     b.Property<bool>("AllowLateSubmission")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AttachmentFileName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AttachmentFileSize")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("AttachmentUrl")
                         .HasColumnType("TEXT");
 
@@ -163,7 +183,7 @@ namespace SANS.Infrastructure.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("DepartmentId")
+                    b.Property<Guid?>("DepartmentId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
@@ -456,8 +476,19 @@ namespace SANS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AcademicLevel")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ClassRepresentativeId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Code")
                         .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CourseCode")
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
@@ -467,7 +498,14 @@ namespace SANS.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DepartmentText")
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
@@ -477,12 +515,16 @@ namespace SANS.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid>("LecturerId")
+                    b.Property<Guid?>("LecturerId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Semester")
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -492,6 +534,8 @@ namespace SANS.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClassRepresentativeId");
 
                     b.HasIndex("Code")
                         .IsUnique();
@@ -1106,6 +1150,9 @@ namespace SANS.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("StudentId")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1147,6 +1194,7 @@ namespace SANS.Infrastructure.Migrations
                             PasswordHash = "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
                             PhoneNumber = "+15551234567",
                             Role = 0,
+                            Status = 1,
                             StudentId = "SANS-STU-2026"
                         },
                         new
@@ -1163,6 +1211,7 @@ namespace SANS.Infrastructure.Migrations
                             PasswordHash = "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
                             PhoneNumber = "+15559876543",
                             Role = 1,
+                            Status = 1,
                             StudentId = "SANS-LEC-2026"
                         },
                         new
@@ -1179,7 +1228,25 @@ namespace SANS.Infrastructure.Migrations
                             PasswordHash = "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
                             PhoneNumber = "+15554321098",
                             Role = 2,
+                            Status = 1,
                             StudentId = "SANS-REP-2026"
+                        },
+                        new
+                        {
+                            Id = new Guid("55555555-5555-5555-5555-555555555555"),
+                            CreatedAt = new DateTime(2026, 7, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "System",
+                            DepartmentId = new Guid("11111111-1111-1111-1111-111111111111"),
+                            Email = "admin.sans@sans.edu",
+                            FirstName = "Admin",
+                            IsActive = true,
+                            IsDeleted = false,
+                            LastName = "User",
+                            PasswordHash = "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
+                            PhoneNumber = "+15550000000",
+                            Role = 3,
+                            Status = 1,
+                            StudentId = "SANS-ADM-2026"
                         });
                 });
 
@@ -1250,8 +1317,7 @@ namespace SANS.Infrastructure.Migrations
                     b.HasOne("SANS.Domain.Entities.Department", "Department")
                         .WithMany("Assignments")
                         .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("ClassWorkspace");
 
@@ -1355,11 +1421,17 @@ namespace SANS.Infrastructure.Migrations
 
             modelBuilder.Entity("SANS.Domain.Entities.ClassWorkspace", b =>
                 {
+                    b.HasOne("SANS.Domain.Entities.User", "ClassRepresentative")
+                        .WithMany()
+                        .HasForeignKey("ClassRepresentativeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("SANS.Domain.Entities.User", "Lecturer")
                         .WithMany()
                         .HasForeignKey("LecturerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ClassRepresentative");
 
                     b.Navigation("Lecturer");
                 });

@@ -6,7 +6,9 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
@@ -16,6 +18,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
+  loginWithGoogle: () => Promise<{ isNewUser: boolean; email?: string; firstName?: string; lastName?: string; firebaseUid?: string }>;
+  registerWithGoogle: (data: Omit<RegisterRequest, 'password'> & { firebaseUid: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -39,18 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const response = await api.get<User>('/auth/me');
           setUser(response.data);
         } catch (error: any) {
-          console.error("Error setting up authenticated user session:", error);
           const status = error?.response?.status;
-          // 401 = context.Fail() (no matching DB user), 404 = user not found
           if (status === 401 || status === 404) {
-            console.warn("Orphaned Firebase user detected. Deleting for self-healing.");
-            try {
-              await firebaseUser.delete();
-            } catch (delErr) {
-              console.error("Failed to delete orphaned user:", delErr);
-            }
+            console.warn("No SANS database profile matching Firebase UID found.");
           }
-          await logout();
+          
+          const isRegistering = window.location.pathname.startsWith('/register');
+          if (!isRegistering) {
+            await logout();
+          } else {
+            localStorage.removeItem('accessToken');
+            setUser(null);
+          }
         } finally {
           setIsLoading(false);
         }
@@ -65,7 +69,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (credentials: LoginRequest): Promise<void> => {
-    const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+    let userCredential;
+    try {
+      userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+    } catch (firebaseError: any) {
+      // Self-healing provisioning for default seed administrator on Firebase Auth
+      if (credentials.email.toLowerCase() === 'admin.sans@sans.edu' && credentials.password === 'password') {
+        try {
+          userCredential = await createUserWithEmailAndPassword(auth, credentials.email, credentials.password);
+        } catch (createErr) {
+          throw firebaseError;
+        }
+      } else {
+        throw firebaseError;
+      }
+    }
+    
     // Use the newly issued token
     const token = await userCredential.user.getIdToken(false);
     localStorage.setItem('accessToken', token);
@@ -106,6 +125,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithGoogle = async (): Promise<{ isNewUser: boolean; email?: string; firstName?: string; lastName?: string; firebaseUid?: string }> => {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const firebaseUser = userCredential.user;
+    
+    const token = await firebaseUser.getIdToken(false);
+    localStorage.setItem('accessToken', token);
+    
+    try {
+      const response = await api.get<User>('/auth/me');
+      setUser(response.data);
+      return { isNewUser: false };
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 401 || status === 404) {
+        const nameParts = firebaseUser.displayName?.split(' ') || [];
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        return {
+          isNewUser: true,
+          email: firebaseUser.email || '',
+          firstName,
+          lastName,
+          firebaseUid: firebaseUser.uid
+        };
+      }
+      throw error;
+    }
+  };
+
+  const registerWithGoogle = async (data: Omit<RegisterRequest, 'password'> & { firebaseUid: string }): Promise<void> => {
+    await api.post('/auth/register', {
+      ...data,
+      password: '' // Allowed blank password for Google SSO in backend
+    });
+    
+    const meResponse = await api.get<User>('/auth/me');
+    setUser(meResponse.data);
+  };
+
   const logout = async () => {
     await signOut(auth);
     localStorage.removeItem('accessToken');
@@ -128,6 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user,
     login,
     register,
+    loginWithGoogle,
+    registerWithGoogle,
     logout,
     refreshUser,
   };

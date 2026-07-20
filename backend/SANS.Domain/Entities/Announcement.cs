@@ -18,6 +18,8 @@ public class Announcement : AuditableEntity
     public bool IsVerified { get; set; }
     public string? Status { get; set; } = "General"; // "Verified", "PendingApproval", "Rejected", "General"
     public string? Tags { get; set; } // Comma-separated or hashtag format
+    public string Priority { get; set; } = "General"; // "Urgent" | "Important" | "General"
+    public string Category { get; set; } = "General"; // "General" | "Exam" | "Assignment" | "Event" | "Resource" | "Meeting"
     
     // Navigation properties
     public Department? Department { get; set; }

@@ -45,9 +45,9 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Invalid email or password");
         }
 
-        if (!user.IsActive)
+        if (user.Status == AccountStatus.Suspended)
         {
-            throw new UnauthorizedAccessException("Account is inactive");
+            throw new UnauthorizedAccessException("Account is suspended");
         }
 
         user.LastLoginAt = DateTime.UtcNow;
@@ -109,11 +109,12 @@ public class AuthService : IAuthService
             StudentId = studentId,
             PhoneNumber = phoneNumber,
             Role = (UserRole)role,
+            Status = (UserRole)role == UserRole.Lecturer ? AccountStatus.Pending : AccountStatus.Verified,
             OfficeNumber = officeNumber,
             OfficeHours = officeHours,
             Specialization = specialization,
             FirebaseUid = firebaseUid,
-            IsActive = true,
+            IsActive = (UserRole)role != UserRole.Lecturer, // Pending lecturers are inactive initially
             CreatedAt = DateTime.UtcNow
         };
 

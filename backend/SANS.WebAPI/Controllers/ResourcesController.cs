@@ -45,14 +45,8 @@ public class ResourcesController : ControllerBase
         }
         else
         {
-            if (dbUser.Role == UserRole.Lecturer)
-            {
-                query = query.Where(r => r.ClassWorkspace != null && r.ClassWorkspace.LecturerId == userId);
-            }
-            else
-            {
-                query = query.Where(r => r.ClassWorkspace != null && r.ClassWorkspace.Students.Any(s => s.Id == userId));
-            }
+            // Return global resources (University Hub level)
+            query = query.Where(r => r.ClassWorkspaceId == null);
         }
 
         var list = await query.ToListAsync();
@@ -92,6 +86,27 @@ public class ResourcesController : ControllerBase
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
             return Unauthorized();
 
+        var dbUser = await _context.Users.FindAsync(userId);
+        if (dbUser == null) return NotFound();
+
+        // Enforce role-based access control
+        if (dbUser.Role != UserRole.Lecturer && dbUser.Role != UserRole.ClassRepresentative && dbUser.Role != UserRole.Administrator)
+        {
+            return Forbid();
+        }
+
+        // Prevent pending/suspended lecturers
+        if (dbUser.Role == UserRole.Lecturer && dbUser.Status != AccountStatus.Verified)
+        {
+            return Forbid();
+        }
+
+        // Prevent course reps from posting global resources
+        if (dbUser.Role == UserRole.ClassRepresentative && model.IsGlobal)
+        {
+            return Forbid();
+        }
+
         if (model.File == null || model.File.Length == 0)
             return BadRequest(new { Message = "No file provided." });
 
@@ -114,34 +129,86 @@ public class ResourcesController : ControllerBase
         // Safely resolve DepartmentId to avoid DB foreign key constraint errors
         var resolvedDeptId = await GetDepartmentIdAsync(model.DepartmentId, userId);
 
-        var resource = new LearningResource
+        if (model.IsGlobal)
         {
-            Id = Guid.NewGuid(),
-            Title = string.IsNullOrWhiteSpace(model.Title)
-                ? Path.GetFileNameWithoutExtension(model.File.FileName)
-                : model.Title,
-            Description = model.Description ?? "Uploaded via SANS resources manager.",
-            FileUrl = fileUrl,
-            FileType = ext.TrimStart('.').ToUpperInvariant(),
-            FileSize = model.File.Length,
-            Category = model.Category ?? "Document",
-            Tags = model.Tags ?? string.Empty,
-            DepartmentId = resolvedDeptId,
-            UploadedByUserId = userId,
-            DownloadCount = 0,
-            ClassWorkspaceId = model.ClassWorkspaceId,
-            CreatedAt = DateTime.UtcNow
-        };
+            var resource = new LearningResource
+            {
+                Id = Guid.NewGuid(),
+                Title = string.IsNullOrWhiteSpace(model.Title)
+                    ? Path.GetFileNameWithoutExtension(model.File.FileName)
+                    : model.Title,
+                Description = model.Description ?? "Uploaded globally to University Hub.",
+                FileUrl = fileUrl,
+                FileType = ext.TrimStart('.').ToUpperInvariant(),
+                FileSize = model.File.Length,
+                Category = model.Category ?? "Document",
+                Tags = model.Tags ?? string.Empty,
+                DepartmentId = resolvedDeptId,
+                UploadedByUserId = userId,
+                DownloadCount = 0,
+                ClassWorkspaceId = null,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        await _unitOfWork.LearningResources.AddAsync(resource);
+            await _context.LearningResources.AddAsync(resource);
+            await _context.SaveChangesAsync();
 
-        // Notify students in the class
-        if (model.ClassWorkspaceId.HasValue)
+            return CreatedAtAction(nameof(GetById), new { id = resource.Id }, resource);
+        }
+
+        var targetClassIds = new List<Guid>();
+        if (model.ClassWorkspaceIds != null && model.ClassWorkspaceIds.Length > 0)
+        {
+            targetClassIds.AddRange(model.ClassWorkspaceIds);
+        }
+        else if (model.ClassWorkspaceId.HasValue)
+        {
+            targetClassIds.Add(model.ClassWorkspaceId.Value);
+        }
+
+        if (targetClassIds.Count == 0)
+        {
+            return BadRequest(new { Message = "At least one target class is required." });
+        }
+
+        LearningResource firstResource = null!;
+
+        foreach (var classId in targetClassIds)
         {
             var classWorkspace = await _context.ClassWorkspaces
                 .Include(c => c.Students)
-                .FirstOrDefaultAsync(c => c.Id == model.ClassWorkspaceId.Value && !c.IsDeleted);
+                .FirstOrDefaultAsync(c => c.Id == classId && !c.IsDeleted);
+            if (classWorkspace == null) continue;
 
+            // Security: Enforce class-scoped Course Representative check
+            if (dbUser.Role == UserRole.ClassRepresentative && classWorkspace.ClassRepresentativeId != userId)
+            {
+                return Forbid();
+            }
+
+            var resource = new LearningResource
+            {
+                Id = Guid.NewGuid(),
+                Title = string.IsNullOrWhiteSpace(model.Title)
+                    ? Path.GetFileNameWithoutExtension(model.File.FileName)
+                    : model.Title,
+                Description = model.Description ?? "Uploaded via SANS resources manager.",
+                FileUrl = fileUrl,
+                FileType = ext.TrimStart('.').ToUpperInvariant(),
+                FileSize = model.File.Length,
+                Category = model.Category ?? "Document",
+                Tags = model.Tags ?? string.Empty,
+                DepartmentId = resolvedDeptId,
+                UploadedByUserId = userId,
+                DownloadCount = 0,
+                ClassWorkspaceId = classId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.LearningResources.AddAsync(resource);
+            if (firstResource == null) firstResource = resource;
+
+            // Trigger notifications for students in the class
             if (classWorkspace != null)
             {
                 foreach (var student in classWorkspace.Students)
@@ -151,7 +218,7 @@ public class ResourcesController : ControllerBase
                         Id = Guid.NewGuid(),
                         Title = "New Resource Uploaded",
                         Message = $"'{resource.Title}' ({resource.FileType}) has been shared in {classWorkspace.Name}.",
-                        Type = NotificationType.Alert,
+                        Type = NotificationType.Resource,
                         Priority = NotificationPriority.Normal,
                         IsRead = false,
                         UserId = student.Id,
@@ -164,14 +231,14 @@ public class ResourcesController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetById), new { id = resource.Id }, new
+        return CreatedAtAction(nameof(GetById), new { id = firstResource.Id }, new
         {
-            resource.Id,
-            resource.Title,
-            resource.FileUrl,
-            resource.FileType,
-            resource.FileSize,
-            resource.CreatedAt
+            firstResource.Id,
+            firstResource.Title,
+            firstResource.FileUrl,
+            firstResource.FileType,
+            firstResource.FileSize,
+            firstResource.CreatedAt
         });
     }
 
@@ -186,30 +253,48 @@ public class ResourcesController : ControllerBase
 
         var resolvedDeptId = await GetDepartmentIdAsync(model.DepartmentId, userId);
 
-        var resource = new LearningResource
+        var targetClassIds = new List<Guid>();
+        if (model.ClassWorkspaceIds != null && model.ClassWorkspaceIds.Length > 0)
         {
-            Id = Guid.NewGuid(),
-            Title = model.Title,
-            Description = model.Description,
-            FileUrl = model.FileUrl,
-            FileType = model.FileType,
-            FileSize = model.FileSize,
-            Category = model.Category,
-            Tags = model.Tags,
-            DepartmentId = resolvedDeptId,
-            UploadedByUserId = userId,
-            DownloadCount = 0,
-            ClassWorkspaceId = model.ClassWorkspaceId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _unitOfWork.LearningResources.AddAsync(resource);
-
-        if (model.ClassWorkspaceId.HasValue)
+            targetClassIds.AddRange(model.ClassWorkspaceIds);
+        }
+        else if (model.ClassWorkspaceId.HasValue)
         {
+            targetClassIds.Add(model.ClassWorkspaceId.Value);
+        }
+
+        if (targetClassIds.Count == 0)
+        {
+            return BadRequest(new { Message = "At least one target class is required." });
+        }
+
+        LearningResource firstResource = null!;
+
+        foreach (var classId in targetClassIds)
+        {
+            var resource = new LearningResource
+            {
+                Id = Guid.NewGuid(),
+                Title = model.Title,
+                Description = model.Description,
+                FileUrl = model.FileUrl,
+                FileType = model.FileType,
+                FileSize = model.FileSize,
+                Category = model.Category,
+                Tags = model.Tags,
+                DepartmentId = resolvedDeptId,
+                UploadedByUserId = userId,
+                DownloadCount = 0,
+                ClassWorkspaceId = classId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.LearningResources.AddAsync(resource);
+            if (firstResource == null) firstResource = resource;
+
             var classWorkspace = await _context.ClassWorkspaces
                 .Include(c => c.Students)
-                .FirstOrDefaultAsync(c => c.Id == model.ClassWorkspaceId.Value && !c.IsDeleted);
+                .FirstOrDefaultAsync(c => c.Id == classId && !c.IsDeleted);
 
             if (classWorkspace != null)
             {
@@ -220,7 +305,7 @@ public class ResourcesController : ControllerBase
                         Id = Guid.NewGuid(),
                         Title = "New Resource Uploaded",
                         Message = $"A new resource file '{model.Title}' ({model.FileType}) has been shared in {classWorkspace.Name}.",
-                        Type = NotificationType.Alert,
+                        Type = NotificationType.Resource,
                         Priority = NotificationPriority.Normal,
                         IsRead = false,
                         UserId = student.Id,
@@ -234,7 +319,7 @@ public class ResourcesController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetById), new { id = resource.Id }, resource);
+        return CreatedAtAction(nameof(GetById), new { id = firstResource.Id }, firstResource);
     }
 
     [HttpPut("{id}")]
@@ -310,6 +395,7 @@ public class CreateResourceModel
     public string Tags { get; set; } = string.Empty;
     public Guid DepartmentId { get; set; }
     public Guid? ClassWorkspaceId { get; set; }
+    public Guid[]? ClassWorkspaceIds { get; set; }
 }
 
 public class UpdateResourceModel
@@ -330,4 +416,6 @@ public class UploadResourceModel
     public string? Tags { get; set; }
     public Guid? DepartmentId { get; set; }
     public Guid? ClassWorkspaceId { get; set; }
+    public Guid[]? ClassWorkspaceIds { get; set; }
+    public bool IsGlobal { get; set; }
 }

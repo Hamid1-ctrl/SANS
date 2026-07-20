@@ -87,8 +87,8 @@ const MessagesPage: React.FC = () => {
       gradient: 'from-emerald-500 to-teal-650',
       phone: '+1 (555) 987-6543',
       email: 'a.dent@sans.edu',
-      stat1Label: 'Attendance',
-      stat1Value: '98%',
+      stat1Label: 'Average Grade',
+      stat1Value: 'A',
       stat2Label: 'Credits',
       stat2Value: '18'
     },
@@ -123,8 +123,8 @@ const MessagesPage: React.FC = () => {
       email: 'z.beeble@sans.edu',
       stat1Label: 'Registered Credits',
       stat1Value: '16',
-      stat2Label: 'Attendance',
-      stat2Value: '81%'
+      stat2Label: 'Submission Rate',
+      stat2Value: '89%'
     }
   ];
 

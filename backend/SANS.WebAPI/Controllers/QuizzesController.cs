@@ -46,15 +46,8 @@ public class QuizzesController : ControllerBase
         }
         else
         {
-            // If no classId specified, filter by user's classes
-            if (dbUser.Role == UserRole.Lecturer)
-            {
-                query = query.Where(q => q.ClassWorkspace != null && q.ClassWorkspace.LecturerId == userId);
-            }
-            else
-            {
-                query = query.Where(q => q.ClassWorkspace != null && q.ClassWorkspace.Students.Any(s => s.Id == userId));
-            }
+            // Return global quizzes (scheduled for University Hub)
+            query = query.Where(q => q.ClassWorkspaceId == Guid.Empty);
         }
 
         var list = await query
@@ -88,9 +81,37 @@ public class QuizzesController : ControllerBase
     {
         var userId = GetCurrentUserId();
         var dbUser = await _context.Users.FindAsync(userId);
-        if (dbUser == null || dbUser.Role != UserRole.Lecturer)
+        if (dbUser == null || (dbUser.Role != UserRole.Lecturer && dbUser.Role != UserRole.Administrator))
         {
             return Forbid();
+        }
+
+        // Prevent pending/suspended lecturers from scheduling quizzes
+        if (dbUser.Role == UserRole.Lecturer && dbUser.Status != AccountStatus.Verified)
+        {
+            return Forbid();
+        }
+
+        if (model.ClassWorkspaceId == Guid.Empty)
+        {
+            var globalQuiz = new Quiz
+            {
+                Id = Guid.NewGuid(),
+                Title = model.Title,
+                Course = "University Hub Assessment",
+                Date = model.Date,
+                Points = model.Points,
+                QuestionsCount = model.QuestionsCount,
+                ClassWorkspaceId = Guid.Empty,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = $"{dbUser.FirstName} {dbUser.LastName}",
+                IsDeleted = false
+            };
+
+            await _context.Quizzes.AddAsync(globalQuiz);
+            await _context.SaveChangesAsync();
+
+            return Ok(globalQuiz);
         }
 
         var classWorkspace = await _context.ClassWorkspaces
@@ -100,6 +121,12 @@ public class QuizzesController : ControllerBase
         if (classWorkspace == null)
         {
             return NotFound(new { Message = "Class workspace not found" });
+        }
+
+        // Verify lecturer owns/teaches the class workspace
+        if (classWorkspace.LecturerId != userId && dbUser.Role != UserRole.Administrator)
+        {
+            return Forbid();
         }
 
         var quiz = new Quiz

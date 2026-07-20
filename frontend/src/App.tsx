@@ -20,6 +20,7 @@ import SettingsPage from './pages/SettingsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import QuizzesPage from './pages/QuizzesPage';
 import MeetingsPage from './pages/MeetingsPage';
+import AdminPanelPage from './pages/AdminPanelPage';
 import { UserRole } from './types';
 
 const queryClient = new QueryClient({
@@ -52,9 +53,11 @@ function App() {
                     <Route path="/schedule" element={<SchedulePage />} />
                     <Route path="/resources" element={<ResourcesPage />} />
                     <Route path="/messages" element={<MessagesPage />} />
+                    <Route path="/discussion" element={<MessagesPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/classes" element={<MyClassesPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/admin" element={<AdminPanelPage />} />
 
                     <Route path="/quizzes" element={<QuizzesPage />} />
 

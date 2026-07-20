@@ -17,8 +17,6 @@ import {
   MessageSquare, 
   FileText, 
   ChevronDown, 
-  Menu, 
-  X, 
   Star,
   Layers,
   Target
@@ -57,6 +55,29 @@ const LandingPage: React.FC = () => {
   const [activeRole, setActiveRole] = useState<'student' | 'lecturer' | 'rep'>('student');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+  const [activeSection, setActiveSection] = useState('home');
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['features', 'how-it-works', 'roles', 'why-sans', 'faq'];
+      if (window.scrollY < 200) {
+        setActiveSection('home');
+        return;
+      }
+      for (const sectionId of sections) {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 200 && rect.bottom >= 200) {
+            setActiveSection(sectionId);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const bgStyle = {
     backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.88)), url("/sans_landing_background.jpg")',
@@ -123,27 +144,58 @@ const LandingPage: React.FC = () => {
           className="w-full max-w-7xl bg-white/75 dark:bg-slate-900/75 backdrop-blur-md border border-white/50 dark:border-slate-800/40 shadow-[0_8px_32px_0_rgba(15,23,42,0.06)] rounded-2xl px-6 py-3.5 transition-all duration-300"
         >
           <div className="flex items-center justify-between">
+            {/* Logo */}
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#1e7a34] to-[#3ea556] text-white flex items-center justify-center font-black text-lg shadow-md shadow-brand-green/20">
                 S
               </div>
-              <span className="text-slate-900 font-extrabold text-lg tracking-tight">SANS</span>
+              <span className="text-slate-900 dark:text-white font-extrabold text-lg tracking-tight">SANS</span>
             </div>
 
-            {/* Desktop Links */}
-            <div className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-700">
-              <a href="#features" className="hover:text-[#1e7a34] transition-colors">Features</a>
-              <a href="#how-it-works" className="hover:text-[#1e7a34] transition-colors">How It Works</a>
-              <a href="#roles" className="hover:text-[#1e7a34] transition-colors">Roles</a>
-              <a href="#why-sans" className="hover:text-[#1e7a34] transition-colors">Benefits</a>
-              <a href="#faq" className="hover:text-[#1e7a34] transition-colors">FAQ</a>
+            {/* Desktop Links with Spotlight Animation */}
+            <div className="hidden md:flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+              {[
+                { id: 'features', label: 'Features', href: '#features' },
+                { id: 'how-it-works', label: 'How It Works', href: '#how-it-works' },
+                { id: 'roles', label: 'Roles', href: '#roles' },
+                { id: 'why-sans', label: 'Benefits', href: '#why-sans' },
+                { id: 'faq', label: 'FAQ', href: '#faq' },
+              ].map((item) => {
+                const isActive = activeSection === item.id;
+                return (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    className={`relative px-4 py-2 rounded-xl transition-all duration-300 flex items-center justify-center hover:text-[#1e7a34] dark:hover:text-white ${
+                      isActive 
+                        ? 'text-[#1e7a34] dark:text-white font-black' 
+                        : 'text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {/* Spotlight shine beam (cone shape from image) */}
+                    {isActive && (
+                      <div 
+                        className="absolute inset-0 bg-gradient-to-b from-[#1e7a34]/8 dark:from-white/12 to-transparent pointer-events-none rounded-xl" 
+                        style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)' }}
+                      />
+                    )}
+
+                    {/* Top Spotlight Bar Indicator */}
+                    {isActive && (
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2.5px] bg-[#1e7a34] dark:bg-white rounded-b-full shadow-[0_0_6px_rgba(30,122,52,0.6)] dark:shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
+                    )}
+
+                    <span className="relative z-10">{item.label}</span>
+                  </a>
+                );
+              })}
             </div>
 
-            {/* Navigation CTAs */}
+            {/* Desktop Navigation CTAs */}
             <div className="hidden md:flex items-center gap-4">
               <button 
                 onClick={() => navigate('/login')}
-                className="text-xs font-extrabold text-slate-700 hover:text-[#1e7a34] transition-colors px-4 py-2 cursor-pointer"
+                className="text-xs font-extrabold text-slate-700 dark:text-slate-350 hover:text-[#1e7a34] dark:hover:text-white transition-colors px-4 py-2 cursor-pointer"
               >
                 Sign In
               </button>
@@ -158,7 +210,15 @@ const LandingPage: React.FC = () => {
 
             {/* Mobile Menu Icon */}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
-              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMobileMenuOpen ? (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
             </button>
           </div>
         </motion.nav>
@@ -322,7 +382,7 @@ const LandingPage: React.FC = () => {
                       {/* Banner */}
                       <div className="bg-[#1e7a34] p-4 rounded-2xl text-white space-y-1 shadow-sm">
                         <h4 className="text-xs font-black">Welcome Back, John Doe</h4>
-                        <p className="text-[9px] text-[#f0f7f2] font-medium">Your overall Attendance is sitting at 94.2%</p>
+                        <p className="text-[9px] text-[#f0f7f2] font-medium">All SANS courses are up to date</p>
                       </div>
 
                       {/* Content block */}
@@ -569,7 +629,7 @@ const LandingPage: React.FC = () => {
               <ul className="space-y-3.5 pt-4 text-xs text-slate-700 font-bold">
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />View verified notices</li>
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Dynamic credit load metrics</li>
-                <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Attendance tracker</li>
+                <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Submission Rate checker</li>
                 <li className="flex items-center gap-2.5"><CheckCircle size={14} className="text-[#1e7a34] shrink-0" />Download pdf documents only</li>
               </ul>
             </div>

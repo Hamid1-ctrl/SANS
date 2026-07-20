@@ -25,13 +25,21 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const response = await api.get<ClassWorkspace[]>('/classworkspaces');
       setClasses(response.data);
-      // Auto-set active class if it was previously set, else keep it
-      if (activeClass) {
-        const found = response.data.find(c => c.id === activeClass.id);
+      
+      // Auto-restore active class from localStorage or previous state
+      const savedClassId = localStorage.getItem('sans_active_class_id');
+      const targetId = savedClassId || activeClass?.id;
+      
+      if (targetId) {
+        const found = response.data.find(c => c.id === targetId);
         if (found) {
           setActiveClassState(found);
+          if (!savedClassId) {
+            localStorage.setItem('sans_active_class_id', found.id);
+          }
         } else {
           setActiveClassState(null);
+          localStorage.removeItem('sans_active_class_id');
         }
       }
     } catch (error) {
@@ -47,11 +55,17 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } else {
       setClasses([]);
       setActiveClassState(null);
+      localStorage.removeItem('sans_active_class_id');
     }
   }, [isAuthenticated]);
 
   const setActiveClass = (cls: ClassWorkspace | null) => {
     setActiveClassState(cls);
+    if (cls) {
+      localStorage.setItem('sans_active_class_id', cls.id);
+    } else {
+      localStorage.removeItem('sans_active_class_id');
+    }
   };
 
   return (
