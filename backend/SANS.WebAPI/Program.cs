@@ -73,6 +73,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Register storage service
 builder.Services.AddScoped<IStorageService, R2StorageService>();
 
+// Register background cleanup service for expired quizzes & assignments
+builder.Services.AddHostedService<ExpiredItemsCleanupService>();
+
 // Configure Firebase JWT Authentication
 builder.Services.AddAuthentication(options =>
 {

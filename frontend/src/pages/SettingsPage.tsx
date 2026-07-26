@@ -143,7 +143,7 @@ const SettingsPage: React.FC = () => {
         {/* PANEL 1: Profile Details */}
         <div className="lg:col-span-2 bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] rounded-[2.5rem] p-8 shadow-soft space-y-6">
           <h2 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#1e7a34]/10 flex items-center justify-center text-[#1e7a34]">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#1e7a34] dark:text-emerald-300">
               <UserIcon size={14} />
             </div>
             <span>Profile Settings</span>

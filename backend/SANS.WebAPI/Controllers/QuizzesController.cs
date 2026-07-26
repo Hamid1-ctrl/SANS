@@ -38,6 +38,20 @@ public class QuizzesController : ControllerBase
         var dbUser = await _context.Users.FindAsync(userId);
         if (dbUser == null) return NotFound();
 
+        // Auto-cleanup expired quizzes inline
+        var now = DateTime.UtcNow;
+        var expired = await _context.Quizzes.Where(q => !q.IsDeleted && q.Date < now).ToListAsync();
+        if (expired.Count > 0)
+        {
+            foreach (var item in expired)
+            {
+                item.IsDeleted = true;
+                item.DeletedAt = now;
+                item.UpdatedBy = "Auto Expired Cleanup";
+            }
+            await _context.SaveChangesAsync();
+        }
+
         var query = _context.Quizzes.Where(q => !q.IsDeleted);
 
         if (classId.HasValue)

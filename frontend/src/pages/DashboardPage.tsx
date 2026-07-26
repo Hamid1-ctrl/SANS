@@ -5,7 +5,7 @@ import { useTheme } from '../components/layout/ThemeProvider';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from '../hooks/useAnnouncements';
 import { useAssignments, useCreateAssignment, useDeleteAssignment } from '../hooks/useAssignments';
-import { useCreateSchedule, useSchedules, useDeleteSchedule } from '../hooks/useSchedules';
+import { useCreateSchedule, useSchedules, useDeleteSchedule, useTodaySummary } from '../hooks/useSchedules';
 import { useQuizzes, useCreateQuiz, useDeleteQuiz } from '../hooks/useQuizzes';
 import { useResources, useDeleteResource } from '../hooks/useResources';
 import { UserRole } from '../types';
@@ -25,8 +25,10 @@ import {
   FolderOpen,
   ArrowLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  GraduationCap
 } from 'lucide-react';
+import { StudentProfileModal } from '../components/modals/StudentProfileModal';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -47,6 +49,7 @@ const DashboardPage: React.FC = () => {
   const [showJoinToast, setShowJoinToast] = useState(false);
   const [joinClassError, setJoinClassError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedStudentIdForModal, setSelectedStudentIdForModal] = useState<string | null>(null);
   
   // Scoped Data Queries
   const { data: announcements = [] } = useAnnouncements(activeClass?.id);
@@ -54,6 +57,7 @@ const DashboardPage: React.FC = () => {
   const { data: quizzes = [] } = useQuizzes(activeClass?.id);
   const { data: resources = [] } = useResources(activeClass?.id);
   const { data: schedules = [] } = useSchedules(activeClass?.id);
+  const { data: todaySummary } = useTodaySummary(activeClass?.id);
 
   // Student specific panel state
   const [studentSearch, setStudentSearch] = useState('');
@@ -386,7 +390,7 @@ const DashboardPage: React.FC = () => {
         <aside className="w-72 bg-white dark:bg-[#1E293B] border-r border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col shrink-0 h-full overflow-y-auto">
           <div className="mb-4 space-y-3">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-6 h-6 rounded-lg bg-[#1e7a34]/10 flex items-center justify-center text-[#1e7a34]">
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#1e7a34] dark:text-emerald-300">
                 <Megaphone size={12} />
               </div>
               <h2 className="font-extrabold text-slate-850 dark:text-[#F8FAFC] text-sm">
@@ -427,7 +431,7 @@ const DashboardPage: React.FC = () => {
                       {/* Left icon wrapper */}
                       <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center ${
                         isActive
-                          ? 'bg-[#1e7a34]/20 text-[#1e7a34]'
+                          ? 'bg-emerald-500/20 dark:bg-emerald-950/60 text-[#1e7a34] dark:text-emerald-300'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                       }`}>
                         <Megaphone size={11} />
@@ -657,29 +661,41 @@ const DashboardPage: React.FC = () => {
 
                 {/* Column 3: Timetable & Actions */}
                 <div className="space-y-4">
-                  {/* Today's Timetable */}
+                  {/* Today's Academic Timetable & Next Class Widget */}
                   <div className="bg-white dark:bg-[#1E293B] border border-slate-100 dark:border-slate-800/40 rounded-2xl p-5 shadow-sm space-y-3">
-                    <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest block">Today's Class Timetable</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-extrabold text-[#1e7a34] dark:text-emerald-400 uppercase tracking-widest block">Today's Academic Schedule</span>
+                      {todaySummary?.startsIn && (
+                        <span className="text-[8px] font-extrabold bg-emerald-500/10 dark:bg-emerald-950/50 text-[#1e7a34] dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/20">{todaySummary.startsIn}</span>
+                      )}
+                    </div>
+
                     <div className="space-y-2">
-                      {schedules.length === 0 ? (
-                        <p className="text-[10px] text-slate-400 font-semibold py-4 text-center">No scheduled sync sessions today.</p>
+                      {(!todaySummary?.todayClasses || todaySummary.todayClasses.length === 0) ? (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-center space-y-1">
+                          <p className="text-[10px] text-slate-500 font-bold">No scheduled classes today</p>
+                          <p className="text-[8px] text-slate-400">Enjoy your day or work on self-paced study!</p>
+                        </div>
                       ) : (
-                        schedules.slice(0, 2).map(item => (
+                        todaySummary.todayClasses.slice(0, 3).map(item => (
                           <div key={item.id} className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-xl space-y-0.5">
-                            <h5 className="text-[11px] font-black text-slate-800 dark:text-white truncate">{item.title}</h5>
-                            <p className="text-[9px] text-[#1e7a34] font-bold">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-[11px] font-black text-slate-800 dark:text-white truncate">{item.courseCode} {item.title}</h5>
+                              <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-slate-200/60 dark:bg-slate-800 text-slate-600">{item.lectureType}</span>
+                            </div>
+                            <p className="text-[9px] text-[#1e7a34] dark:text-emerald-400 font-bold">
                               {new Date(item.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               {item.room && ` • Room: ${item.room}`}
+                              {item.lecturerName && ` • ${item.lecturerName}`}
                             </p>
                           </div>
                         ))
                       )}
                     </div>
-                    {schedules.length > 0 && (
-                      <button onClick={() => navigate('/schedule')} className="w-full text-center text-[9px] font-bold text-[#1e7a34] hover:underline flex items-center justify-center gap-0.5 cursor-pointer">
-                        Full Course Timetable <ChevronRight size={10} />
-                      </button>
-                    )}
+                    
+                    <button onClick={() => navigate('/schedule')} className="w-full text-center text-[9px] font-bold text-[#1e7a34] dark:text-emerald-400 hover:underline flex items-center justify-center gap-0.5 cursor-pointer pt-1">
+                      Full Course Timetable <ChevronRight size={10} />
+                    </button>
                   </div>
 
                   {/* Quick Action Panels (LMS role specific) */}
@@ -720,7 +736,7 @@ const DashboardPage: React.FC = () => {
               {user?.firstName?.[0] || 'S'}{user?.lastName?.[0] || 'D'}
             </div>
             <h3 className="text-xs font-black text-slate-800 dark:text-[#F8FAFC] mt-3">{user?.firstName} {user?.lastName}</h3>
-            <p className="text-[9px] text-[#1e7a34] dark:text-[#3ea556] font-bold uppercase tracking-wider mt-0.5">
+            <p className="text-[9px] text-[#1e7a34] dark:text-emerald-400 font-bold uppercase tracking-wider mt-0.5">
               {user?.role === UserRole.ClassRepresentative ? 'Class Representative' : 'Enrolled Student'}
             </p>
           </div>
@@ -825,7 +841,7 @@ const DashboardPage: React.FC = () => {
                         onClick={() => navigate('/assignments')}
                         className="flex items-center gap-3 p-3 bg-[#f0f7f2] dark:bg-slate-900/40 border border-[#d6eedd] dark:border-slate-800/40 rounded-2xl cursor-pointer hover:border-[#1e7a34]/50 transition-all hover:scale-[1.01]"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-[#1e7a34]/10 flex items-center justify-center text-[#1e7a34] shrink-0"><Clock size={14} /></div>
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#1e7a34] dark:text-emerald-300 shrink-0"><Clock size={14} /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-slate-850 dark:text-[#CBD5E1] truncate">{item.title}</p>
                           <p className="text-[9px] text-[#1e7a34]/60 font-semibold">{new Date(item.dueDate).toLocaleDateString()}</p>
@@ -849,7 +865,7 @@ const DashboardPage: React.FC = () => {
                         onClick={() => navigate('/quizzes')}
                         className="flex items-center gap-3 p-3 bg-[#f0f7f2] dark:bg-slate-900/40 border border-[#d6eedd] dark:border-slate-800/40 rounded-2xl cursor-pointer hover:border-[#1e7a34]/50 transition-all hover:scale-[1.01]"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-[#1e7a34]/10 flex items-center justify-center text-[#1e7a34] shrink-0"><Beaker size={14} /></div>
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#1e7a34] dark:text-emerald-300 shrink-0"><Beaker size={14} /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-slate-850 dark:text-[#CBD5E1] truncate">{item.title}</p>
                           <p className="text-[9px] text-[#1e7a34]/60 font-semibold">{new Date(item.date).toLocaleDateString()} • {item.points} pts</p>
@@ -891,7 +907,7 @@ const DashboardPage: React.FC = () => {
         <aside className="w-72 bg-white dark:bg-[#1E293B] border-r border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col shrink-0 h-full overflow-y-auto">
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-6 h-6 rounded-lg bg-[#1e7a34]/10 flex items-center justify-center text-[#1e7a34]">
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#1e7a34] dark:text-emerald-300">
                 <BookOpen size={12} />
               </div>
               <h2 className="font-extrabold text-slate-850 dark:text-[#F8FAFC] text-sm">Faculty Console</h2>
@@ -928,7 +944,7 @@ const DashboardPage: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-start gap-2.5">
-                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${item.id === activeClass?.id ? 'bg-white/20 text-white' : 'bg-[#1e7a34]/10 text-[#1e7a34]'}`}>
+                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${item.id === activeClass?.id ? 'bg-white/20 text-white' : 'bg-emerald-500/10 dark:bg-emerald-950/40 text-[#1e7a34] dark:text-emerald-300'}`}>
                       <BookOpen size={14} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1440,7 +1456,19 @@ const DashboardPage: React.FC = () => {
                                 return (
                                   <tr key={student.id} className="text-[11px] font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-50/50 dark:hover:bg-slate-950/10 transition-colors">
                                     <td className="px-4 py-3">
-                                      <div className="font-extrabold text-slate-800 dark:text-white">{student.name}</div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-extrabold text-slate-800 dark:text-white">{student.name}</span>
+                                        {(user?.role === UserRole.Lecturer || user?.role === UserRole.Administrator) && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setSelectedStudentIdForModal(student.id)}
+                                            className="text-[9px] font-extrabold px-2 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#1e7a34] dark:text-emerald-300 rounded-md border border-emerald-500/20 transition-all cursor-pointer flex items-center gap-1"
+                                            title="Inspect Student Profile Details"
+                                          >
+                                            <GraduationCap size={10} /> Profile
+                                          </button>
+                                        )}
+                                      </div>
                                       <div className="text-[9px] text-slate-400">{student.email}</div>
                                     </td>
                                     <td className="px-4 py-3 font-mono">{student.studentId}</td>
@@ -1650,6 +1678,12 @@ const DashboardPage: React.FC = () => {
           <span>{successMsg}</span>
         </div>
       )}
+      {/* Student Profile Modal for Lecturer Inspection */}
+      <StudentProfileModal
+        studentId={selectedStudentIdForModal}
+        isOpen={!!selectedStudentIdForModal}
+        onClose={() => setSelectedStudentIdForModal(null)}
+      />
     </>
   );
 };

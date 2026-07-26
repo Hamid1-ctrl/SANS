@@ -50,7 +50,8 @@ public class AuthController : ControllerBase
                 model.OfficeNumber,
                 model.OfficeHours,
                 model.Specialization,
-                model.FirebaseUid);
+                model.FirebaseUid,
+                model.IndexNumber);
 
             return Ok(new
             {
@@ -166,6 +167,7 @@ public class AuthController : ControllerBase
             user.Email,
             user.PhoneNumber,
             user.StudentId,
+            user.IndexNumber,
             Role = (int)user.Role,
             Status = (int)user.Status,
             user.IsActive,
@@ -188,6 +190,7 @@ public class RegisterModel
     public string LastName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string StudentId { get; set; } = string.Empty;
+    public string? IndexNumber { get; set; }
     public int Role { get; set; }
     public string? OfficeNumber { get; set; }
     public string? OfficeHours { get; set; }

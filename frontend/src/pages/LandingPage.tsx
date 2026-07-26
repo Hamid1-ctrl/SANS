@@ -271,7 +271,7 @@ const LandingPage: React.FC = () => {
           transition={{ duration: 0.6 }}
           className="lg:col-span-5 space-y-6 text-left"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#f0f7f2] dark:bg-[#1e7a34]/15 border border-[#1e7a34]/15 rounded-full text-[#1e7a34] dark:text-[#3ea556] text-[10px] font-black uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#f0f7f2] dark:bg-emerald-950/40 border border-[#1e7a34]/15 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
             <Sparkles size={12} />
             <span>Verified Campus Coordination</span>
           </div>
@@ -389,20 +389,20 @@ const LandingPage: React.FC = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-1.5">
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Notice from Dean</span>
-                          <h5 className="text-[10px] font-extrabold text-white">Syllabus revision release</h5>
-                          <p className="text-[9px] text-slate-400 font-semibold line-clamp-2">The syllabus guidelines have been updated for SE206 core tracks.</p>
+                          <h5 className="text-[10px] font-extrabold text-slate-800">Syllabus revision release</h5>
+                          <p className="text-[9px] text-slate-500 font-semibold line-clamp-2">The syllabus guidelines have been updated for SE206 core tracks.</p>
                         </div>
                         
                         <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-2">
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Deadlines Checker</span>
                           <div className="space-y-1.5">
-                            <div className="flex justify-between items-center text-[9px] font-bold text-white">
+                            <div className="flex justify-between items-center text-[9px] font-bold text-slate-700">
                               <span className="truncate">DB Lab 4 Submission</span>
-                              <span className="text-rose-455 shrink-0">Due Tomorrow</span>
+                              <span className="text-rose-600 shrink-0">Due Tomorrow</span>
                             </div>
-                            <div className="flex justify-between items-center text-[9px] font-bold text-white">
+                            <div className="flex justify-between items-center text-[9px] font-bold text-slate-700">
                               <span className="truncate">AI Planning Problems</span>
-                              <span className="text-slate-400 shrink-0">July 12</span>
+                              <span className="text-slate-500 shrink-0">July 12</span>
                             </div>
                           </div>
                         </div>
@@ -431,7 +431,7 @@ const LandingPage: React.FC = () => {
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Rep notice approvals</span>
                           <div className="p-2 bg-[#f0f7f2] border border-[#d6eedd] rounded-xl flex justify-between items-center">
                             <div>
-                              <p className="text-[9px] font-bold text-white">Dean Committee Sync</p>
+                              <p className="text-[9px] font-bold text-slate-800">Dean Committee Sync</p>
                               <p className="text-[7px] text-slate-500 font-bold uppercase">Awaiting approval</p>
                             </div>
                             <button className="px-2 py-1 bg-[#1e7a34] hover:bg-[#258d3f] text-white text-[8px] font-black rounded-lg shrink-0">Verify</button>
@@ -440,7 +440,7 @@ const LandingPage: React.FC = () => {
 
                         <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-2">
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Active Quizzes</span>
-                          <div className="space-y-1 text-[8px] font-bold text-slate-300">
+                          <div className="space-y-1 text-[8px] font-bold text-slate-700">
                             <div className="flex justify-between items-center">
                               <span>Algorithms Quiz #1</span>
                               <span className="text-[#3ea556]">87% submitted</span>
@@ -476,7 +476,7 @@ const LandingPage: React.FC = () => {
                           <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Support tickets Log</span>
                           <div className="space-y-1.5">
                             <div className="p-1.5 bg-[#f0f7f2] border border-slate-200/60 rounded-lg flex items-center justify-between text-[8px] font-bold">
-                              <span className="text-white truncate">Lab 3 Database Outage</span>
+                              <span className="text-slate-800 truncate">Lab 3 Database Outage</span>
                               <span className="text-[#3ea556] shrink-0 font-extrabold">Open</span>
                             </div>
                           </div>
@@ -485,9 +485,9 @@ const LandingPage: React.FC = () => {
                         <div className="bg-white/90 border border-slate-200/80 shadow-sm p-3 rounded-2xl space-y-2 flex flex-col justify-between">
                           <div>
                             <span className="text-[8px] font-extrabold text-[#3ea556] uppercase tracking-widest">Ticket Resolution Target</span>
-                            <div className="flex justify-between items-center text-[9px] font-bold text-white mt-1">
+                            <div className="flex justify-between items-center text-[9px] font-bold text-slate-700 mt-1">
                               <span>Weekly Target</span>
-                              <span>92% resolved</span>
+                              <span className="text-slate-800">92% resolved</span>
                             </div>
                           </div>
                           <div className="w-full bg-slate-200 rounded-full h-1 mt-1">
@@ -525,7 +525,7 @@ const LandingPage: React.FC = () => {
               const Icon = item.icon;
               return (
                 <div key={idx} className="flex items-center gap-2.5 text-slate-700">
-                  <div className="w-8 h-8 rounded-lg bg-[#1e7a34]/5 text-[#1e7a34] dark:text-[#3ea556] flex items-center justify-center"><Icon size={15} /></div>
+                  <div className="w-8 h-8 rounded-lg bg-[#1e7a34]/5 text-[#1e7a34] dark:text-emerald-400 flex items-center justify-center"><Icon size={15} /></div>
                   <span className="text-xs font-bold">{item.text}</span>
                 </div>
               );
@@ -537,7 +537,7 @@ const LandingPage: React.FC = () => {
       {/* FEATURES SECTION (Bento Grid) */}
       <section id="features" className="py-24 px-6 max-w-7xl mx-auto space-y-12">
         <div className="text-center max-w-2xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f0f7f2] dark:bg-[#1e7a34]/15 border border-[#1e7a34]/15 rounded-full text-[#1e7a34] dark:text-[#3ea556] text-[10px] font-black uppercase tracking-widest">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f0f7f2] dark:bg-emerald-950/40 border border-[#1e7a34]/15 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
             <Layers size={11} />
             <span>Robust Feature Catalog</span>
           </div>
@@ -559,7 +559,7 @@ const LandingPage: React.FC = () => {
                 whileHover={{ y: -4, scale: 1.01 }}
                 className="bg-white/70 backdrop-blur-md border border-white/60 shadow-md rounded-3xl p-6 shadow-soft text-left space-y-4 hover:shadow-medium transition-all duration-300 group cursor-pointer"
               >
-                <div className="w-10 h-10 rounded-2xl bg-[#f0f7f2] dark:bg-slate-900 text-[#1e7a34] dark:text-[#3ea556] flex items-center justify-center group-hover:bg-gradient-to-tr group-hover:from-[#1e7a34] group-hover:to-[#3ea556] group-hover:text-white transition-all shadow-sm">
+                <div className="w-10 h-10 rounded-2xl bg-[#f0f7f2] dark:bg-slate-900 text-[#1e7a34] dark:text-emerald-400 flex items-center justify-center group-hover:bg-gradient-to-tr group-hover:from-[#1e7a34] group-hover:to-[#3ea556] group-hover:text-white transition-all shadow-sm">
                   <Icon size={16} />
                 </div>
                 <div className="space-y-1.5">
@@ -697,7 +697,7 @@ const LandingPage: React.FC = () => {
       <section id="why-sans" className="border-t border-slate-200/60 bg-white/40 backdrop-blur-sm py-24 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5 text-left space-y-4">
-            <span className="text-xs font-black text-[#1e7a34] dark:text-[#3ea556] uppercase tracking-widest">Designed to Streamline Communication</span>
+            <span className="text-xs font-black text-[#1e7a34] dark:text-emerald-400 uppercase tracking-widest">Designed to Streamline Communication</span>
             <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">Why Universities Choose SANS</h2>
             <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed">
               Standard group chats suffer from message noise, unverified info, and duplicate questions. SANS eliminates this confusion with dedicated roles and channels.
@@ -726,7 +726,7 @@ const LandingPage: React.FC = () => {
       {/* TESTIMONIALS SECTION */}
       <section className="py-24 px-6 max-w-7xl mx-auto space-y-16">
         <div className="text-center max-w-xl mx-auto space-y-3">
-          <span className="text-xs font-black text-[#1e7a34] dark:text-[#3ea556] uppercase tracking-widest">Endorsed by Academics</span>
+          <span className="text-xs font-black text-[#1e7a34] dark:text-emerald-400 uppercase tracking-widest">Endorsed by Academics</span>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Fidelity Endorsements</h2>
           <p className="text-xs text-slate-600 font-semibold leading-relaxed">
             See what students and class representatives say about SANS.

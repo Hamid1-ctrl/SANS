@@ -16,7 +16,8 @@ public interface IAuthService
         string? officeNumber = null,
         string? officeHours = null,
         string? specialization = null,
-        string? firebaseUid = null);
+        string? firebaseUid = null,
+        string? indexNumber = null);
     Task<(string accessToken, string refreshToken)> RefreshTokenAsync(string refreshToken);
     Task<bool> LogoutAsync(string refreshToken);
     Task<User?> GetUserByIdAsync(Guid userId);

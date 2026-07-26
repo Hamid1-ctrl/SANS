@@ -1,15 +1,60 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
-import type { Schedule } from '../types';
+import type { Schedule, TodayScheduleSummary } from '../types';
 
-export const useSchedules = (classId?: string) => {
+export const useSchedules = (classId?: string, filters?: { course?: string; day?: number; lecturer?: string; venue?: string; lectureType?: string }) => {
   return useQuery({
-    queryKey: ['schedules', classId],
+    queryKey: ['schedules', classId, filters],
     queryFn: async () => {
-      const response = await api.get<Schedule[]>('/schedules', {
+      const params: any = {};
+      if (classId) params.classId = classId;
+      if (filters?.course) params.course = filters.course;
+      if (filters?.day) params.day = filters.day;
+      if (filters?.lecturer) params.lecturer = filters.lecturer;
+      if (filters?.venue) params.venue = filters.venue;
+      if (filters?.lectureType && filters.lectureType !== 'All') params.lectureType = filters.lectureType;
+
+      const response = await api.get<Schedule[]>('/schedules', { params });
+      return response.data;
+    },
+  });
+};
+
+export const useMasterTimetable = () => {
+  return useQuery({
+    queryKey: ['schedules', 'master'],
+    queryFn: async () => {
+      const response = await api.get<Schedule[]>('/schedules/master');
+      return response.data;
+    },
+  });
+};
+
+export const useTodaySummary = (classId?: string) => {
+  return useQuery({
+    queryKey: ['schedules', 'today-summary', classId],
+    queryFn: async () => {
+      const response = await api.get<TodayScheduleSummary>('/schedules/today-summary', {
         params: classId ? { classId } : {}
       });
       return response.data;
+    },
+    refetchInterval: 15000, // Refresh every 15 seconds for live countdowns
+  });
+};
+
+export const useUploadMasterTimetable = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await api.post<Schedule>('/schedules/master/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
     },
   });
 };
@@ -54,6 +99,20 @@ export const useCreateSchedule = () => {
   return useMutation({
     mutationFn: async (data: Partial<Schedule>) => {
       const response = await api.post<Schedule>('/schedules', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+    },
+  });
+};
+
+export const useImportMasterSchedule = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ masterScheduleId, classWorkspaceId }: { masterScheduleId: string; classWorkspaceId: string }) => {
+      const response = await api.post<Schedule>('/schedules/import-master', { masterScheduleId, classWorkspaceId });
       return response.data;
     },
     onSuccess: () => {

@@ -607,6 +607,141 @@ namespace SANS.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SANS.Domain.Entities.DiscussionAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("DiscussionReplyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("DiscussionThreadId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscussionReplyId");
+
+                    b.HasIndex("DiscussionThreadId");
+
+                    b.ToTable("DiscussionAttachments");
+                });
+
+            modelBuilder.Entity("SANS.Domain.Entities.DiscussionReply", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DiscussionThreadId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("ParentReplyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("DiscussionThreadId");
+
+                    b.HasIndex("ParentReplyId");
+
+                    b.ToTable("DiscussionReplies");
+                });
+
+            modelBuilder.Entity("SANS.Domain.Entities.DiscussionThread", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ClassWorkspaceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RepliesCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("ClassWorkspaceId");
+
+                    b.ToTable("DiscussionThreads");
+                });
+
             modelBuilder.Entity("SANS.Domain.Entities.Exam", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1002,7 +1137,26 @@ namespace SANS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AcademicLevel")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Building")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("ClassWorkspaceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CourseCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CourseTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1011,10 +1165,13 @@ namespace SANS.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("DepartmentId")
+                    b.Property<Guid?>("DepartmentId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
@@ -1024,18 +1181,49 @@ namespace SANS.Infrastructure.Migrations
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("FileName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileUrl")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("InstructorId")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsMaster")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsRecurring")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("LectureType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LecturerName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Location")
                         .IsRequired()
-                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("RecurrencePattern")
@@ -1044,6 +1232,10 @@ namespace SANS.Infrastructure.Migrations
                     b.Property<string>("Room")
                         .IsRequired()
                         .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Semester")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("StartTime")
@@ -1064,9 +1256,13 @@ namespace SANS.Infrastructure.Migrations
 
                     b.HasIndex("ClassWorkspaceId");
 
+                    b.HasIndex("DayOfWeek");
+
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("InstructorId");
+
+                    b.HasIndex("IsMaster");
 
                     b.ToTable("Schedules");
                 });
@@ -1107,6 +1303,9 @@ namespace SANS.Infrastructure.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IndexNumber")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
@@ -1436,6 +1635,68 @@ namespace SANS.Infrastructure.Migrations
                     b.Navigation("Lecturer");
                 });
 
+            modelBuilder.Entity("SANS.Domain.Entities.DiscussionAttachment", b =>
+                {
+                    b.HasOne("SANS.Domain.Entities.DiscussionReply", "DiscussionReply")
+                        .WithMany("Attachments")
+                        .HasForeignKey("DiscussionReplyId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("SANS.Domain.Entities.DiscussionThread", "DiscussionThread")
+                        .WithMany("Attachments")
+                        .HasForeignKey("DiscussionThreadId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("DiscussionReply");
+
+                    b.Navigation("DiscussionThread");
+                });
+
+            modelBuilder.Entity("SANS.Domain.Entities.DiscussionReply", b =>
+                {
+                    b.HasOne("SANS.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SANS.Domain.Entities.DiscussionThread", "DiscussionThread")
+                        .WithMany("Replies")
+                        .HasForeignKey("DiscussionThreadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SANS.Domain.Entities.DiscussionReply", "ParentReply")
+                        .WithMany("ChildReplies")
+                        .HasForeignKey("ParentReplyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Author");
+
+                    b.Navigation("DiscussionThread");
+
+                    b.Navigation("ParentReply");
+                });
+
+            modelBuilder.Entity("SANS.Domain.Entities.DiscussionThread", b =>
+                {
+                    b.HasOne("SANS.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SANS.Domain.Entities.ClassWorkspace", "ClassWorkspace")
+                        .WithMany()
+                        .HasForeignKey("ClassWorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("ClassWorkspace");
+                });
+
             modelBuilder.Entity("SANS.Domain.Entities.Exam", b =>
                 {
                     b.HasOne("SANS.Domain.Entities.User", "CreatedByUser")
@@ -1578,8 +1839,7 @@ namespace SANS.Infrastructure.Migrations
                     b.HasOne("SANS.Domain.Entities.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("SANS.Domain.Entities.User", "Instructor")
                         .WithMany()
@@ -1648,6 +1908,20 @@ namespace SANS.Infrastructure.Migrations
                     b.Navigation("Exams");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("SANS.Domain.Entities.DiscussionReply", b =>
+                {
+                    b.Navigation("Attachments");
+
+                    b.Navigation("ChildReplies");
+                });
+
+            modelBuilder.Entity("SANS.Domain.Entities.DiscussionThread", b =>
+                {
+                    b.Navigation("Attachments");
+
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("SANS.Domain.Entities.User", b =>

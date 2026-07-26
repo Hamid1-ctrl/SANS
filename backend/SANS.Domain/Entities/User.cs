@@ -11,6 +11,7 @@ public class User : AuditableEntity
     public string PasswordHash { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string StudentId { get; set; } = string.Empty;
+    public string? IndexNumber { get; set; }
     public UserRole Role { get; set; }
     public AccountStatus Status { get; set; } = AccountStatus.Verified;
     public Guid? DepartmentId { get; set; }

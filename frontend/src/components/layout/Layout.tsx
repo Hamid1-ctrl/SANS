@@ -298,7 +298,7 @@ const Layout: React.FC = () => {
                 >
                   <Bell size={16} />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 bg-red-500 rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-sm border border-white dark:border-slate-900 animate-pulse">
+                    <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-sm border border-white dark:border-slate-900 translate-x-1/2 -translate-y-1/2">
                       {unreadCount}
                     </span>
                   )}

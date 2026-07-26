@@ -42,18 +42,27 @@ public class ClassWorkspacesController : ControllerBase
 
         if (dbUser.Role == UserRole.Lecturer)
         {
-            // Lecturers see classes where they are the assigned lecturer
+            // Lecturers see classes where they are the assigned lecturer or creator
             classes = await _context.ClassWorkspaces
                 .Include(c => c.Lecturer)
-                .Where(c => c.LecturerId == userId && !c.IsDeleted)
+                .Where(c => (c.LecturerId == userId || c.CreatedByUserId == userId) && !c.IsDeleted)
                 .ToListAsync();
         }
         else
         {
-            // Students and Reps see classes they are enrolled in
+            // Students and Reps see classes they are enrolled in, represent, or created
             classes = await _context.ClassWorkspaces
                 .Include(c => c.Lecturer)
-                .Where(c => c.Students.Any(s => s.Id == userId) && !c.IsDeleted)
+                .Where(c => (c.Students.Any(s => s.Id == userId) || c.ClassRepresentativeId == userId || c.CreatedByUserId == userId) && !c.IsDeleted)
+                .ToListAsync();
+        }
+
+        // Fallback: If user has no assigned class workspace yet, return all active class workspaces
+        if (classes.Count == 0)
+        {
+            classes = await _context.ClassWorkspaces
+                .Include(c => c.Lecturer)
+                .Where(c => !c.IsDeleted)
                 .ToListAsync();
         }
 

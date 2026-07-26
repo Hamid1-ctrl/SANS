@@ -32,7 +32,19 @@ public class AssignmentsController : ControllerBase
         }
 
         var dbUser = await _context.Users.FindAsync(userId);
-        if (dbUser == null) return NotFound();
+        // Auto-cleanup expired assignments inline
+        var now = DateTime.UtcNow;
+        var expiredAssignments = await _context.Assignments.Where(a => !a.IsDeleted && a.DueDate < now).ToListAsync();
+        if (expiredAssignments.Count > 0)
+        {
+            foreach (var assign in expiredAssignments)
+            {
+                assign.IsDeleted = true;
+                assign.DeletedAt = now;
+                assign.UpdatedBy = "Auto Expired Cleanup";
+            }
+            await _context.SaveChangesAsync();
+        }
 
         IQueryable<Assignment> query;
 

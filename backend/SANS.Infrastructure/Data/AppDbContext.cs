@@ -28,6 +28,9 @@ public class AppDbContext : DbContext
     public DbSet<Bookmark> Bookmarks { get; set; }
     public DbSet<AnnouncementEngagement> AnnouncementEngagements { get; set; }
     public DbSet<Quiz> Quizzes { get; set; }
+    public DbSet<DiscussionThread> DiscussionThreads { get; set; }
+    public DbSet<DiscussionReply> DiscussionReplies { get; set; }
+    public DbSet<DiscussionAttachment> DiscussionAttachments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -237,18 +240,32 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Location).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Room).IsRequired().HasMaxLength(50);
-            
+            entity.Property(e => e.CourseCode).HasMaxLength(50);
+            entity.Property(e => e.CourseTitle).HasMaxLength(200);
+            entity.Property(e => e.Building).HasMaxLength(100);
+            entity.Property(e => e.Room).HasMaxLength(50);
+            entity.Property(e => e.LectureType).HasMaxLength(50);
+            entity.Property(e => e.LecturerName).HasMaxLength(150);
+
+            entity.HasIndex(e => e.ClassWorkspaceId);
+            entity.HasIndex(e => e.DayOfWeek);
+            entity.HasIndex(e => e.IsMaster);
+
             entity.HasOne(e => e.Department)
                 .WithMany()
                 .HasForeignKey(e => e.DepartmentId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
                 
             entity.HasOne(e => e.Instructor)
                 .WithMany()
                 .HasForeignKey(e => e.InstructorId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ClassWorkspace)
+                .WithMany()
+                .HasForeignKey(e => e.ClassWorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Exam configuration
@@ -475,5 +492,67 @@ public class AppDbContext : DbContext
                 IsDeleted = false
             }
         );
+
+        // DiscussionThread configuration
+        modelBuilder.Entity<DiscussionThread>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(250);
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.ClassWorkspaceId);
+            entity.HasIndex(e => e.AuthorId);
+
+            entity.HasOne(e => e.ClassWorkspace)
+                .WithMany()
+                .HasForeignKey(e => e.ClassWorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Author)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // DiscussionReply configuration
+        modelBuilder.Entity<DiscussionReply>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Content).IsRequired();
+            entity.HasIndex(e => e.DiscussionThreadId);
+            entity.HasIndex(e => e.AuthorId);
+
+            entity.HasOne(e => e.DiscussionThread)
+                .WithMany(t => t.Replies)
+                .HasForeignKey(e => e.DiscussionThreadId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Author)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ParentReply)
+                .WithMany(r => r.ChildReplies)
+                .HasForeignKey(e => e.ParentReplyId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // DiscussionAttachment configuration
+        modelBuilder.Entity<DiscussionAttachment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FileName).IsRequired().HasMaxLength(250);
+            entity.Property(e => e.FileUrl).IsRequired();
+
+            entity.HasOne(e => e.DiscussionThread)
+                .WithMany(t => t.Attachments)
+                .HasForeignKey(e => e.DiscussionThreadId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.DiscussionReply)
+                .WithMany(r => r.Attachments)
+                .HasForeignKey(e => e.DiscussionReplyId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

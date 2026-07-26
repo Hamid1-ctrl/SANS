@@ -90,20 +90,12 @@
     & [class*="border-[rgba(255,255,255,0.18)]"] {
       border-color: rgba(255, 255, 255, 0.05) !important;
     }
-    & [class*="text-[#1e7a34]"] {
-      color: #00B37E !important;
-    }
-    & [class*="bg-[#1e7a34]"] {
-      background-color: #00B37E !important;
-    }
-    & [class*="hover:bg-[#258d3f]"]:hover {
-      background-color: #00B37E !important;
-    }
+    /* Clean focus/hover borders for dark mode inputs */
     & [class*="hover:border-[#1e7a34]"]:hover {
-      border-color: #00B37E !important;
+      border-color: #00B37E;
     }
     & [class*="focus:border-[#1e7a34]"]:focus {
-      border-color: #00B37E !important;
+      border-color: #00B37E;
     }
 
     /* High contrast text overrides for slate color families in dark mode */

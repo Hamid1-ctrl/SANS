@@ -53,6 +53,7 @@ export interface User {
   email: string;
   phoneNumber: string;
   studentId: string;
+  indexNumber?: string;
   role: UserRole;
   status: AccountStatus;
   departmentId?: string;
@@ -199,18 +200,44 @@ export interface Channel {
 export interface Schedule {
   id: string;
   title: string;
-  description: string;
+  description?: string;
+  courseCode: string;
+  courseTitle: string;
+  dayOfWeek: number;
   startTime: string;
   endTime: string;
-  location: string;
-  room: string;
-  departmentId: string;
+  building?: string;
+  room?: string;
+  location?: string;
+  lectureType: string;
+  lecturerName?: string;
+  notes?: string;
+  isMaster?: boolean;
+  isPublished?: boolean;
+  academicLevel?: string;
+  semester?: string;
+  departmentId?: string;
   isRecurring: boolean;
   recurrencePattern?: string;
   instructorId?: string;
-  createdAt: string;
-  updatedAt?: string;
   classWorkspaceId?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TodayScheduleSummary {
+  userName: string;
+  todayDate: string;
+  dayOfWeek: number;
+  todayClassesCount: number;
+  todayClasses: Schedule[];
+  nextClass?: Schedule | null;
+  startsIn?: string;
+  reminders: string[];
 }
 
 export interface Exam {
@@ -247,6 +274,7 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   studentId: string;
+  indexNumber?: string;
   phoneNumber: string;
   role: UserRole;
   officeNumber?: string;
@@ -301,4 +329,50 @@ export interface Quiz {
   points: number;
   questionsCount: number;
   classWorkspaceId: string;
+}
+
+export interface DiscussionAttachment {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+}
+
+export interface DiscussionAuthor {
+  id: string;
+  name: string;
+  role: number;
+  roleName: string;
+  avatarText: string;
+  profileImageUrl?: string;
+}
+
+export interface DiscussionReply {
+  id: string;
+  content: string;
+  createdAt: string;
+  parentReplyId?: string;
+  parentAuthorName?: string;
+  parentSnippet?: string;
+  author: DiscussionAuthor;
+  attachments: DiscussionAttachment[];
+}
+
+export interface DiscussionThread {
+  id: string;
+  classWorkspaceId: string;
+  className: string;
+  classCode: string;
+  title: string;
+  content: string;
+  category: string;
+  isPinned: boolean;
+  isLocked: boolean;
+  repliesCount: number;
+  lastActivityAt: string;
+  createdAt: string;
+  author: DiscussionAuthor;
+  attachments: DiscussionAttachment[];
+  replies?: DiscussionReply[];
 }

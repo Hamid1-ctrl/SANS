@@ -439,7 +439,7 @@ const AssignmentsPage: React.FC = () => {
                       <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center border ${
                         isOverdue ? 'bg-red-50 dark:bg-red-950/40 text-red-500 border-red-200'
                         : isUrgent ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 border-amber-200'
-                        : 'bg-[#f0f7f2] dark:bg-[#1e7a34]/10 text-[#1e7a34] border-[#d6eedd]'
+                        : 'bg-[#f0f7f2] dark:bg-emerald-950/50 text-[#1e7a34] dark:text-emerald-300 border-[#d6eedd] dark:border-emerald-500/30'
                       }`}>
                         <CheckSquare size={14} />
                       </div>
@@ -447,8 +447,8 @@ const AssignmentsPage: React.FC = () => {
                         <div className="flex items-center justify-between gap-1">
                           <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{item.title}</h4>
                           {item.attachmentUrl && (
-                            <span title="Has attachment" className="shrink-0 w-3 h-3 rounded-full bg-[#1e7a34]/30 flex items-center justify-center">
-                              <FileText size={7} className="text-[#1e7a34]" />
+                            <span title="Has attachment" className="shrink-0 w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-[#1e7a34] dark:text-emerald-300 flex items-center justify-center">
+                              <FileText size={8} />
                             </span>
                           )}
                         </div>
@@ -506,7 +506,7 @@ const AssignmentsPage: React.FC = () => {
                 
                 {/* Due Date + Status Row */}
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-[8px] font-extrabold px-2.5 py-1 border rounded-md uppercase tracking-wider bg-[#f0f7f2] dark:bg-[#1e7a34]/10 text-[#1e7a34] border-[#d6eedd] dark:border-[#1e7a34]/20">
+                  <span className="text-[8px] font-extrabold px-2.5 py-1 border rounded-md uppercase tracking-wider bg-[#f0f7f2] dark:bg-emerald-950/50 text-[#1e7a34] dark:text-emerald-300 border-[#d6eedd] dark:border-emerald-500/30">
                     📝 Assignment
                   </span>
                   <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">

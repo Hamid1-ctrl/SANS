@@ -202,7 +202,7 @@ const ResourcesPage: React.FC = () => {
 
                   <div className="mt-4 space-y-1 text-left">
                     <div className="flex justify-between items-start">
-                      <span className="text-[8px] font-extrabold text-brand-primary bg-brand-primary-light/40 dark:bg-brand-primary/10 px-2 py-0.5 rounded uppercase">
+                      <span className="text-[8px] font-extrabold text-[#1e7a34] dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-950/50 border border-emerald-500/20 px-2 py-0.5 rounded uppercase">
                         {item.course}
                       </span>
                       {!isStudent && (
@@ -225,7 +225,7 @@ const ResourcesPage: React.FC = () => {
                       href={item.fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 bg-[#f0f7f2] dark:bg-slate-900 border border-[#d6eedd] dark:border-slate-700/60 text-[#1e7a34] dark:text-[#3ea556] rounded-xl hover:bg-[#1e7a34] hover:text-white transition-all cursor-pointer"
+                      className="p-1.5 bg-emerald-500/10 dark:bg-emerald-950/50 border border-emerald-500/20 text-[#1e7a34] dark:text-emerald-300 hover:bg-[#1e7a34] hover:text-white transition-all cursor-pointer"
                       title="Download Resource"
                     >
                       <Download size={11} />
@@ -237,9 +237,9 @@ const ResourcesPage: React.FC = () => {
           )}
         </div>
 
-        {/* Right side Drag & Drop Upload block - Lecturer/Rep only */}
+        {/* Right side Upload block for Staff/Rep, or Student Info Portal */}
         <div className="space-y-6">
-          {!isStudent && (
+          {!isStudent ? (
             <div className="bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/40 rounded-[2.5rem] p-6 shadow-soft space-y-4">
               <h3 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
                 <UploadCloud size={16} className="text-brand-primary" />
@@ -312,6 +312,27 @@ const ResourcesPage: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/40 rounded-[2.5rem] p-6 shadow-soft space-y-4 text-left">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/40 text-[#1e7a34] dark:text-emerald-300 flex items-center justify-center font-bold">
+                <Download size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white">Academic Resource Portal</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
+                  Students can view, preview, and download official course materials, lecture slides, and past papers published by lecturing faculty and course representatives.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/40 space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Available Course Materials</span>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold">📄 PDF Documents</span>
+                  <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold">📊 Presentation Slides</span>
+                  <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold">💻 Code Repositories</span>
+                  <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold">📝 Lab Cheatsheets</span>
+                </div>
+              </div>
             </div>
           )}
         </div>

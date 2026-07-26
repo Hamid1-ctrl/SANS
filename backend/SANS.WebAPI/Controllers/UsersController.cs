@@ -259,6 +259,46 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { Message = "Profile image upload failed", Detail = ex.Message });
         }
     }
+
+    [HttpGet("students/{id}")]
+    public async Task<IActionResult> GetStudentDetails(Guid id)
+    {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null || (currentUser.Role != UserRole.Lecturer && currentUser.Role != UserRole.Administrator))
+        {
+            return Forbid();
+        }
+
+        var student = await _context.Users
+            .Include(u => u.Department)
+            .Include(u => u.EnrolledClasses)
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+        if (student == null)
+        {
+            return NotFound(new { Message = "Student profile not found." });
+        }
+
+        return Ok(new
+        {
+            student.Id,
+            student.FirstName,
+            student.LastName,
+            student.Email,
+            student.PhoneNumber,
+            student.StudentId,
+            student.IndexNumber,
+            Role = (int)student.Role,
+            Status = (int)student.Status,
+            student.IsActive,
+            student.DepartmentId,
+            DepartmentName = student.Department?.Name ?? student.DepartmentName,
+            student.ProfileImageUrl,
+            student.LastLoginAt,
+            student.CreatedAt,
+            EnrolledClasses = student.EnrolledClasses.Select(c => new { c.Id, c.Code, c.Name })
+        });
+    }
 }
 
 public class UpdateProfileModel

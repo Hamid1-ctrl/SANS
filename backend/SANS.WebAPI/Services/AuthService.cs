@@ -71,7 +71,8 @@ public class AuthService : IAuthService
         string? officeNumber = null,
         string? officeHours = null,
         string? specialization = null,
-        string? firebaseUid = null)
+        string? firebaseUid = null,
+        string? indexNumber = null)
     {
         // Check if this email already exists in DB
         var existingUser = await _userRepository.GetByEmailAsync(email);
@@ -83,6 +84,7 @@ public class AuthService : IAuthService
             {
                 existingUser.FirebaseUid = firebaseUid;
                 existingUser.LastLoginAt = DateTime.UtcNow;
+                if (!string.IsNullOrEmpty(indexNumber)) existingUser.IndexNumber = indexNumber;
                 await _userRepository.UpdateAsync(existingUser);
                 await _unitOfWork.SaveChangesAsync();
 
@@ -107,6 +109,7 @@ public class AuthService : IAuthService
             FirstName = firstName,
             LastName = lastName,
             StudentId = studentId,
+            IndexNumber = indexNumber,
             PhoneNumber = phoneNumber,
             Role = (UserRole)role,
             Status = (UserRole)role == UserRole.Lecturer ? AccountStatus.Pending : AccountStatus.Verified,
