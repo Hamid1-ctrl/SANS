@@ -22,11 +22,38 @@ import {
   Target
 } from 'lucide-react';
 
-// CountUp component using standard requestAnimationFrame
+import { api } from '../lib/axios';
+
+// CountUp component using requestAnimationFrame and IntersectionObserver (triggers on scroll into view)
 const CountUp: React.FC<{ to: number; duration?: number }> = ({ to, duration = 2 }) => {
   const [count, setCount] = useState(0);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const elementRef = React.useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !hasAnimated) {
+          setHasAnimated(true);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (elementRef.current) {
+      observer.observe(elementRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasAnimated]);
+
+  useEffect(() => {
+    if (!hasAnimated || to <= 0) {
+      if (to === 0) setCount(0);
+      return;
+    }
+
     const end = to;
     const totalFrames = duration * 60;
     let frame = 0;
@@ -34,7 +61,9 @@ const CountUp: React.FC<{ to: number; duration?: number }> = ({ to, duration = 2
     const animate = () => {
       frame++;
       const progress = frame / totalFrames;
-      const current = Math.round(end * progress);
+      // Smooth cubic ease-out calculation
+      const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(end * easeOutProgress);
       setCount(current);
 
       if (frame < totalFrames) {
@@ -45,14 +74,37 @@ const CountUp: React.FC<{ to: number; duration?: number }> = ({ to, duration = 2
     };
 
     requestAnimationFrame(animate);
-  }, [to, duration]);
+  }, [hasAnimated, to, duration]);
 
-  return <span>{count.toLocaleString()}</span>;
+  return <span ref={elementRef}>{count.toLocaleString()}</span>;
 };
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeRole, setActiveRole] = useState<'student' | 'lecturer' | 'rep'>('student');
+  const [systemStats, setSystemStats] = useState({
+    activeStudents: 1200,
+    courseClasses: 48,
+    resourcesShared: 850,
+    announcementsDelivered: 3200,
+  });
+
+  useEffect(() => {
+    api.get('/system/public-stats')
+      .then((res) => {
+        if (res.data) {
+          setSystemStats({
+            activeStudents: res.data.activeStudents ?? res.data.ActiveStudents ?? 1200,
+            courseClasses: res.data.courseClasses ?? res.data.CourseClasses ?? 48,
+            resourcesShared: res.data.resourcesShared ?? res.data.ResourcesShared ?? 850,
+            announcementsDelivered: res.data.announcementsDelivered ?? res.data.AnnouncementsDelivered ?? 3200,
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('System public-stats fetch error, using live defaults:', err);
+      });
+  }, []);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState('home');
@@ -761,20 +813,20 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* STATISTICS SECTION */}
-      <section className="border-y border-slate-200/60 bg-white/40 backdrop-blur-sm py-20 px-6">
+      <section className="border-y border-slate-200/60 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm py-20 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { label: 'Active Students', value: 1200 },
-            { label: 'Course Classes', value: 48 },
-            { label: 'Resources Shared', value: 850 },
-            { label: 'Announcements Delivered', value: 3200 }
+            { label: 'Active Students', value: systemStats.activeStudents },
+            { label: 'Course Classes', value: systemStats.courseClasses },
+            { label: 'Resources Shared', value: systemStats.resourcesShared },
+            { label: 'Announcements Delivered', value: systemStats.announcementsDelivered }
           ].map((stat, idx) => (
             <div key={idx} className="text-center space-y-1">
-              <p className="text-2xl md:text-3xl font-black text-[#1e7a34]">
-                <CountUp to={stat.value} />
+              <p className="text-3xl md:text-4xl font-black text-[#1e7a34] dark:text-emerald-400">
+                <CountUp to={stat.value} duration={2} />
                 <span>+</span>
               </p>
-              <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">{stat.label}</p>
+              <p className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-widest">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -850,60 +902,43 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-200/60 bg-white/55 backdrop-blur-sm pt-16 pb-8 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
+      <footer className="relative border-t border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md pt-12 pb-8 px-6 transition-colors">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
           
-          {/* Logo & Desc */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#1e7a34] to-[#3ea556] text-white flex items-center justify-center font-black text-base shadow-md">
-                S
-              </div>
-              <span className="text-slate-900 font-extrabold text-base tracking-tight">SANS</span>
+          {/* Logo & Description */}
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#1e7a34] to-[#3ea556] text-white flex items-center justify-center font-black text-lg shadow-md shadow-emerald-600/20">
+              S
             </div>
-            <p className="text-[11px] text-slate-455 dark:text-slate-500 leading-relaxed font-semibold">
-              The Smart Academic Notification System coordinates class rosters, verified notice approvals, and files.
-            </p>
+            <div>
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <span className="text-slate-900 dark:text-white font-extrabold text-base tracking-tight">SANS</span>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Academic Portal</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-md font-medium leading-relaxed">
+                Streamlining class rosters, verified notices, timetables, and academic resource distribution.
+              </p>
+            </div>
           </div>
 
-          {/* Links 1 */}
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Platform</h4>
-            <ul className="space-y-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-              <li><a href="#features" className="hover:text-[#1e7a34]">Features</a></li>
-              <li><a href="#roles" className="hover:text-[#1e7a34]">User Workspaces</a></li>
-              <li><a href="#how-it-works" className="hover:text-[#1e7a34]">How It Works</a></li>
-            </ul>
-          </div>
+          {/* Navigation Links */}
+          <nav className="flex items-center gap-5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            <a href="#features" className="hover:text-[#1e7a34] dark:hover:text-emerald-400 transition-colors">Features</a>
+            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+            <a href="#roles" className="hover:text-[#1e7a34] dark:hover:text-emerald-400 transition-colors">Workspaces</a>
+            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+            <a href="#how-it-works" className="hover:text-[#1e7a34] dark:hover:text-emerald-400 transition-colors">How It Works</a>
+          </nav>
 
-          {/* Links 2 */}
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Security</h4>
-            <ul className="space-y-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-              <li><a href="#" className="hover:text-[#1e7a34]">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-[#1e7a34]">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-[#1e7a34]">Institutional SLA</a></li>
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Contact Information</h4>
-            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider leading-relaxed">
-              support@sans.edu<br />
-              SANS Technical Team<br />
-              Lab Annex 4, Campus CS
-            </p>
-          </div>
         </div>
 
-        <div className="max-w-7xl mx-auto border-t border-slate-100 dark:border-slate-800/40 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-black text-slate-500 uppercase tracking-wider">
-          <span>Smart Academic Notification System © 2026</span>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-[#1e7a34]">Twitter</a>
-            <a href="#" className="hover:text-[#1e7a34]">GitHub</a>
-            <a href="#" className="hover:text-[#1e7a34]">LinkedIn</a>
-          </div>
+        {/* Bottom copyright & status */}
+        <div className="max-w-7xl mx-auto border-t border-slate-200/50 dark:border-slate-800/50 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+          <span>© 2026 Smart Academic Notification System. All rights reserved.</span>
+          <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            System Operational
+          </span>
         </div>
       </footer>
 

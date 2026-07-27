@@ -13,7 +13,7 @@ export const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const isPublicEndpoint = config.url?.includes('/auth/login') || config.url?.includes('/auth/register');
+    const isPublicEndpoint = config.url?.includes('/auth/login') || config.url?.includes('/auth/register') || config.url?.includes('/system/public-stats');
     if (!isPublicEndpoint) {
       const token = localStorage.getItem('accessToken');
       if (token) {

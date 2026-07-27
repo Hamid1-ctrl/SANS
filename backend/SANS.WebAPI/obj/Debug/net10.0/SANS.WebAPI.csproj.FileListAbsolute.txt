@@ -44,8 +44,6 @@ C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Microsoft.OpenAp
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Microsoft.VisualStudio.SolutionPersistence.dll
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Mono.TextTemplating.dll
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Newtonsoft.Json.dll
-C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Npgsql.dll
-C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Swashbuckle.AspNetCore.Swagger.dll
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\HMD\Desktop\SANS\backend\SANS.WebAPI\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll
