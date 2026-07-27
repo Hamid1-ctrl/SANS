@@ -260,6 +260,20 @@ public class UsersController : ControllerBase
         }
     }
 
+    [HttpDelete("profile-image")]
+    public async Task<IActionResult> DeleteProfileImage()
+    {
+        var currentUser = await GetCurrentUserAsync();
+        if (currentUser == null)
+            return Unauthorized(new { Message = "User not logged in." });
+
+        currentUser.ProfileImageUrl = null;
+        currentUser.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { Message = "Profile picture deleted successfully." });
+    }
+
     [HttpGet("students/{id}")]
     public async Task<IActionResult> GetStudentDetails(Guid id)
     {

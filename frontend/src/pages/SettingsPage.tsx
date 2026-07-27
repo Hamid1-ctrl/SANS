@@ -9,7 +9,8 @@ import {
   Smartphone,
   Mail,
   User as UserIcon,
-  Camera
+  Camera,
+  Trash2
 } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
@@ -32,6 +33,7 @@ const SettingsPage: React.FC = () => {
   // Avatar Upload States
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
   const [imageErrorMsg, setImageErrorMsg] = useState<string | null>(null);
 
   // Notification States
@@ -84,6 +86,24 @@ const SettingsPage: React.FC = () => {
       setImageErrorMsg(err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to upload profile picture.');
     } finally {
       setIsUploadingImage(false);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!window.confirm('Are you sure you want to delete your profile picture?')) return;
+
+    setIsDeletingImage(true);
+    setImageErrorMsg(null);
+
+    try {
+      await api.delete('/users/profile-image');
+      await refreshUser();
+      setSuccessMsg('Profile picture deleted successfully!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err: any) {
+      setImageErrorMsg(err?.response?.data?.message || 'Failed to delete profile picture.');
+    } finally {
+      setIsDeletingImage(false);
     }
   };
 
@@ -176,11 +196,33 @@ const SettingsPage: React.FC = () => {
                 <Camera size={10} />
               </button>
             </div>
-            <div className="text-center sm:text-left space-y-1.5">
+            <div className="text-center sm:text-left space-y-2">
               <h3 className="text-xs font-black text-slate-800 dark:text-white">Profile Photo</h3>
               <p className="text-[10px] text-slate-455 dark:text-[#94A3B8] font-semibold leading-relaxed max-w-[240px]">
                 Accepts JPG, PNG or WebP images under 10 MB. Recommended square proportions.
               </p>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleImageClick}
+                  disabled={isUploadingImage || isDeletingImage}
+                  className="px-3 py-1.5 bg-[#1e7a34] text-white hover:bg-[#258d3f] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Camera size={13} />
+                  <span>{user?.profileImageUrl ? 'Change Photo' : 'Upload Photo'}</span>
+                </button>
+                {user?.profileImageUrl && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteImage}
+                    disabled={isUploadingImage || isDeletingImage}
+                    className="px-3 py-1.5 bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 size={13} />
+                    <span>Remove Photo</span>
+                  </button>
+                )}
+              </div>
               {imageErrorMsg && (
                 <p className="text-[9px] font-bold text-red-500">{imageErrorMsg}</p>
               )}

@@ -11,21 +11,21 @@ import { UserRole } from '../types';
 
 // Category style mapping
 export const categoryStyles: Record<string, { icon: any; bg: string; text: string; label: string }> = {
-  exam: { icon: GraduationCap, bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30', label: 'Exam' },
-  assignment: { icon: CheckSquare, bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-900/30', label: 'Assignment' },
-  quiz: { icon: Beaker, bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30', label: 'Quiz' },
-  deadline: { icon: Clock, bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/30', label: 'Deadline' },
-  meeting: { icon: Calendar, bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/30', label: 'Meeting' },
-  resource: { icon: BookOpen, bg: 'bg-teal-50 dark:bg-teal-950/40', text: 'text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-900/30', label: 'Resource' },
-  pdf: { icon: FileText, bg: 'bg-slate-50 dark:bg-slate-900/40', text: 'text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30', label: 'PDF' },
-  general: { icon: Megaphone, bg: 'bg-blue-50 dark:bg-blue-950/40', text: 'text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30', label: 'General' }
+  exam: { icon: GraduationCap, bg: 'bg-red-500/10 dark:bg-red-950/50', text: 'text-red-600 dark:text-red-400 border-red-500/20', label: 'Exam' },
+  assignment: { icon: CheckSquare, bg: 'bg-purple-500/10 dark:bg-purple-950/50', text: 'text-purple-600 dark:text-purple-300 border-purple-500/20', label: 'Assignment' },
+  quiz: { icon: Beaker, bg: 'bg-emerald-500/10 dark:bg-emerald-950/50', text: 'text-[#1e7a34] dark:text-emerald-300 border-emerald-500/20', label: 'Quiz' },
+  deadline: { icon: Clock, bg: 'bg-rose-500/10 dark:bg-rose-950/50', text: 'text-rose-600 dark:text-rose-400 border-rose-500/20', label: 'Deadline' },
+  meeting: { icon: Calendar, bg: 'bg-amber-500/10 dark:bg-amber-950/50', text: 'text-amber-600 dark:text-amber-300 border-amber-500/20', label: 'Meeting' },
+  resource: { icon: BookOpen, bg: 'bg-teal-500/10 dark:bg-teal-950/50', text: 'text-teal-600 dark:text-teal-300 border-teal-500/20', label: 'Resource' },
+  pdf: { icon: FileText, bg: 'bg-slate-500/10 dark:bg-slate-800/50', text: 'text-slate-700 dark:text-slate-300 border-slate-500/20', label: 'PDF' },
+  general: { icon: Megaphone, bg: 'bg-blue-500/10 dark:bg-blue-950/50', text: 'text-blue-600 dark:text-blue-400 border-blue-500/20', label: 'General' }
 };
 
 // Priority styles
 export const priorityStyles: Record<string, { badge: string; text: string; bg: string; border: string }> = {
-  Urgent: { badge: '🔴 Urgent', text: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-900/40' },
-  Important: { badge: '🟡 Important', text: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-900/40' },
-  General: { badge: '🟢 General', text: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900/40', border: 'border-slate-250 dark:border-slate-800' }
+  Urgent: { badge: '🔴 Urgent', text: 'text-red-600 dark:text-red-400', bg: 'bg-red-500/10 dark:bg-red-950/50', border: 'border-red-500/20' },
+  Important: { badge: '🟡 Important', text: 'text-amber-600 dark:text-amber-300', bg: 'bg-amber-500/10 dark:bg-amber-950/50', border: 'border-amber-500/20' },
+  General: { badge: '🟢 General', text: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-500/10 dark:bg-slate-900/50', border: 'border-slate-500/20' }
 };
 
 interface UIAnnouncement {
@@ -469,54 +469,54 @@ const AnnouncementsPage: React.FC = () => {
                 <div
                   key={item.id}
                   onClick={() => setSelectedItemId(item.id)}
-                  className={`p-4 rounded-[1.5rem] cursor-pointer transition-all duration-300 border relative ${
+                  className={`p-4 rounded-2xl cursor-pointer transition-all duration-200 border relative ${
                     isSelected
-                      ? 'bg-slate-50 dark:bg-slate-805 border-[#1e7a34]/25 shadow-sm'
-                      : 'border-transparent bg-transparent hover:bg-white/40 dark:hover:bg-slate-900/10'
+                      ? 'bg-emerald-500/10 dark:bg-emerald-950/40 border-[#1e7a34] dark:border-emerald-500/50 shadow-sm ring-1 ring-[#1e7a34]/20'
+                      : 'bg-white dark:bg-[#16191C] border-slate-200/80 dark:border-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700/60'
                   }`}
                 >
-                  {/* Left priority border stripe */}
+                  {/* Priority Indicator Line */}
                   {item.priority !== 'General' && (
-                    <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-md ${
+                    <div className={`absolute left-0 top-3 bottom-3 w-1.5 rounded-r-full ${
                       item.priority === 'Urgent' ? 'bg-red-500' : 'bg-amber-500'
                     }`} />
                   )}
 
-                  <div className="flex items-start gap-3">
-                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center border ${style.bg} ${style.text}`}>
-                      <Icon size={13} />
+                  <div className="flex items-start gap-3 pl-1">
+                    <div className={`w-9 h-9 rounded-xl shrink-0 flex items-center justify-center border ${style.bg} ${style.text}`}>
+                      <Icon size={15} />
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[10px] font-bold text-slate-800 dark:text-[#CBD5E1] truncate">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-black text-slate-900 dark:text-white truncate">
                           {item.sender}
                         </span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {item.isPinned && <Pin size={10} className="text-amber-500 fill-amber-500 rotate-45" />}
-                          <span className="text-[8px] text-slate-400 font-bold">{item.date}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {item.isPinned && <Pin size={11} className="text-amber-500 fill-amber-500 rotate-45" />}
+                          <span className="text-[9px] text-slate-400 dark:text-slate-400 font-bold">{item.date}</span>
                         </div>
                       </div>
 
                       {/* Badges row */}
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        <span className={`text-[7px] font-extrabold px-1.5 py-0.5 rounded border uppercase tracking-wider ${style.bg} ${style.text}`}>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-md border uppercase tracking-wider ${style.bg} ${style.text}`}>
                           {style.label}
                         </span>
                         {item.priority !== 'General' && (
-                          <span className={`text-[7px] font-extrabold px-1.5 py-0.5 rounded border uppercase tracking-wider ${priority.bg} ${priority.text} ${priority.border}`}>
+                          <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-md border uppercase tracking-wider ${priority.bg} ${priority.text} ${priority.border}`}>
                             {item.priority}
                           </span>
                         )}
                         {item.unread && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5" title="Unread notice" />
+                          <span className="w-2 h-2 rounded-full bg-red-500 mt-1" title="Unread notice" />
                         )}
                       </div>
 
-                      <h4 className="text-xs font-black text-slate-750 dark:text-slate-100 truncate mt-2 leading-tight">
+                      <h4 className="text-xs font-black text-slate-850 dark:text-slate-100 truncate mt-2 tracking-tight">
                         {item.title}
                       </h4>
-                      <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] line-clamp-2 mt-0.5 leading-normal">
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5 font-medium leading-relaxed">
                         {item.desc}
                       </p>
                     </div>

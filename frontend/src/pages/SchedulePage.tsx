@@ -703,7 +703,7 @@ const SchedulePage: React.FC = () => {
                     value={formData.courseCode}
                     onChange={(e) => setFormData({ ...formData, courseCode: e.target.value })}
                     placeholder="e.g. CE300"
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
                   />
                 </div>
                 <div>
@@ -711,7 +711,7 @@ const SchedulePage: React.FC = () => {
                   <select 
                     value={formData.lectureType}
                     onChange={(e) => setFormData({ ...formData, lectureType: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
                   >
                     <option value="Lecture">Lecture</option>
                     <option value="Laboratory">Laboratory</option>
@@ -730,7 +730,7 @@ const SchedulePage: React.FC = () => {
                   value={formData.courseTitle}
                   onChange={(e) => setFormData({ ...formData, courseTitle: e.target.value })}
                   placeholder="e.g. Database Systems"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-medium focus:outline-none focus:border-[#1e7a34]"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl font-medium focus:outline-none focus:border-[#1e7a34]"
                 />
               </div>
 
@@ -740,7 +740,7 @@ const SchedulePage: React.FC = () => {
                   <select 
                     value={formData.dayOfWeek}
                     onChange={(e) => setFormData({ ...formData, dayOfWeek: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
                   >
                     {DAYS_OF_WEEK.map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
@@ -754,7 +754,7 @@ const SchedulePage: React.FC = () => {
                     required 
                     value={formData.startTime}
                     onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
                   />
                 </div>
                 <div>
@@ -764,7 +764,7 @@ const SchedulePage: React.FC = () => {
                     required 
                     value={formData.endTime}
                     onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
                   />
                 </div>
               </div>
@@ -778,7 +778,7 @@ const SchedulePage: React.FC = () => {
                     value={formData.building}
                     onChange={(e) => setFormData({ ...formData, building: e.target.value })}
                     placeholder="e.g. Engineering Block"
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-medium focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl font-medium focus:outline-none focus:border-[#1e7a34]"
                   />
                 </div>
                 <div>
@@ -789,7 +789,7 @@ const SchedulePage: React.FC = () => {
                     value={formData.room}
                     onChange={(e) => setFormData({ ...formData, room: e.target.value })}
                     placeholder="e.g. SR1, SR2, Lab 2"
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-medium focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl font-medium focus:outline-none focus:border-[#1e7a34]"
                   />
                 </div>
               </div>
@@ -801,7 +801,7 @@ const SchedulePage: React.FC = () => {
                   value={formData.lecturerName}
                   onChange={(e) => setFormData({ ...formData, lecturerName: e.target.value })}
                   placeholder="e.g. Dr. Mensah"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-medium focus:outline-none focus:border-[#1e7a34]"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl font-medium focus:outline-none focus:border-[#1e7a34]"
                 />
               </div>
 

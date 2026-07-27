@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../components/layout/ThemeProvider';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from '../hooks/useAnnouncements';
-import { useAssignments, useCreateAssignment, useDeleteAssignment } from '../hooks/useAssignments';
-import { useCreateSchedule, useSchedules, useDeleteSchedule, useTodaySummary } from '../hooks/useSchedules';
-import { useQuizzes, useCreateQuiz, useDeleteQuiz } from '../hooks/useQuizzes';
-import { useResources, useDeleteResource } from '../hooks/useResources';
+import { useAssignments, useDeleteAssignment } from '../hooks/useAssignments';
+import { useSchedules, useDeleteSchedule, useTodaySummary } from '../hooks/useSchedules';
+import { useQuizzes } from '../hooks/useQuizzes';
+import { useResources } from '../hooks/useResources';
 import { UserRole } from '../types';
 import api from '../lib/axios';
 import { useQueryClient } from '@tanstack/react-query';
@@ -25,10 +25,10 @@ import {
   FolderOpen,
   ArrowLeft,
   ChevronRight,
-  Trash2,
-  GraduationCap
+  Trash2
 } from 'lucide-react';
 import { StudentProfileModal } from '../components/modals/StudentProfileModal';
+import { ClassRosterModal } from '../components/modals/ClassRosterModal';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -50,6 +50,7 @@ const DashboardPage: React.FC = () => {
   const [joinClassError, setJoinClassError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [selectedStudentIdForModal, setSelectedStudentIdForModal] = useState<string | null>(null);
+  const [isRosterOpen, setIsRosterOpen] = useState(false);
   
   // Scoped Data Queries
   const { data: announcements = [] } = useAnnouncements(activeClass?.id);
@@ -67,34 +68,12 @@ const DashboardPage: React.FC = () => {
 
   // Lecturer specific state
   const [lecturerTab, setLecturerTab] = useState<'courses' | 'approvals'>('courses');
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'announcements' | 'assignments' | 'quizzes' | 'resources' | 'students' | 'meetings'>('announcements');
   const [selectedClassId, setSelectedClassId] = useState<string>('');
 
   // Creation forms within Lecturer Class Workspace
   const [newAnnTitle, setNewAnnTitle] = useState('');
   const [newAnnContent, setNewAnnContent] = useState('');
-  const [newAsgTitle, setNewAsgTitle] = useState('');
-  const [newAsgDue, setNewAsgDue] = useState('');
-  const [newAsgDesc, setNewAsgDesc] = useState('');
-  const [newAsgFile, setNewAsgFile] = useState<File | null>(null);
-  const [isUploadingAsg, setIsUploadingAsg] = useState(false);
-  const [asgErrorMsg, setAsgErrorMsg] = useState('');
-  const [assignmentMode, setAssignmentMode] = useState<'typed' | 'file'>('typed');
-  const [newQuizTitle, setNewQuizTitle] = useState('');
-  const [newQuizDate, setNewQuizDate] = useState('');
-  const [newQuizPoints, setNewQuizPoints] = useState(10);
-  const [newSchedTitle, setNewSchedTitle] = useState('');
-  const [newSchedTime, setNewSchedTime] = useState('');
-
-  // Learning Resources tab upload states
-  const [newResTitle, setNewResTitle] = useState('');
-  const [newResCategory, setNewResCategory] = useState('Document');
-  const [newResFile, setNewResFile] = useState<File | null>(null);
-  const [isUploadingRes, setIsUploadingRes] = useState(false);
   const [annTarget, setAnnTarget] = useState<'class' | 'global'>('class');
-  const [quizTarget, setQuizTarget] = useState<'class' | 'global'>('class');
-  const [resTarget, setResTarget] = useState<'class' | 'global'>('class');
-  const [resErrorMsg, setResErrorMsg] = useState('');
 
   // Class enrollment roster state
   const [classMembers, setClassMembers] = useState<{ lecturer: any; students: any[] }>({ lecturer: null, students: [] });
@@ -102,15 +81,9 @@ const DashboardPage: React.FC = () => {
   const [membersError, setMembersError] = useState('');
 
   const createAnnMutation = useCreateAnnouncement();
-  const createAsgMutation = useCreateAssignment();
-  const createQuizMutation = useCreateQuiz();
-  const createSchedMutation = useCreateSchedule();
-
   const deleteAnnMutation = useDeleteAnnouncement();
   const deleteAsgMutation = useDeleteAssignment();
-  const deleteQuizMutation = useDeleteQuiz();
   const deleteSchedMutation = useDeleteSchedule();
-  const deleteResMutation = useDeleteResource();
 
   // Mock proposals for lecturers (for demonstration UI compatibility)
   const repNotices = [
@@ -133,10 +106,10 @@ const DashboardPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (activeClass && activeWorkspaceTab === 'students') {
+    if (activeClass) {
       fetchClassMembers(activeClass.id);
     }
-  }, [activeClass?.id, activeWorkspaceTab]);
+  }, [activeClass?.id]);
 
   useEffect(() => {
     if (classes.length > 0 && !selectedClassId) {
@@ -185,138 +158,6 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const handleAddAssignment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAsgTitle.trim() || !newAsgDue || !activeClass) return;
-    setAsgErrorMsg('');
-    setIsUploadingAsg(true);
-
-    try {
-      let attachmentUrl = '';
-      let attachmentFileName = '';
-      let attachmentFileSize = 0;
-      if (assignmentMode === 'file') {
-        if (!newAsgFile) {
-          setAsgErrorMsg('Please select a file to upload for this assignment.');
-          setIsUploadingAsg(false);
-          return;
-        }
-        const formData = new FormData();
-        formData.append('file', newAsgFile);
-
-        const uploadRes = await api.post('/storage/upload-attachment', formData);
-        attachmentUrl = uploadRes.data.fileUrl || '';
-        attachmentFileName = uploadRes.data.fileName || '';
-        attachmentFileSize = uploadRes.data.fileSize || 0;
-      }
-
-      await createAsgMutation.mutateAsync({
-        title: newAsgTitle,
-        description: assignmentMode === 'typed' 
-          ? newAsgDesc || 'No written description provided.'
-          : 'Please download and review the guidelines inside the attached document for this assignment.',
-        instructions: assignmentMode === 'typed'
-          ? newAsgDesc || 'No written instructions provided.'
-          : 'Please download and review the guidelines inside the attached document for this assignment.',
-        dueDate: newAsgDue,
-        classWorkspaceId: activeClass.id,
-        maxPoints: 100,
-        allowLateSubmission: true,
-        attachmentUrl: assignmentMode === 'file' ? (attachmentUrl || undefined) : undefined,
-        attachmentFileName: assignmentMode === 'file' ? (attachmentFileName || undefined) : undefined,
-        attachmentFileSize: assignmentMode === 'file' ? (attachmentFileSize || undefined) : undefined
-      });
-
-      setNewAsgTitle('');
-      setNewAsgDue('');
-      setNewAsgDesc('');
-      setNewAsgFile(null);
-      setSuccessMsg('Success: Assignment posted successfully!');
-      setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err: any) {
-      console.error(err);
-      setAsgErrorMsg(err.response?.data?.message || 'Failed to post assignment.');
-    } finally {
-      setIsUploadingAsg(false);
-    }
-  };
-
-  const handleAddQuiz = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newQuizTitle.trim() || !newQuizDate) return;
-    try {
-      const isGlobal = quizTarget === 'global';
-      await createQuizMutation.mutateAsync({
-        title: newQuizTitle,
-        date: newQuizDate,
-        points: Number(newQuizPoints),
-        questionsCount: 5,
-        classWorkspaceId: isGlobal ? '00000000-0000-0000-0000-000000000000' : (activeClass?.id || '')
-      });
-      setNewQuizTitle('');
-      setNewQuizDate('');
-      setSuccessMsg('Success: Academic Quiz Scheduled!');
-      setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleAddSchedule = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSchedTitle.trim() || !newSchedTime || !activeClass) return;
-    try {
-      await createSchedMutation.mutateAsync({
-        title: newSchedTitle,
-        startTime: newSchedTime,
-        endTime: newSchedTime,
-        classWorkspaceId: activeClass.id,
-        isRecurring: false
-      });
-      setNewSchedTitle('');
-      setNewSchedTime('');
-      setSuccessMsg('Success: Class session scheduled successfully!');
-      setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleUploadResource = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newResFile) return;
-    setIsUploadingRes(true);
-    setResErrorMsg('');
-
-    try {
-      const isGlobal = user?.role === UserRole.ClassRepresentative ? false : resTarget === 'global';
-      const formData = new FormData();
-      formData.append('file', newResFile);
-      formData.append('title', newResTitle || newResFile.name.substring(0, newResFile.name.lastIndexOf('.')) || newResFile.name);
-      formData.append('description', isGlobal ? 'Uploaded globally to University Hub.' : 'Uploaded via SANS class resources tab.');
-      formData.append('category', newResCategory);
-      if (isGlobal) {
-        formData.append('isGlobal', 'true');
-      } else if (activeClass) {
-        formData.append('classWorkspaceIds', activeClass.id);
-      }
-
-      await api.post('/resources/upload', formData);
-      setNewResTitle('');
-      setNewResFile(null);
-      setSuccessMsg('Success: Learning resource uploaded!');
-      setTimeout(() => setSuccessMsg(''), 3000);
-      if (activeClass) {
-        queryClient.invalidateQueries({ queryKey: ['resources', activeClass.id] });
-      }
-    } catch (err: any) {
-      console.error(err);
-      setResErrorMsg(err.response?.data?.message || 'Failed to upload resource.');
-    } finally {
-      setIsUploadingRes(false);
-    }
-  };
-
   const handleSelectClass = (cls: any) => {
     setSelectedClassId(cls.id);
     setActiveClass(cls);
@@ -338,28 +179,6 @@ const DashboardPage: React.FC = () => {
     try {
       await deleteAsgMutation.mutateAsync(id);
       setSuccessMsg("Assignment deleted successfully!");
-      setTimeout(() => setSuccessMsg(""), 3000);
-    } catch (err) {
-      console.error("Delete failed", err);
-    }
-  };
-
-  const handleDeleteQuiz = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this quiz?")) return;
-    try {
-      await deleteQuizMutation.mutateAsync(id);
-      setSuccessMsg("Quiz deleted successfully!");
-      setTimeout(() => setSuccessMsg(""), 3000);
-    } catch (err) {
-      console.error("Delete failed", err);
-    }
-  };
-
-  const handleDeleteResource = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this learning resource?")) return;
-    try {
-      await deleteResMutation.mutateAsync(id);
-      setSuccessMsg("Learning resource deleted successfully!");
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch (err) {
       console.error("Delete failed", err);
@@ -973,51 +792,37 @@ const DashboardPage: React.FC = () => {
         <section className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-white dark:bg-[#1E293B]">
           {!isHub && activeClass ? (
             <div className="flex flex-col h-full overflow-hidden">
-              {/* Header detail */}
-              <div className="px-8 py-4 border-b border-slate-100 dark:border-slate-800/40 flex items-center justify-between bg-slate-50/40 dark:bg-slate-900/20 shrink-0">
+              {/* Header detail & Quick Launcher Bar */}
+              <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800/40 flex items-center justify-between bg-slate-50/40 dark:bg-slate-900/20 shrink-0 flex-wrap gap-3">
                 <div>
-                  <h3 className="font-extrabold text-slate-805 dark:text-[#F8FAFC] text-sm">{activeClass.name} Workspace</h3>
-                  <p className="text-[9px] font-bold text-[#1e7a34] uppercase">{activeClass.code} • Management Console</p>
+                  <h3 className="font-black text-slate-850 dark:text-[#F8FAFC] text-base">{activeClass.name} Workspace</h3>
+                  <p className="text-[10px] font-extrabold text-[#1e7a34] dark:text-emerald-400 uppercase tracking-wider mt-0.5">{activeClass.code} • Management Console</p>
                 </div>
-                <button 
-                  onClick={() => navigate('/classes')}
-                  className="px-3.5 py-1.5 bg-[#1e7a34]/10 text-[#1e7a34] dark:text-[#3ea556] hover:bg-[#1e7a34] hover:text-white text-xs font-extrabold rounded-xl transition-all cursor-pointer"
-                >
-                  Class Settings
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button 
+                    onClick={() => setIsRosterOpen(true)}
+                    className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#1e7a34] dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Users size={14} /> Enrolled Students Directory
+                  </button>
+                  <button 
+                    onClick={() => navigate('/classes')}
+                    className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-extrabold rounded-xl transition-all cursor-pointer"
+                  >
+                    Class Settings
+                  </button>
+                </div>
               </div>
 
-              {/* Workspace tabs selector */}
-              <div className="px-8 border-b border-slate-100 dark:border-slate-800/40 flex items-center gap-6 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 py-2.5 overflow-x-auto shrink-0 select-none bg-white dark:bg-[#1E293B]">
-                {[
-                  { id: 'announcements', label: 'Announcements', icon: Megaphone },
-                  { id: 'assignments', label: 'Assignments', icon: FileText },
-                  { id: 'quizzes', label: 'Quizzes', icon: Beaker },
-                  { id: 'resources', label: 'Learning Resources', icon: FolderOpen },
-                  { id: 'students', label: 'Students', icon: Users },
-                  { id: 'meetings', label: 'Meetings', icon: Calendar }
-                ].map(tab => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveWorkspaceTab(tab.id as any)}
-                      className={`pb-1.5 flex items-center gap-1 border-b-2 hover:text-[#1e7a34] transition-all cursor-pointer whitespace-nowrap ${
-                        activeWorkspaceTab === tab.id ? 'border-[#1e7a34] text-[#1e7a34] dark:text-[#3ea556] dark:border-[#3ea556]' : 'border-transparent'
-                      }`}
-                    >
-                      <Icon size={12} />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Workspace tabs content pane */}
-              <div className="flex-1 overflow-y-auto p-8 bg-slate-50/10 dark:bg-slate-900/10 space-y-6">
+              {/* Workspace Overview Content Pane */}
+              <div className="flex-1 overflow-y-auto p-8 bg-slate-50/10 dark:bg-slate-900/10 space-y-8">
                 
-                {activeWorkspaceTab === 'announcements' && (
-                  <div className="space-y-6">
+                {/* 2-Column Dashboard Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  
+                  {/* Left Column: Announcements & Assignments */}
+                  <div className="space-y-8">
+                    
                     {/* Post Form */}
                     <form onSubmit={handleAddAnnouncement} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
                       <h4 className="text-xs font-black text-slate-850 dark:text-white flex items-center gap-2">
@@ -1027,11 +832,11 @@ const DashboardPage: React.FC = () => {
                       <div className="space-y-3">
                         {user?.role !== UserRole.ClassRepresentative && (
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Target Location</label>
+                            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">Target Location</label>
                             <select 
                               value={annTarget} 
                               onChange={(e) => setAnnTarget(e.target.value as 'class' | 'global')}
-                              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white cursor-pointer"
+                              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800 font-semibold text-slate-800 dark:text-white cursor-pointer"
                             >
                               <option value="class">This Course Workspace Only ({activeClass?.code})</option>
                               <option value="global">University Hub (Visible to all students)</option>
@@ -1043,14 +848,14 @@ const DashboardPage: React.FC = () => {
                           placeholder="Notice Headline..." 
                           value={newAnnTitle}
                           onChange={(e) => setNewAnnTitle(e.target.value)}
-                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800 font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                         <textarea 
                           placeholder="Detailed content of the announcement..." 
                           value={newAnnContent}
                           onChange={(e) => setNewAnnContent(e.target.value)}
                           rows={3}
-                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold resize-none text-slate-800 dark:text-white"
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800 font-semibold resize-none text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                         <button 
                           type="submit"
@@ -1064,15 +869,15 @@ const DashboardPage: React.FC = () => {
                     {/* Announcements List */}
                     <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
                       <h4 className="text-xs font-black text-slate-800 dark:text-white">Existing Announcements ({announcements.length})</h4>
-                      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                         {announcements.length === 0 ? (
                           <p className="text-xs text-slate-400 italic font-semibold">No announcements published for this class yet.</p>
                         ) : (
                           announcements.map(ann => (
-                            <div key={ann.id} className="p-4 bg-slate-50/50 dark:bg-slate-955/30 border border-slate-100 dark:border-slate-800 rounded-2xl flex items-start justify-between gap-4">
+                            <div key={ann.id} className="p-4 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/80 rounded-2xl flex items-start justify-between gap-4">
                               <div className="space-y-1 min-w-0">
-                                <h5 className="text-xs font-black text-slate-850 dark:text-slate-200 truncate">{ann.title}</h5>
-                                <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] line-clamp-2 leading-relaxed font-semibold">{ann.content}</p>
+                                <h5 className="text-xs font-black text-slate-850 dark:text-slate-100 truncate">{ann.title}</h5>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed font-semibold">{ann.content}</p>
                                 <span className="text-[8px] font-bold text-slate-400 block uppercase tracking-wider">Posted on {new Date(ann.createdAt).toLocaleDateString()}</span>
                               </div>
                               <button
@@ -1088,128 +893,32 @@ const DashboardPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {activeWorkspaceTab === 'assignments' && (
-                  <div className="space-y-6">
-                    <form onSubmit={handleAddAssignment} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <h4 className="text-xs font-black text-slate-805 dark:text-white flex items-center gap-2">
-                        <FileText size={14} className="text-[#1e7a34]" />
-                        <span>Create Assignment Task</span>
-                      </h4>
-
-                      {/* Mode toggle */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Assignment Mode</label>
-                        <div className="flex gap-2 p-1 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800/40 max-w-sm">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAssignmentMode('typed');
-                              setAsgErrorMsg('');
-                            }}
-                            className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                              assignmentMode === 'typed'
-                                ? 'bg-[#1e7a34] text-white shadow-sm'
-                                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                          >
-                            ✍ Typed Instructions
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAssignmentMode('file');
-                              setAsgErrorMsg('');
-                            }}
-                            className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                              assignmentMode === 'file'
-                                ? 'bg-[#1e7a34] text-white shadow-sm'
-                                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                          >
-                            📁 File Attachment
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Assignment Title</label>
-                          <input 
-                            type="text" 
-                            placeholder="e.g. Midterm Lab Report..." 
-                            value={newAsgTitle}
-                            onChange={(e) => setNewAsgTitle(e.target.value)}
-                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Due Date</label>
-                          <input 
-                            type="date" 
-                            value={newAsgDue}
-                            onChange={(e) => setNewAsgDue(e.target.value)}
-                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold"
-                          />
-                        </div>
-                      </div>
-                      
-                      {assignmentMode === 'typed' ? (
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Written Instructions / Description</label>
-                          <textarea
-                            placeholder="Write assignment instructions, requirements, deliverables, or questions here..."
-                            value={newAsgDesc}
-                            onChange={(e) => setNewAsgDesc(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-955 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold h-24 resize-none"
-                          />
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Upload Assignment File Guidelines (PDF, Docx, ZIP...)</label>
-                          <input 
-                            type="file" 
-                            onChange={(e) => setNewAsgFile(e.target.files?.[0] || null)}
-                            disabled={isUploadingAsg}
-                            className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#1e7a34]/10 file:text-[#1e7a34] hover:file:bg-[#1e7a34]/20 cursor-pointer disabled:opacity-50"
-                          />
-                        </div>
-                      )}
-
-                      {asgErrorMsg && (
-                        <p className="text-[10px] text-red-500 font-bold">{asgErrorMsg}</p>
-                      )}
-
-                      <button 
-                        type="submit"
-                        disabled={isUploadingAsg}
-                        className="px-4 py-2.5 bg-[#1e7a34] text-white hover:bg-[#258d3f] text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        {isUploadingAsg ? 'Uploading File & Publishing...' : 'Publish Assignment'}
-                      </button>
-                    </form>
 
                     {/* Assignments List */}
                     <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <h4 className="text-xs font-black text-slate-800 dark:text-white">Existing Assignments ({assignments.length})</h4>
-                      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-black text-slate-800 dark:text-white flex items-center gap-2">
+                          <FileText size={14} className="text-[#1e7a34]" />
+                          <span>Active Assignments ({assignments.length})</span>
+                        </h4>
+                        <button onClick={() => navigate('/assignments')} className="text-[10px] font-bold text-[#1e7a34] dark:text-emerald-400 hover:underline">
+                          Open Assignments Page →
+                        </button>
+                      </div>
+                      <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                         {assignments.length === 0 ? (
                           <p className="text-xs text-slate-400 italic font-semibold">No assignments created for this class yet.</p>
                         ) : (
                           assignments.map(asg => (
-                            <div key={asg.id} className="p-4 bg-slate-50/50 dark:bg-slate-955/30 border border-slate-100 dark:border-slate-800 rounded-2xl flex items-start justify-between gap-4">
+                            <div key={asg.id} className="p-4 bg-slate-50/70 dark:bg-slate-955/30 border border-slate-100 dark:border-slate-800/80 rounded-2xl flex items-start justify-between gap-4">
                               <div className="space-y-1 min-w-0">
-                                <h5 className="text-xs font-black text-slate-850 dark:text-slate-200 truncate">{asg.title}</h5>
-                                <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] line-clamp-1 font-semibold">{asg.description || asg.instructions}</p>
-                                <span className="text-[8px] font-bold text-red-500 dark:text-red-400 block uppercase tracking-wider">Due on {new Date(asg.dueDate).toLocaleDateString()}</span>
+                                <h5 className="text-xs font-black text-slate-850 dark:text-slate-100 truncate">{asg.title}</h5>
+                                <p className="text-[10px] text-[#1e7a34] dark:text-emerald-400 font-bold">Due: {new Date(asg.dueDate).toLocaleDateString()}</p>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteAssignment(asg.id)}
                                 className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer shrink-0"
-                                title="Delete assignment"
                               >
                                 <Trash2 size={13} />
                               </button>
@@ -1218,315 +927,120 @@ const DashboardPage: React.FC = () => {
                         )}
                       </div>
                     </div>
+
                   </div>
-                )}
 
-                {activeWorkspaceTab === 'quizzes' && (
-                  <div className="space-y-6">
-                    <form onSubmit={handleAddQuiz} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <h4 className="text-xs font-black text-slate-850 dark:text-white flex items-center gap-2">
-                        <Beaker size={14} className="text-[#1e7a34]" />
-                        <span>Schedule Assessment Quiz</span>
-                      </h4>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Target Location</label>
-                        <select 
-                          value={quizTarget} 
-                          onChange={(e) => setQuizTarget(e.target.value as 'class' | 'global')}
-                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white cursor-pointer"
-                        >
-                          <option value="class">This Course Workspace Only ({activeClass?.code})</option>
-                          <option value="global">University Hub (Visible to all students)</option>
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input 
-                          type="text" 
-                          placeholder="Quiz Title..." 
-                          value={newQuizTitle}
-                          onChange={(e) => setNewQuizTitle(e.target.value)}
-                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold md:col-span-2"
-                        />
-                        <input 
-                          type="number" 
-                          placeholder="Points (e.g. 20)" 
-                          value={newQuizPoints}
-                          onChange={(e) => setNewQuizPoints(Number(e.target.value))}
-                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input 
-                          type="date" 
-                          value={newQuizDate}
-                          onChange={(e) => setNewQuizDate(e.target.value)}
-                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold"
-                        />
-                      </div>
-                      <button 
-                        type="submit"
-                        className="px-4 py-2.5 bg-[#1e7a34] text-white hover:bg-[#258d3f] text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
-                      >
-                        Schedule Quiz
-                      </button>
-                    </form>
-
-                    {/* Quizzes List */}
-                    <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <h4 className="text-xs font-black text-slate-800 dark:text-white">Scheduled Quizzes ({quizzes.length})</h4>
-                      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                        {quizzes.length === 0 ? (
-                          <p className="text-xs text-slate-400 italic font-semibold">No quizzes scheduled for this class yet.</p>
-                        ) : (
-                          quizzes.map(qz => (
-                            <div key={qz.id} className="p-4 bg-slate-50/50 dark:bg-slate-955/30 border border-slate-100 dark:border-slate-800 rounded-2xl flex items-start justify-between gap-4">
-                              <div className="space-y-1 min-w-0">
-                                <h5 className="text-xs font-black text-slate-850 dark:text-slate-200 truncate">{qz.title}</h5>
-                                <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] font-bold">Max Score: {qz.points} pts • Questions: {qz.questionsCount || 0}</p>
-                                <span className="text-[8px] font-bold text-[#1e7a34] block uppercase tracking-wider">Scheduled for {new Date(qz.date).toLocaleDateString()}</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteQuiz(qz.id)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer shrink-0"
-                                title="Delete quiz"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeWorkspaceTab === 'resources' && (
-                  <div className="space-y-6">
-                    {/* Upload Resource Form */}
-                    <form onSubmit={handleUploadResource} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <h4 className="text-xs font-black text-slate-850 dark:text-white flex items-center gap-2">
-                        <FolderOpen size={14} className="text-[#1e7a34]" />
-                        <span>Upload Class Learning Resource</span>
-                      </h4>
-                      <div className="space-y-3">
-                        {user?.role !== UserRole.ClassRepresentative && (
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Target Location</label>
-                            <select 
-                              value={resTarget} 
-                              onChange={(e) => setResTarget(e.target.value as 'class' | 'global')}
-                              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white cursor-pointer"
-                            >
-                              <option value="class">This Course Workspace Only ({activeClass?.code})</option>
-                              <option value="global">University Hub (Visible to all students)</option>
-                            </select>
-                          </div>
-                        )}
-                        <input 
-                          type="text" 
-                          placeholder="Resource Document Title (e.g. Lecture 4 Notes)..." 
-                          value={newResTitle}
-                          onChange={(e) => setNewResTitle(e.target.value)}
-                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white"
-                        />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase block pl-1">Category</label>
-                            <select 
-                              value={newResCategory}
-                              onChange={(e) => setNewResCategory(e.target.value)}
-                              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-700 dark:text-slate-350"
-                            >
-                              <option value="Document">📄 Document (Syllabus/Slides)</option>
-                              <option value="Assignment">📝 Assignment Guidelines</option>
-                              <option value="Reference">📚 Reference book</option>
-                              <option value="Syllabus">🗓️ Course Outline</option>
-                            </select>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase block pl-1">Select File</label>
-                            <input 
-                              type="file" 
-                              onChange={(e) => setNewResFile(e.target.files?.[0] || null)}
-                              disabled={isUploadingRes}
-                              className="w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-[#1e7a34]/10 file:text-[#1e7a34] hover:file:bg-[#1e7a34]/20 cursor-pointer disabled:opacity-50 mt-1"
-                            />
-                          </div>
-                        </div>
-                        {resErrorMsg && (
-                          <p className="text-[10px] text-red-500 font-bold pl-1">{resErrorMsg}</p>
-                        )}
-                        <button 
-                          type="submit"
-                          disabled={isUploadingRes}
-                          className="px-4 py-2.5 bg-[#1e7a34] text-white hover:bg-[#258d3f] text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                        >
-                          {isUploadingRes ? 'Uploading file...' : 'Upload Learning Material'}
-                        </button>
-                      </div>
-                    </form>
-
-                    {/* Resources List */}
-                    <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black text-slate-800 dark:text-white">Uploaded Resources ({resources.length})</h4>
-                        <button 
-                          onClick={() => navigate('/resources')}
-                          className="text-[10px] font-bold text-[#1e7a34] hover:underline cursor-pointer"
-                        >
-                          Open Resource Hub Manager
-                        </button>
-                      </div>
-                      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                        {resources.length === 0 ? (
-                          <p className="text-xs text-slate-400 italic font-semibold">No learning resources uploaded for this class yet.</p>
-                        ) : (
-                          resources.map(res => (
-                            <div key={res.id} className="p-4 bg-slate-50/50 dark:bg-slate-955/30 border border-slate-100 dark:border-slate-800 rounded-2xl flex items-start justify-between gap-4">
-                              <div className="space-y-1 min-w-0">
-                                <h5 className="text-xs font-black text-slate-850 dark:text-slate-200 truncate">{res.title}</h5>
-                                <p className="text-[9px] text-[#1e7a34] font-bold uppercase">{res.category || 'Material'}</p>
-                                <span className="text-[8px] font-bold text-slate-400 block uppercase tracking-wider">Uploaded on {new Date(res.createdAt).toLocaleDateString()}</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteResource(res.id)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer shrink-0"
-                                title="Delete learning resource"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeWorkspaceTab === 'students' && (
-                  <div className="space-y-6">
+                  {/* Right Column: Students Roster & Meetings */}
+                  <div className="space-y-8">
+                    
                     {/* Enrollment Card header */}
                     <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="space-y-1">
                           <h4 className="text-xs font-black text-slate-805 dark:text-white flex items-center gap-2">
                             <Users size={14} className="text-[#1e7a34]" />
-                            <span>Class Enrollment List ({classMembers.students?.length ?? 0})</span>
+                            <span>Class Enrolled Roster ({classMembers.students?.length ?? 0})</span>
                           </h4>
                           <p className="text-[11px] text-slate-550 dark:text-slate-400 font-semibold leading-relaxed">
-                            View students enrolled in this course and appoint the Course Representative.
+                            Appoint Course Representatives and inspect student profile details.
                           </p>
                         </div>
-                        {user?.role !== UserRole.Student && (
-                          <button 
-                            onClick={() => navigate('/classes')}
-                            className="px-4 py-2 bg-[#1e7a34] text-white hover:bg-[#258d3f] text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer shrink-0 animate-fade-in"
-                          >
-                            Invite / Manage Enrolled Students
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => setIsRosterOpen(true)}
+                          className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#1e7a34] dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0"
+                        >
+                          Open Directory
+                        </button>
                       </div>
-                    </div>
 
-                    {/* Members List Table / Cards */}
-                    <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm">
+                      {/* Members List Table */}
                       {isLoadingMembers ? (
-                        <div className="py-12 text-center text-xs text-slate-400 font-semibold">Loading class roster...</div>
+                        <div className="py-8 text-center text-xs text-slate-400 font-semibold">Loading class roster...</div>
                       ) : membersError ? (
-                        <div className="py-12 text-center text-xs text-red-500 font-bold">{membersError}</div>
+                        <div className="py-8 text-center text-xs text-red-500 font-bold">{membersError}</div>
                       ) : !classMembers.students || classMembers.students.length === 0 ? (
-                        <div className="py-12 text-center text-xs text-slate-405 font-semibold">No students are currently enrolled in this class.</div>
+                        <div className="py-8 text-center text-xs text-slate-400 font-semibold">No students are currently enrolled in this class.</div>
                       ) : (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto max-h-64">
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50/50 dark:bg-slate-900/30 text-[9px] font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800/20">
-                                <th className="px-4 py-3">Student Details</th>
-                                <th className="px-4 py-3">Identification ID</th>
-                                <th className="px-4 py-3">Role Status</th>
-                                {user?.role !== UserRole.Student && <th className="px-4 py-3 text-right">Actions</th>}
+                                <th className="px-3 py-2">Student</th>
+                                <th className="px-3 py-2">ID</th>
+                                <th className="px-3 py-2">Status</th>
+                                <th className="px-3 py-2 text-right">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/20">
-                              {classMembers.students.map(student => {
+                              {classMembers.students.slice(0, 5).map(student => {
                                 const isRep = student.isClassRepresentative;
                                 const hasAnyRep = classMembers.students.some(s => s.isClassRepresentative);
                                 return (
-                                  <tr key={student.id} className="text-[11px] font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-50/50 dark:hover:bg-slate-950/10 transition-colors">
-                                    <td className="px-4 py-3">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-extrabold text-slate-800 dark:text-white">{student.name}</span>
-                                        {(user?.role === UserRole.Lecturer || user?.role === UserRole.Administrator) && (
-                                          <button
-                                            type="button"
-                                            onClick={() => setSelectedStudentIdForModal(student.id)}
-                                            className="text-[9px] font-extrabold px-2 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#1e7a34] dark:text-emerald-300 rounded-md border border-emerald-500/20 transition-all cursor-pointer flex items-center gap-1"
-                                            title="Inspect Student Profile Details"
-                                          >
-                                            <GraduationCap size={10} /> Profile
-                                          </button>
-                                        )}
+                                  <tr key={student.id} className="text-[11px] font-semibold text-slate-700 dark:text-slate-350">
+                                    <td className="px-3 py-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-extrabold text-slate-800 dark:text-white truncate max-w-[110px]">{student.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedStudentIdForModal(student.id)}
+                                          className="text-[8px] font-bold px-1.5 py-0.2 bg-emerald-500/10 text-[#1e7a34] dark:text-emerald-300 rounded border border-emerald-500/20"
+                                        >
+                                          Profile
+                                        </button>
                                       </div>
-                                      <div className="text-[9px] text-slate-400">{student.email}</div>
                                     </td>
-                                    <td className="px-4 py-3 font-mono">{student.studentId}</td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-3 py-2 font-mono text-[10px]">{student.studentId}</td>
+                                    <td className="px-3 py-2">
                                       {isRep ? (
-                                        <span className="inline-flex px-2 py-0.5 border border-purple-200 dark:border-purple-900/30 text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 rounded text-[9px] font-bold">
-                                          ★ Course Rep
+                                        <span className="text-[8px] font-bold px-1.5 py-0.2 bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 rounded">
+                                          ★ Rep
                                         </span>
                                       ) : (
-                                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Student</span>
+                                        <span className="text-[9px] text-slate-400">Student</span>
                                       )}
                                     </td>
-                                    {user?.role !== UserRole.Student && (
-                                      <td className="px-4 py-3 text-right">
-                                        {isRep ? (
-                                          <button
-                                            type="button"
-                                            onClick={async () => {
-                                              if (window.confirm(`Are you sure you want to remove ${student.name} as Course Representative?`)) {
-                                                try {
-                                                  await api.post(`/classworkspaces/${activeClass.id}/remove-rep`);
-                                                  fetchClassMembers(activeClass.id);
-                                                  setSuccessMsg('Representative removed successfully!');
-                                                  setTimeout(() => setSuccessMsg(''), 3000);
-                                                } catch (err: any) {
-                                                  alert(err.response?.data?.message || 'Failed to remove representative.');
-                                                }
+                                    <td className="px-3 py-2 text-right">
+                                      {isRep ? (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            if (window.confirm(`Remove ${student.name} as Course Representative?`)) {
+                                              try {
+                                                await api.post(`/classworkspaces/${activeClass.id}/remove-rep`);
+                                                fetchClassMembers(activeClass.id);
+                                                setSuccessMsg('Representative removed!');
+                                                setTimeout(() => setSuccessMsg(''), 3000);
+                                              } catch (err: any) {
+                                                alert(err.response?.data?.message || 'Failed to remove representative.');
                                               }
-                                            }}
-                                            className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-[9px] font-bold cursor-pointer transition-all"
-                                          >
-                                            Remove Rep
-                                          </button>
-                                        ) : (
-                                          <button
-                                            type="button"
-                                            onClick={async () => {
-                                              const confirmMsg = hasAnyRep 
-                                                ? `This will replace the current representative. Appoint ${student.name} as the Course Representative?` 
-                                                : `Appoint ${student.name} as the Course Representative for this class?`;
-                                              if (window.confirm(confirmMsg)) {
-                                                try {
-                                                  await api.post(`/classworkspaces/${activeClass.id}/assign-rep`, { studentId: student.id });
-                                                  fetchClassMembers(activeClass.id);
-                                                  setSuccessMsg('Representative appointed successfully!');
-                                                  setTimeout(() => setSuccessMsg(''), 3000);
-                                                } catch (err: any) {
-                                                  alert(err.response?.data?.message || 'Failed to assign representative.');
-                                                }
+                                            }
+                                          }}
+                                          className="px-2 py-0.5 bg-red-500/10 text-red-600 rounded text-[8px] font-bold"
+                                        >
+                                          Remove
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            const msg = hasAnyRep ? `Replace current Rep with ${student.name}?` : `Appoint ${student.name} as Course Rep?`;
+                                            if (window.confirm(msg)) {
+                                              try {
+                                                await api.post(`/classworkspaces/${activeClass.id}/assign-rep`, { studentId: student.id });
+                                                fetchClassMembers(activeClass.id);
+                                                setSuccessMsg('Representative appointed!');
+                                                setTimeout(() => setSuccessMsg(''), 3000);
+                                              } catch (err: any) {
+                                                alert(err.response?.data?.message || 'Failed to assign representative.');
                                               }
-                                            }}
-                                            className="px-2.5 py-1 bg-[#1e7a34]/10 border border-[#1e7a34]/20 text-[#1e7a34] hover:bg-[#1e7a34] hover:text-white rounded-lg text-[9px] font-bold cursor-pointer transition-all"
-                                          >
-                                            Appoint Rep
-                                          </button>
-                                        )}
-                                      </td>
-                                    )}
+                                            }
+                                          }}
+                                          className="px-2 py-0.5 bg-emerald-500/10 text-[#1e7a34] dark:text-emerald-300 rounded text-[8px] font-bold"
+                                        >
+                                          Appoint
+                                        </button>
+                                      )}
+                                    </td>
                                   </tr>
                                 );
                               })}
@@ -1535,63 +1049,36 @@ const DashboardPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
-
-                {activeWorkspaceTab === 'meetings' && (
-                  <div className="space-y-6">
-                    <form onSubmit={handleAddSchedule} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <h4 className="text-xs font-black text-slate-805 dark:text-white flex items-center gap-2">
-                        <Calendar size={14} className="text-[#1e7a34]" />
-                        <span>Schedule Class Session / Meeting</span>
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input 
-                          type="text" 
-                          placeholder="Session Title (e.g. Lab Sync)..." 
-                          value={newSchedTitle}
-                          onChange={(e) => setNewSchedTitle(e.target.value)}
-                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input 
-                          type="time" 
-                          value={newSchedTime}
-                          onChange={(e) => setNewSchedTime(e.target.value)}
-                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold"
-                        />
-                      </div>
-                      <button 
-                        type="submit"
-                        className="px-4 py-2.5 bg-[#1e7a34] text-white hover:bg-[#258d3f] text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
-                      >
-                        Schedule Session
-                      </button>
-                    </form>
 
                     {/* Sessions List */}
                     <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/40 rounded-3xl p-6 shadow-sm space-y-4">
-                      <h4 className="text-xs font-black text-slate-800 dark:text-white">Scheduled Sessions ({schedules.length})</h4>
-                      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-black text-slate-800 dark:text-white flex items-center gap-2">
+                          <Calendar size={14} className="text-[#1e7a34]" />
+                          <span>Scheduled Meetings & Sync Sessions ({schedules.length})</span>
+                        </h4>
+                        <button onClick={() => navigate('/schedule')} className="text-[10px] font-bold text-[#1e7a34] dark:text-emerald-400 hover:underline">
+                          Open Schedule →
+                        </button>
+                      </div>
+                      <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                         {schedules.length === 0 ? (
                           <p className="text-xs text-slate-400 italic font-semibold">No sync sessions scheduled for this class yet.</p>
                         ) : (
                           schedules.map(sch => (
-                            <div key={sch.id} className="p-4 bg-slate-50/50 dark:bg-slate-955/30 border border-slate-100 dark:border-slate-800 rounded-2xl flex items-start justify-between gap-4">
+                            <div key={sch.id} className="p-4 bg-slate-50/70 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/80 rounded-2xl flex items-start justify-between gap-4">
                               <div className="space-y-1 min-w-0">
-                                <h5 className="text-xs font-black text-slate-850 dark:text-slate-200 truncate">{sch.title}</h5>
-                                <p className="text-[10px] text-[#1e7a34] font-bold">
+                                <h5 className="text-xs font-black text-slate-850 dark:text-slate-100 truncate">{sch.title}</h5>
+                                <p className="text-[10px] text-[#1e7a34] dark:text-emerald-400 font-bold">
                                   {new Date(sch.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                   {sch.room && ` • Room: ${sch.room}`}
                                 </p>
-                                <span className="text-[8px] font-bold text-slate-455 block uppercase tracking-wider">Date: {new Date(sch.startTime).toLocaleDateString()}</span>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteSchedule(sch.id)}
                                 className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer shrink-0"
-                                title="Delete sync session"
+                                title="Delete schedule"
                               >
                                 <Trash2 size={13} />
                               </button>
@@ -1600,8 +1087,10 @@ const DashboardPage: React.FC = () => {
                         )}
                       </div>
                     </div>
+
                   </div>
-                )}
+
+                </div>
 
               </div>
             </div>
@@ -1683,6 +1172,18 @@ const DashboardPage: React.FC = () => {
         studentId={selectedStudentIdForModal}
         isOpen={!!selectedStudentIdForModal}
         onClose={() => setSelectedStudentIdForModal(null)}
+      />
+
+      {/* Class Roster Directory Modal */}
+      <ClassRosterModal
+        classWorkspaceId={activeClass?.id || null}
+        classWorkspaceName={activeClass?.name}
+        isOpen={isRosterOpen}
+        onClose={() => setIsRosterOpen(false)}
+        onSelectStudent={(id) => {
+          setSelectedStudentIdForModal(id);
+          setIsRosterOpen(false);
+        }}
       />
     </>
   );

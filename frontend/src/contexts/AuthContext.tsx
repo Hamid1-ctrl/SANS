@@ -32,6 +32,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    if (!auth) {
+      const checkLocalToken = async () => {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          try {
+            const response = await api.get<User>('/auth/me');
+            setUser(response.data);
+          } catch (err) {
+            localStorage.removeItem('accessToken');
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      };
+      checkLocalToken();
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
@@ -69,6 +89,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (credentials: LoginRequest): Promise<void> => {
+    if (!auth) {
+      // Direct backend API login fallback
+      const response = await api.post<{ token: string; user: User }>('/auth/login', credentials);
+      localStorage.setItem('accessToken', response.data.token || (response.data as any).token);
+      setUser(response.data.user || response.data);
+      return;
+    }
+
     let userCredential;
     try {
       userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
@@ -106,6 +134,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (data: RegisterRequest): Promise<void> => {
+    if (!auth) {
+      // Direct backend API registration fallback
+      await api.post('/auth/register', data);
+      return;
+    }
+
     // 1. Create the user in Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
     
@@ -126,6 +160,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithGoogle = async (): Promise<{ isNewUser: boolean; email?: string; firstName?: string; lastName?: string; firebaseUid?: string }> => {
+    if (!auth) {
+      throw new Error('Google Sign-In requires Firebase environment variables to be set in Vercel. Please check your VITE_FIREBASE_API_KEY settings.');
+    }
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
       prompt: 'select_account'
