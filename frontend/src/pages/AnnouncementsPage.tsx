@@ -322,14 +322,14 @@ const AnnouncementsPage: React.FC = () => {
             <form onSubmit={handleCreateNotice} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/40 rounded-2xl p-4 space-y-3">
               {user?.role !== UserRole.ClassRepresentative && (
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Target Location</label>
+                  <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Target Location</label>
                   <select 
                     value={newAnnScope} 
                     onChange={e => setNewAnnScope(e.target.value as 'class' | 'global')}
-                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/40 rounded-lg text-[10px] font-semibold text-slate-705 dark:text-slate-305 focus:outline-none cursor-pointer"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none cursor-pointer"
                   >
-                    <option value="class">This Course Workspace Only ({activeClass?.code || 'None Selected'})</option>
-                    <option value="global">University Hub (Visible to all students)</option>
+                    <option value="class" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">This Course Workspace Only ({activeClass?.code || 'None Selected'})</option>
+                    <option value="global" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">University Hub (Visible to all students)</option>
                   </select>
                 </div>
               )}
@@ -339,7 +339,7 @@ const AnnouncementsPage: React.FC = () => {
                 value={newTitle} 
                 onChange={e => setNewTitle(e.target.value)} 
                 required
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-[11px] rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-700 font-semibold text-slate-800 dark:text-white placeholder:text-slate-400"
               />
               
               <textarea 
@@ -347,25 +347,24 @@ const AnnouncementsPage: React.FC = () => {
                 value={newContent} 
                 onChange={e => setNewContent(e.target.value)} 
                 required
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-[11px] rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white h-20 resize-none"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-700 font-semibold text-slate-800 dark:text-white h-20 resize-none placeholder:text-slate-400"
               />
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-0.5">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase">Category</label>
+                  <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Category</label>
                   <select 
                     value={newCategory} 
                     onChange={e => setNewCategory(e.target.value)}
-                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-905 border border-slate-200 dark:border-slate-800/40 rounded-lg text-[10px] font-semibold text-slate-700 dark:text-slate-350 focus:outline-none"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none cursor-pointer"
                   >
-                    <option value="general">General</option>
-                    <option value="exam">Exam</option>
-                    <option value="assignment">Assignment</option>
-                    <option value="quiz">Quiz</option>
-                    <option value="deadline">Deadline</option>
-                    <option value="meeting">Meeting</option>
-                    <option value="resource">Resource</option>
-                    <option value="pdf">PDF Doc</option>
+                    <option value="General" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">General</option>
+                    <option value="Exam" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Exam</option>
+                    <option value="Assignment" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Assignment</option>
+                    <option value="Quiz" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Quiz</option>
+                    <option value="Deadline" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Deadline</option>
+                    <option value="Meeting" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Meeting</option>
+                    <option value="Resource" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Resource</option>
                   </select>
                 </div>
 

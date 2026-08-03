@@ -36,10 +36,19 @@ const SettingsPage: React.FC = () => {
   const [isDeletingImage, setIsDeletingImage] = useState(false);
   const [imageErrorMsg, setImageErrorMsg] = useState<string | null>(null);
 
-  // Notification States
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [pushAlerts, setPushAlerts] = useState(true);
-  const [chatAlerts, setChatAlerts] = useState(false);
+  // Notification States — Load live preferences from localStorage per user ID
+  const [emailAlerts, setEmailAlerts] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`sans_notif_email_${user?.id}`);
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [pushAlerts, setPushAlerts] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`sans_notif_push_${user?.id}`);
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [chatAlerts, setChatAlerts] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`sans_notif_chat_${user?.id}`);
+    return saved !== null ? JSON.parse(saved) : false;
+  });
 
   // Sync profile state if user loads later
   useEffect(() => {
@@ -51,8 +60,38 @@ const SettingsPage: React.FC = () => {
       setOfficeHours(user.officeHours || '');
       setSpecialization(user.specialization || '');
       setBio(user.bio || '');
+
+      const savedEmail = localStorage.getItem(`sans_notif_email_${user.id}`);
+      if (savedEmail !== null) setEmailAlerts(JSON.parse(savedEmail));
+      const savedPush = localStorage.getItem(`sans_notif_push_${user.id}`);
+      if (savedPush !== null) setPushAlerts(JSON.parse(savedPush));
+      const savedChat = localStorage.getItem(`sans_notif_chat_${user.id}`);
+      if (savedChat !== null) setChatAlerts(JSON.parse(savedChat));
     }
   }, [user]);
+
+  const handleSaveNotifications = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (user) {
+      localStorage.setItem(`sans_notif_email_${user.id}`, JSON.stringify(emailAlerts));
+      localStorage.setItem(`sans_notif_push_${user.id}`, JSON.stringify(pushAlerts));
+      localStorage.setItem(`sans_notif_chat_${user.id}`, JSON.stringify(chatAlerts));
+    }
+
+    // Live Web Push Notification Permission Registration
+    if (pushAlerts && typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        try {
+          await Notification.requestPermission();
+        } catch (err) {
+          console.warn('Browser push notification permission error:', err);
+        }
+      }
+    }
+
+    setSuccessMsg('Live Notification integrations saved & active!');
+    setTimeout(() => setSuccessMsg(''), 3500);
+  };
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -129,12 +168,6 @@ const SettingsPage: React.FC = () => {
     } finally {
       setIsSavingProfile(false);
     }
-  };
-
-  const handleSaveNotifications = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSuccessMsg('Notification preferences updated successfully!');
-    setTimeout(() => setSuccessMsg(''), 3000);
   };
 
   return (
@@ -354,12 +387,12 @@ const SettingsPage: React.FC = () => {
           <form onSubmit={handleSaveNotifications} className="space-y-4">
             
             {/* Email Alerts toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#1F2937]/50 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#1F2937] rounded-2xl border border-slate-100 dark:border-slate-700/60">
               <div className="flex items-start gap-3">
                 <Mail className="text-[#1e7a34] mt-0.5" size={16} />
                 <div>
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">Email Notifications</h4>
-                  <p className="text-[10px] text-slate-455 dark:text-slate-400 mt-0.5">Receive daily bulletins, schedules, and dead-lines to your registered address.</p>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-white">Email Notifications</h4>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-200 font-medium mt-0.5 leading-relaxed">Receive daily bulletins, schedules, and dead-lines to your registered address.</p>
                 </div>
               </div>
               <input 
@@ -371,12 +404,12 @@ const SettingsPage: React.FC = () => {
             </div>
 
             {/* Push alerts */}
-            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#1F2937]/50 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#1F2937] rounded-2xl border border-slate-100 dark:border-slate-700/60">
               <div className="flex items-start gap-3">
                 <Smartphone className="text-[#1e7a34] mt-0.5" size={16} />
                 <div>
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">Push Notifications</h4>
-                  <p className="text-[10px] text-[#94A3B8] dark:text-slate-400 mt-0.5">Receive real-time class cancellations and immediate invitations on SANS portal.</p>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-white">Push Notifications</h4>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-200 font-medium mt-0.5 leading-relaxed">Receive real-time class cancellations and immediate invitations on SANS portal.</p>
                 </div>
               </div>
               <input 
@@ -388,12 +421,12 @@ const SettingsPage: React.FC = () => {
             </div>
 
             {/* Chat alerts */}
-            <div className="flex items-center justify-between p-4 bg-[#fbfbfe] dark:bg-[#1F2937]/50 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+            <div className="flex items-center justify-between p-4 bg-[#fbfbfe] dark:bg-[#1F2937] rounded-2xl border border-slate-100 dark:border-slate-700/60">
               <div className="flex items-start gap-3">
                 <Eye className="text-[#1e7a34] mt-0.5" size={16} />
                 <div>
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">Chat & Channel Reminders</h4>
-                  <p className="text-[10px] text-slate-455 dark:text-slate-400 mt-0.5">Alert me for every unread direct message or lecture channel comment.</p>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-white">Chat & Channel Reminders</h4>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-200 font-medium mt-0.5 leading-relaxed">Alert me for every unread direct message or lecture channel comment.</p>
                 </div>
               </div>
               <input 

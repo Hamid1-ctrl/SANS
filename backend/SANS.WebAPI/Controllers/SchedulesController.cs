@@ -37,7 +37,10 @@ public class SchedulesController : ControllerBase
         var ids = await _context.ClassWorkspaces
             .Where(c => !c.IsDeleted && (
                 c.Students.Any(st => st.Id == userId) ||
+                // User is assigned as 1st Course Representative for class workspace
                 c.ClassRepresentativeId == userId ||
+                // User is assigned as 2nd Course Representative for class workspace
+                c.SecondClassRepresentativeId == userId ||
                 c.LecturerId == userId ||
                 c.CreatedByUserId == userId
             ))

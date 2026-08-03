@@ -105,8 +105,8 @@ const AnalyticsPage: React.FC = () => {
               <div key={idx} className="flex items-start gap-3 text-xs font-semibold">
                 <div className="w-2 h-2 rounded-full bg-brand-primary mt-1.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-slate-800 truncate">{item.student} <span className="font-medium text-slate-500">{item.action}</span></p>
-                  <p className="text-[9px] text-slate-400 mt-0.5">{item.time}</p>
+                  <p className="text-slate-800 dark:text-white font-bold truncate">{item.student} <span className="font-medium text-slate-500 dark:text-slate-400">{item.action}</span></p>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">{item.time}</p>
                 </div>
               </div>
             ))}

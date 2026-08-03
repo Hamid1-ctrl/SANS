@@ -1,4 +1,4 @@
-﻿CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "MigrationId" TEXT NOT NULL CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY,
     "ProductVersion" TEXT NOT NULL
 );
@@ -890,4 +890,9 @@ INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
 VALUES ('20260726143642_AddIndexNumberToUser', '10.0.9');
 
 COMMIT;
+
+-- Add 2nd Course Representative column to ClassWorkspaces table
+ALTER TABLE "ClassWorkspaces" ADD "SecondClassRepresentativeId" TEXT NULL;
+CREATE INDEX "IX_ClassWorkspaces_SecondClassRepresentativeId" ON "ClassWorkspaces" ("SecondClassRepresentativeId");
+
 

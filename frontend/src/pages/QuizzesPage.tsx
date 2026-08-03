@@ -346,7 +346,7 @@ const QuizzesPage: React.FC = () => {
                   value={newQuizTitle}
                   onChange={(e) => setNewQuizTitle(e.target.value)}
                   placeholder="e.g. Mid-Semester Logic Assessment"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold focus:outline-none focus:border-[#1e7a34]"
+                  className="w-full p-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#1e7a34]"
                 />
               </div>
 
@@ -355,12 +355,12 @@ const QuizzesPage: React.FC = () => {
                 <select
                   value={newQuizClassId}
                   onChange={(e) => setNewQuizClassId(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34] cursor-pointer"
+                  className="w-full p-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34] cursor-pointer"
                 >
-                  <option value="">Select a class...</option>
-                  <option value="global" className="font-bold text-[#1e7a34]">University Hub (Global)</option>
+                  <option value="" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-medium">Select a class...</option>
+                  <option value="global" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 font-bold">University Hub (Global)</option>
                   {classes.map(cls => (
-                    <option key={cls.id} value={cls.id}>
+                    <option key={cls.id} value={cls.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-medium">
                       {cls.code} - {cls.name}
                     </option>
                   ))}
@@ -375,7 +375,7 @@ const QuizzesPage: React.FC = () => {
                     required
                     value={newQuizDate}
                     onChange={(e) => setNewQuizDate(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34] cursor-pointer"
+                    className="w-full p-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34] cursor-pointer dark:[color-scheme:dark]"
                   />
                 </div>
                 <div>
@@ -386,7 +386,7 @@ const QuizzesPage: React.FC = () => {
                     min={1}
                     value={newQuizPoints}
                     onChange={(e) => setNewQuizPoints(Number(e.target.value))}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
                   />
                 </div>
                 <div>
@@ -397,7 +397,7 @@ const QuizzesPage: React.FC = () => {
                     min={1}
                     value={newQuestionsCount}
                     onChange={(e) => setNewQuestionsCount(Number(e.target.value))}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
+                    className="w-full p-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl font-bold focus:outline-none focus:border-[#1e7a34]"
                   />
                 </div>
               </div>

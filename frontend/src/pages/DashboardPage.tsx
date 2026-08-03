@@ -25,7 +25,9 @@ import {
   FolderOpen,
   ArrowLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  Plus,
+  X
 } from 'lucide-react';
 import { StudentProfileModal } from '../components/modals/StudentProfileModal';
 import { ClassRosterModal } from '../components/modals/ClassRosterModal';
@@ -60,6 +62,10 @@ const DashboardPage: React.FC = () => {
   const { data: schedules = [] } = useSchedules(activeClass?.id);
   const { data: todaySummary } = useTodaySummary(activeClass?.id);
 
+  // Class Representative Authorization check
+  const isUserClassRep = user?.role === UserRole.ClassRepresentative || 
+    Boolean(activeClass && (activeClass.classRepresentativeId === user?.id || activeClass.secondClassRepresentativeId === user?.id));
+
   // Student specific panel state
   const [studentSearch, setStudentSearch] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -85,11 +91,100 @@ const DashboardPage: React.FC = () => {
   const deleteAsgMutation = useDeleteAssignment();
   const deleteSchedMutation = useDeleteSchedule();
 
-  // Mock proposals for lecturers (for demonstration UI compatibility)
-  const repNotices = [
-    { id: '1', title: 'Liaison Committee Meeting with Dean', rep: 'Tricia McMillan', status: 'Pending' },
-    { id: '2', title: 'Proposed Study Group: Algorithms', rep: 'Arthur Dent', status: 'Pending' }
-  ];
+  // Real Backend Database Rep Proposals State
+  const [repProposalsList, setRepProposalsList] = useState<Array<{ 
+    id: string; 
+    title: string; 
+    rep: string; 
+    repEmail?: string;
+    repAvatar?: string;
+    details: string; 
+    status: 'Pending' | 'Approved' | 'Rejected'; 
+    date: string;
+    classWorkspaceId?: string;
+    classCode?: string;
+    className?: string;
+  }>>([]);
+
+  const [selectedProposal, setSelectedProposal] = useState<any>(null);
+  const [isNewProposalModalOpen, setIsNewProposalModalOpen] = useState(false);
+  const [newPropTitle, setNewPropTitle] = useState('');
+  const [newPropDetails, setNewPropDetails] = useState('');
+
+  const fetchProposals = async () => {
+    try {
+      const res = await api.get('/repproposals');
+      setRepProposalsList(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch real rep proposals from database:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchProposals();
+    }
+  }, [user]);
+
+  const showSuccessToast = (msg: string) => {
+    setSuccessMsg(msg);
+    setTimeout(() => {
+      setSuccessMsg('');
+    }, 4000);
+  };
+
+  const handleApproveProposal = async (id: string) => {
+    try {
+      await api.put(`/repproposals/${id}/approve`);
+      setRepProposalsList((prev: any[]) => prev.map((p: any) => p.id === id ? { ...p, status: 'Approved' } : p));
+      if (selectedProposal && selectedProposal.id === id) {
+        setSelectedProposal((prev: any) => prev ? { ...prev, status: 'Approved' } : null);
+      }
+      showSuccessToast('Rep proposal approved successfully!');
+    } catch (err) {
+      console.error('Failed to approve proposal:', err);
+      alert('Failed to approve proposal.');
+    }
+  };
+
+  const handleRejectProposal = async (id: string) => {
+    try {
+      await api.put(`/repproposals/${id}/reject`);
+      setRepProposalsList((prev: any[]) => prev.map((p: any) => p.id === id ? { ...p, status: 'Rejected' } : p));
+      if (selectedProposal && selectedProposal.id === id) {
+        setSelectedProposal((prev: any) => prev ? { ...prev, status: 'Rejected' } : null);
+      }
+      showSuccessToast('Rep proposal rejected.');
+    } catch (err) {
+      console.error('Failed to reject proposal:', err);
+      alert('Failed to reject proposal.');
+    }
+  };
+
+  const handleCreateProposal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPropTitle.trim() || !newPropDetails.trim()) return;
+    const targetClassId = activeClass?.id || (classes.length > 0 ? classes[0].id : '');
+    if (!targetClassId) {
+      alert('Please select or join a class workspace first.');
+      return;
+    }
+    try {
+      const res = await api.post('/repproposals', {
+        title: newPropTitle.trim(),
+        description: newPropDetails.trim(),
+        classWorkspaceId: targetClassId
+      });
+      setRepProposalsList(prev => [res.data, ...prev]);
+      setNewPropTitle('');
+      setNewPropDetails('');
+      setIsNewProposalModalOpen(false);
+      showSuccessToast('New Rep proposal submitted successfully!');
+    } catch (err) {
+      console.error('Failed to submit proposal:', err);
+      alert('Failed to submit proposal. Please check requirements.');
+    }
+  };
 
   const fetchClassMembers = async (classId: string) => {
     setIsLoadingMembers(true);
@@ -326,6 +421,27 @@ const DashboardPage: React.FC = () => {
                 <p className="text-xs text-slate-500 dark:text-slate-350 font-medium mt-1 leading-relaxed">Welcome to the SANS University Hub. Central academic portal and notification manager.</p>
               </div>
 
+              {/* Class Representative Action Callout Banner */}
+              {isUserClassRep && (
+                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 dark:border-amber-500/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300 flex items-center justify-center font-black shrink-0 text-base">
+                      🎓
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800 dark:text-white">Class Representative Console Active</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Submit formal academic proposals directly to course lecturers on behalf of your class.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsNewProposalModalOpen(true)}
+                    className="px-3.5 py-2 bg-[#1e7a34] hover:bg-[#258d3f] text-white text-xs font-extrabold rounded-xl transition-all shadow-xs cursor-pointer shrink-0 flex items-center gap-1.5"
+                  >
+                    <Plus size={13} /> Submit Proposal to Lecturer
+                  </button>
+                </div>
+              )}
+
               {/* Summary Dashboard Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Latest University Notice */}
@@ -382,12 +498,22 @@ const DashboardPage: React.FC = () => {
             // =================================================================
             <div className="flex-1 overflow-y-auto p-8 space-y-6 flex flex-col bg-[#f0f7f2]/10 dark:bg-[#0F172A]">
               {/* Workspace Header Banner */}
-              <div className="bg-gradient-to-r from-[#1e7a34]/15 to-[#3ea556]/5 dark:from-[#1e7a34]/10 dark:to-transparent border border-[#1e7a34]/25 rounded-3xl p-6">
-                <span className="text-[8px] font-extrabold bg-[#1e7a34] text-white px-2.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
-                  {activeClass.code} Class Dashboard
-                </span>
-                <h2 className="text-base font-black text-slate-805 dark:text-white mt-3 leading-tight">{activeClass.name} Workspace</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">Lecturer: {activeClass.lecturerName || 'Unassigned'}</p>
+              <div className="bg-gradient-to-r from-[#1e7a34]/15 to-[#3ea556]/5 dark:from-[#1e7a34]/10 dark:to-transparent border border-[#1e7a34]/25 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <span className="text-[8px] font-extrabold bg-[#1e7a34] text-white px-2.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
+                    {activeClass.code} Class Dashboard
+                  </span>
+                  <h2 className="text-base font-black text-slate-805 dark:text-white mt-3 leading-tight">{activeClass.name} Workspace</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">Lecturer: {activeClass.lecturerName || 'Unassigned'}</p>
+                </div>
+                {isUserClassRep && (
+                  <button
+                    onClick={() => setIsNewProposalModalOpen(true)}
+                    className="px-4 py-2.5 bg-[#1e7a34] hover:bg-[#258d3f] text-white text-xs font-black rounded-xl transition-all shadow-md cursor-pointer shrink-0 flex items-center gap-1.5 self-start md:self-auto"
+                  >
+                    <Plus size={14} /> Submit Academic Proposal to Lecturer
+                  </button>
+                )}
               </div>
 
               {/* Class overview layout columns */}
@@ -515,6 +641,64 @@ const DashboardPage: React.FC = () => {
                     <button onClick={() => navigate('/schedule')} className="w-full text-center text-[9px] font-bold text-[#1e7a34] dark:text-emerald-400 hover:underline flex items-center justify-center gap-0.5 cursor-pointer pt-1">
                       Full Course Timetable <ChevronRight size={10} />
                     </button>
+                  </div>
+
+                  {/* Class Rep Academic Proposals Card */}
+                  <div className="bg-white dark:bg-[#1E293B] border border-slate-100 dark:border-slate-800/40 rounded-2xl p-5 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded uppercase">
+                        🎓 Academic Proposals ({repProposalsList.length})
+                      </span>
+                      {isUserClassRep && (
+                        <button 
+                          onClick={() => setIsNewProposalModalOpen(true)}
+                          className="text-[9px] font-bold text-[#1e7a34] dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus size={11} /> Submit New
+                        </button>
+                      )}
+                    </div>
+
+                    {repProposalsList.length === 0 ? (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-center space-y-1">
+                        <p className="text-[10px] text-slate-600 dark:text-slate-300 font-bold">No proposals submitted yet</p>
+                        <p className="text-[8px] text-slate-400 leading-normal">
+                          {isUserClassRep 
+                            ? "As Class Representative, click 'Submit New' above to send a formal request to your course lecturer."
+                            : "Proposals submitted by your Class Rep to course lecturers will appear here."}
+                        </p>
+                        {isUserClassRep && (
+                          <button 
+                            onClick={() => setIsNewProposalModalOpen(true)}
+                            className="mt-1 text-[9px] font-bold text-[#1e7a34] dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus size={10} /> Send Proposal Now
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-0.5">
+                        {repProposalsList.map(item => (
+                          <div 
+                            key={item.id}
+                            onClick={() => setSelectedProposal(item)}
+                            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-[#1e7a34] transition-all cursor-pointer space-y-1"
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <h5 className="text-[10px] font-extrabold text-slate-800 dark:text-white truncate flex-1">{item.title}</h5>
+                              <span className={`text-[7px] px-1.5 py-0.2 rounded-full uppercase font-black shrink-0 ${
+                                item.status === 'Approved' ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200' :
+                                item.status === 'Rejected' ? 'bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-200' :
+                                'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200'
+                              }`}>
+                                {item.status}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-500 dark:text-slate-400 line-clamp-1">{item.details}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Quick Action Panels (LMS role specific) */}
@@ -774,16 +958,66 @@ const DashboardPage: React.FC = () => {
                 </div>
               ))
             ) : (
-              repNotices.map(item => (
-                <div 
-                  key={item.id}
-                  className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/40 bg-slate-50/50 dark:bg-slate-900/40"
-                >
-                  <h4 className="text-xs font-bold text-slate-805 dark:text-white truncate">{item.title}</h4>
-                  <p className="text-[10px] text-slate-455">Rep: {item.rep}</p>
-                  <span className="text-[8px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full mt-1.5 inline-block uppercase font-bold">{item.status}</span>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between px-1 mb-1">
+                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Active Proposals ({repProposalsList.length})
+                  </span>
+                  {isUserClassRep && (
+                    <button 
+                      onClick={() => setIsNewProposalModalOpen(true)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-[#1e7a34] dark:text-emerald-400 hover:underline cursor-pointer"
+                    >
+                      <Plus size={11} /> Submit New
+                    </button>
+                  )}
                 </div>
-              ))
+
+                {repProposalsList.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-slate-400 font-semibold bg-slate-50 dark:bg-slate-900/40 rounded-2xl">
+                    No proposals submitted yet.
+                  </div>
+                ) : (
+                  repProposalsList.map(item => (
+                    <div 
+                      key={item.id}
+                      onClick={() => setSelectedProposal(item)}
+                      className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900/60 hover:border-[#1e7a34] dark:hover:border-emerald-500/60 transition-all cursor-pointer space-y-2 shadow-xs group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate group-hover:text-[#1e7a34] dark:group-hover:text-emerald-300 transition-colors flex-1">
+                          {item.title}
+                        </h4>
+                        <span className={`text-[8px] px-2 py-0.5 rounded-full uppercase font-black shrink-0 ${
+                          item.status === 'Approved' ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700/50' :
+                          item.status === 'Rejected' ? 'bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-200 border border-red-300 dark:border-red-700/50' :
+                          'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700/50'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </div>
+
+                      <p className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold flex items-center gap-1">
+                        <span className="text-slate-400 dark:text-slate-400 font-medium">Rep:</span>
+                        <strong className="text-slate-800 dark:text-white font-bold">{item.rep}</strong>
+                      </p>
+
+                      {item.details && (
+                        <p className="text-[9px] text-slate-500 dark:text-slate-300 font-medium line-clamp-2 leading-relaxed">
+                          {item.details}
+                        </p>
+                      )}
+
+                      <div className="pt-1 flex items-center justify-between text-[9px] border-t border-slate-100 dark:border-slate-800/40">
+                        <span className="text-slate-400 font-medium">{item.date}</span>
+                        <span className="text-[#1e7a34] dark:text-emerald-300 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                          Review &rarr;
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </div>
         </aside>
@@ -832,14 +1066,14 @@ const DashboardPage: React.FC = () => {
                       <div className="space-y-3">
                         {user?.role !== UserRole.ClassRepresentative && (
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">Target Location</label>
+                            <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Target Location</label>
                             <select 
                               value={annTarget} 
                               onChange={(e) => setAnnTarget(e.target.value as 'class' | 'global')}
-                              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800 font-semibold text-slate-800 dark:text-white cursor-pointer"
+                              className="w-full px-4 py-2 bg-white dark:bg-slate-900 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-700 font-semibold text-slate-800 dark:text-white cursor-pointer"
                             >
-                              <option value="class">This Course Workspace Only ({activeClass?.code})</option>
-                              <option value="global">University Hub (Visible to all students)</option>
+                              <option value="class" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">This Course Workspace Only ({activeClass?.code || 'None Selected'})</option>
+                              <option value="global" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">University Hub (Visible to all students)</option>
                             </select>
                           </div>
                         )}
@@ -974,7 +1208,7 @@ const DashboardPage: React.FC = () => {
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/20">
                               {classMembers.students.slice(0, 5).map(student => {
                                 const isRep = student.isClassRepresentative;
-                                const hasAnyRep = classMembers.students.some(s => s.isClassRepresentative);
+                                const repCount = classMembers.students.filter(s => s.isClassRepresentative).length;
                                 return (
                                   <tr key={student.id} className="text-[11px] font-semibold text-slate-700 dark:text-slate-350">
                                     <td className="px-3 py-2">
@@ -1006,7 +1240,7 @@ const DashboardPage: React.FC = () => {
                                           onClick={async () => {
                                             if (window.confirm(`Remove ${student.name} as Course Representative?`)) {
                                               try {
-                                                await api.post(`/classworkspaces/${activeClass.id}/remove-rep`);
+                                                await api.post(`/classworkspaces/${activeClass.id}/remove-rep`, { studentId: student.id });
                                                 fetchClassMembers(activeClass.id);
                                                 setSuccessMsg('Representative removed!');
                                                 setTimeout(() => setSuccessMsg(''), 3000);
@@ -1023,7 +1257,11 @@ const DashboardPage: React.FC = () => {
                                         <button
                                           type="button"
                                           onClick={async () => {
-                                            const msg = hasAnyRep ? `Replace current Rep with ${student.name}?` : `Appoint ${student.name} as Course Rep?`;
+                                            if (repCount >= 2) {
+                                              alert('Class workspace already has 2 Course Representatives (maximum allowed limit). Please remove an existing Rep first.');
+                                              return;
+                                            }
+                                            const msg = `Appoint ${student.name} as Course Representative?`;
                                             if (window.confirm(msg)) {
                                               try {
                                                 await api.post(`/classworkspaces/${activeClass.id}/assign-rep`, { studentId: student.id });
@@ -1117,7 +1355,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/40 rounded-3xl p-5 shadow-sm">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Pending Proposals</span>
-                  <span className="text-2xl font-black text-amber-500 block mt-1">{repNotices.length}</span>
+                  <span className="text-2xl font-black text-amber-500 block mt-1">{repProposalsList.filter(p => p.status === 'Pending').length}</span>
                 </div>
               </div>
 
@@ -1162,9 +1400,12 @@ const DashboardPage: React.FC = () => {
       {user?.role === UserRole.ClassRepresentative && renderRep()}
       {user?.role === UserRole.Student && renderStudent()}
       {successMsg && (
-        <div className="fixed bottom-6 right-6 bg-[#1e7a34] text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-large flex items-center gap-2 z-[9999] transition-all duration-300 animate-bounce">
-          <CheckCircle size={14} className="text-white shrink-0" />
+        <div className="fixed bottom-6 right-6 bg-[#1e7a34] text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-3 z-[9999] transition-all duration-300">
+          <CheckCircle size={16} className="text-white shrink-0" />
           <span>{successMsg}</span>
+          <button onClick={() => setSuccessMsg('')} className="ml-2 text-white/80 hover:text-white cursor-pointer p-0.5 rounded-lg hover:bg-white/10 transition-colors">
+            <X size={14} />
+          </button>
         </div>
       )}
       {/* Student Profile Modal for Lecturer Inspection */}
@@ -1185,6 +1426,166 @@ const DashboardPage: React.FC = () => {
           setIsRosterOpen(false);
         }}
       />
+      {/* SELECTED PROPOSAL DETAIL & APPROVAL MODAL */}
+      {selectedProposal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 text-[#1e7a34] dark:text-emerald-300 flex items-center justify-center font-black">
+                  📝
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-800 dark:text-white">Rep Proposal Details</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Submitted by Class Representative for Faculty Review.</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedProposal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Proposal Title</span>
+                <h4 className="text-sm font-extrabold text-slate-800 dark:text-white mt-0.5">{selectedProposal.title}</h4>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Submitted By (Rep)</span>
+                  <p className="text-xs font-bold text-slate-800 dark:text-white mt-0.5">{selectedProposal.rep}</p>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Status & Date</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-black ${
+                      selectedProposal.status === 'Approved' ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200' :
+                      selectedProposal.status === 'Rejected' ? 'bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-200' :
+                      'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200'
+                    }`}>
+                      {selectedProposal.status}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{selectedProposal.date}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Proposal Details & Justification</span>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 whitespace-pre-line">
+                  {selectedProposal.details}
+                </p>
+              </div>
+
+              {selectedProposal.lecturerFeedback && (
+                <div>
+                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-1">Lecturer Review Feedback</span>
+                  <p className="text-xs text-emerald-900 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 p-3 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 font-semibold">
+                    {selectedProposal.lecturerFeedback}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                {user?.role === UserRole.Lecturer && selectedProposal.status !== 'Approved' && (
+                  <button
+                    onClick={() => handleApproveProposal(selectedProposal.id)}
+                    className="flex-1 py-2.5 bg-[#1e7a34] text-white text-xs font-bold rounded-xl hover:bg-[#258d3f] transition-all shadow cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle size={14} /> Approve Proposal
+                  </button>
+                )}
+                {user?.role === UserRole.Lecturer && selectedProposal.status !== 'Rejected' && (
+                  <button
+                    onClick={() => handleRejectProposal(selectedProposal.id)}
+                    className="flex-1 py-2.5 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-all shadow cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <X size={14} /> Reject Proposal
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedProposal(null)}
+                  className={`${user?.role === UserRole.Lecturer ? 'py-2.5 px-4' : 'flex-1 py-2.5'} bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer`}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW PROPOSAL SUBMISSION MODAL */}
+      {isNewProposalModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 text-[#1e7a34] dark:text-emerald-300 flex items-center justify-center font-black">
+                  <Plus size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-800 dark:text-white">Submit New Rep Proposal</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Create a new academic proposal for faculty review.</p>
+                </div>
+              </div>
+              <button onClick={() => setIsNewProposalModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProposal} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Proposal Title</label>
+                <input
+                  type="text"
+                  required
+                  value={newPropTitle}
+                  onChange={(e) => setNewPropTitle(e.target.value)}
+                  placeholder="e.g. Extra Lab Session for EL 300"
+                  className="w-full p-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#1e7a34]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Target Class Workspace</label>
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white font-bold">
+                  {activeClass ? `${activeClass.code} - ${activeClass.name}` : (classes.length > 0 ? `${classes[0].code} - ${classes[0].name}` : 'General Academic Workspace')}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Details & Justification</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={newPropDetails}
+                  onChange={(e) => setNewPropDetails(e.target.value)}
+                  placeholder="Explain the purpose of this proposal..."
+                  className="w-full p-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#1e7a34] resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#1e7a34] text-white text-xs font-bold rounded-xl hover:bg-[#258d3f] transition-all shadow cursor-pointer"
+                >
+                  Submit Proposal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsNewProposalModalOpen(false)}
+                  className="py-2.5 px-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

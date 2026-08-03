@@ -360,14 +360,14 @@ const AssignmentsPage: React.FC = () => {
               </div>
 
               <input type="text" placeholder="Assignment title..." value={newTitle} onChange={e => setNewTitle(e.target.value)} required
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-[11px] rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white" />
+                className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-[11px] rounded-xl focus:outline-none border border-slate-200 dark:border-slate-700 font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500" />
 
               <input type="date" value={newDue} onChange={e => setNewDue(e.target.value)} required
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-[11px] rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white" />
+                className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-[11px] rounded-xl focus:outline-none border border-slate-200 dark:border-slate-700 font-semibold text-slate-800 dark:text-white dark:[color-scheme:dark]" />
 
               {createMode === 'typed' ? (
                 <textarea placeholder="Write instructions / requirements here..." value={newDesc} onChange={e => setNewDesc(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-[11px] rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-800 dark:text-white h-20 resize-none" />
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-[11px] rounded-xl focus:outline-none border border-slate-200 dark:border-slate-700 font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 h-20 resize-none" />
               ) : (
                 <div className="space-y-1">
                   <input

@@ -31,6 +31,7 @@ public class AppDbContext : DbContext
     public DbSet<DiscussionThread> DiscussionThreads { get; set; }
     public DbSet<DiscussionReply> DiscussionReplies { get; set; }
     public DbSet<DiscussionAttachment> DiscussionAttachments { get; set; }
+    public DbSet<RepProposal> RepProposals { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -320,9 +321,17 @@ public class AppDbContext : DbContext
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Configure 1st Course Representative relationship
             entity.HasOne(e => e.ClassRepresentative)
                 .WithMany()
                 .HasForeignKey(e => e.ClassRepresentativeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure 2nd Course Representative relationship
+            entity.HasOne(e => e.SecondClassRepresentative)
+                .WithMany()
+                .HasForeignKey(e => e.SecondClassRepresentativeId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
 
@@ -553,6 +562,26 @@ public class AppDbContext : DbContext
                 .WithMany(r => r.Attachments)
                 .HasForeignKey(e => e.DiscussionReplyId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // RepProposal configuration
+        modelBuilder.Entity<RepProposal>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired();
+            entity.HasIndex(e => e.ClassWorkspaceId);
+            entity.HasIndex(e => e.SubmittedByRepId);
+
+            entity.HasOne(e => e.ClassWorkspace)
+                .WithMany()
+                .HasForeignKey(e => e.ClassWorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.SubmittedByRep)
+                .WithMany()
+                .HasForeignKey(e => e.SubmittedByRepId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

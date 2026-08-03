@@ -298,6 +298,8 @@ export interface ClassWorkspace {
   semester?: string;
   createdByUserId?: string;
   createdBy?: string;          // Name of creator (for available classes view)
+  classRepresentativeId?: string;
+  secondClassRepresentativeId?: string;
 }
 
 export interface Bookmark {

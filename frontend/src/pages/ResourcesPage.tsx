@@ -248,14 +248,14 @@ const ResourcesPage: React.FC = () => {
               
               {user?.role !== UserRole.ClassRepresentative && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Target Location</label>
+                  <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Target Location</label>
                   <select 
                     value={resScope} 
                     onChange={(e) => setResScope(e.target.value as 'class' | 'global')}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-800/40 font-semibold text-slate-805 dark:text-white cursor-pointer"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-xs rounded-xl focus:outline-none border border-slate-200 dark:border-slate-700 font-semibold text-slate-800 dark:text-white cursor-pointer"
                   >
-                    <option value="class">This Course Workspace Only ({activeClass?.code || 'None Selected'})</option>
-                    <option value="global">University Hub (Visible to all students)</option>
+                    <option value="class" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">This Course Workspace Only ({activeClass?.code || 'None Selected'})</option>
+                    <option value="global" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">University Hub (Visible to all students)</option>
                   </select>
                 </div>
               )}

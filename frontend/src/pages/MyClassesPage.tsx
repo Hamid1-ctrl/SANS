@@ -551,13 +551,13 @@ const MyClassesPage: React.FC = () => {
                 <select
                   value={academicLevelVal}
                   onChange={(e) => setAcademicLevelVal(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-850 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-slate-300"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold text-slate-800 dark:text-white cursor-pointer"
                 >
-                  <option value="100">100 Level</option>
-                  <option value="200">200 Level</option>
-                  <option value="300">300 Level</option>
-                  <option value="400">400 Level</option>
-                  <option value="Postgraduate">Postgraduate</option>
+                  <option value="100" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">100 Level</option>
+                  <option value="200" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">200 Level</option>
+                  <option value="300" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">300 Level</option>
+                  <option value="400" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">400 Level</option>
+                  <option value="Postgraduate" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Postgraduate</option>
                 </select>
               </div>
 
@@ -566,11 +566,11 @@ const MyClassesPage: React.FC = () => {
                 <select
                   value={semesterVal}
                   onChange={(e) => setSemesterVal(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-850 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-slate-300"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold text-slate-800 dark:text-white cursor-pointer"
                 >
-                  <option value="First">First Semester</option>
-                  <option value="Second">Second Semester</option>
-                  <option value="Third">Third Semester</option>
+                  <option value="First" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">First Semester</option>
+                  <option value="Second" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Second Semester</option>
+                  <option value="Third" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Third Semester</option>
                 </select>
               </div>
             </div>

@@ -22,20 +22,39 @@ public class ExpiredItemsCleanupService : BackgroundService
         {
             try
             {
-                await PerformCleanupAsync();
+                await PerformCleanupAsync(stoppingToken);
             }
-            catch (Exception ex)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                _logger.LogError(ex, "Error occurred during expired items cleanup.");
+                break;
+            }
+            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    _logger.LogError(ex, "Error occurred during expired items cleanup.");
+                }
+                catch
+                {
+                    // Ignore logger disposal errors on shutdown
+                }
             }
 
-            // Run cleanup every 5 minutes
-            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+            }
+            catch (TaskCanceledException)
+            {
+                break;
+            }
         }
     }
 
-    public async Task PerformCleanupAsync()
+    public async Task PerformCleanupAsync(CancellationToken cancellationToken = default)
     {
+        if (cancellationToken.IsCancellationRequested) return;
+
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -44,7 +63,7 @@ public class ExpiredItemsCleanupService : BackgroundService
         // 1. Cleanup expired Quizzes (where Date < now)
         var expiredQuizzes = await context.Quizzes
             .Where(q => !q.IsDeleted && q.Date < now)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         if (expiredQuizzes.Count > 0)
         {
