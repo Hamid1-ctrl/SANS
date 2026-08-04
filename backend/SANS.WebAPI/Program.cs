@@ -13,6 +13,8 @@ using SANS.WebAPI.Hubs;
 using SANS.WebAPI.Middleware;
 using SANS.WebAPI.Services;
 
+Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "1");
+Environment.SetEnvironmentVariable("ASPNETCORE_hostBuilder__reloadConfigOnChange", "false");
 Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true;
 
 // Load environment variables from .env file
@@ -44,9 +46,14 @@ if (File.Exists(envPath))
 }
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Ensure environment variables set via the .env loader above are visible to IConfiguration
-builder.Configuration.AddEnvironmentVariables();
+builder.Host.ConfigureAppConfiguration((hostingContext, config) =>
+{
+    config.Sources.Clear();
+    var env = hostingContext.HostingEnvironment;
+    config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+          .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: false)
+          .AddEnvironmentVariables();
+});
 
 // Add services to the container
 builder.Services.AddControllers()

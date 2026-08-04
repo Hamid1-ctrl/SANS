@@ -24,8 +24,10 @@ WORKDIR /app
 # Copy published binaries
 COPY --from=build-env /app/out .
 
-# Configure port for cloud hosting (Render/Railway/Fly)
+# Configure port and file watcher settings for cloud hosting (Render/Railway/Fly)
 ENV ASPNETCORE_URLS=http://+:8080
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1
+ENV ASPNETCORE_hostBuilder__reloadConfigOnChange=false
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "SANS.WebAPI.dll"]
