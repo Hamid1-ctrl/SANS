@@ -103,8 +103,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
     } catch (firebaseError: any) {
-      // Self-healing provisioning for default seed administrator on Firebase Auth
-      if (credentials.email.toLowerCase() === 'admin.sans@sans.edu' && credentials.password === 'password') {
+      // Self-healing provisioning for default seed accounts on Firebase Auth
+      const seedEmails = [
+        'admin.sans@sans.edu', 
+        'student.sans@sans.edu', 
+        'lecturer.sans@sans.edu', 
+        'rep.sans@sans.edu'
+      ];
+      if (seedEmails.includes(credentials.email.toLowerCase()) && credentials.password === 'password') {
         try {
           userCredential = await createUserWithEmailAndPassword(auth, credentials.email, credentials.password);
         } catch (createErr) {
