@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 import type { RegisterRequest } from '../types';
 import { ArrowRight, GraduationCap, Award, Check, Mail, Lock, Hash, Phone, Building, Clock, BookOpen, Eye, EyeOff } from 'lucide-react';
+import api from '../lib/axios';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -203,38 +204,49 @@ const RegisterPage: React.FC = () => {
   const sendLiveOtp = async (targetEmail: string) => {
     const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
     setLiveOtpCode(generatedCode);
-    
-    const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
-    if (resendApiKey) {
-      setIsSendingOtp(true);
-      try {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey.trim()}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'SANS Portal <onboarding@resend.dev>',
-            to: [targetEmail],
-            subject: 'Your SANS Academic Verification Code',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-                <h2 style="color: #1e7a34; margin-top: 0;">SANS Portal Verification</h2>
-                <p style="color: #475569; font-size: 14px;">Your 6-digit verification code for SANS account registration is:</p>
-                <div style="background-color: #f0f7f2; padding: 16px; text-align: center; border-radius: 12px; margin: 20px 0;">
-                  <span style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #1e7a34;">${generatedCode}</span>
+    setIsSendingOtp(true);
+
+    try {
+      // 1. Primary path: Call backend /api/auth/send-otp (uses RESEND_API_KEY set in Render!)
+      await api.post('/auth/send-otp', {
+        email: targetEmail,
+        code: generatedCode
+      });
+    } catch (backendErr) {
+      console.warn("Backend OTP endpoint failed, trying direct frontend Resend API...", backendErr);
+      
+      // 2. Backup path: Direct Resend API if VITE_RESEND_API_KEY is present in Vercel
+      const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
+      if (resendApiKey) {
+        try {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendApiKey.trim()}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'SANS Portal <onboarding@resend.dev>',
+              to: [targetEmail],
+              subject: 'Your SANS Academic Verification Code',
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                  <h2 style="color: #1e7a34; margin-top: 0;">SANS Portal Verification</h2>
+                  <p style="color: #475569; font-size: 14px;">Your 6-digit verification code for SANS account registration is:</p>
+                  <div style="background-color: #f0f7f2; padding: 16px; text-align: center; border-radius: 12px; margin: 20px 0;">
+                    <span style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #1e7a34;">${generatedCode}</span>
+                  </div>
+                  <p style="color: #94a3b8; font-size: 12px;">If you did not request this verification code, please ignore this email.</p>
                 </div>
-                <p style="color: #94a3b8; font-size: 12px;">If you did not request this verification code, please ignore this email.</p>
-              </div>
-            `
-          })
-        });
-      } catch (err) {
-        console.error("Resend OTP send failed:", err);
-      } finally {
-        setIsSendingOtp(false);
+              `
+            })
+          });
+        } catch (fetchErr) {
+          console.error("Frontend Resend API failed:", fetchErr);
+        }
       }
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
