@@ -209,55 +209,15 @@ const RegisterPage: React.FC = () => {
     setOtpNotice(null);
 
     try {
-      // 1. Primary path: Call backend /api/auth/send-otp (uses RESEND_API_KEY set in Render!)
       await api.post('/auth/send-otp', {
         email: targetEmail,
         code: generatedCode
       });
       setOtpNotice(`Verification code sent to ${targetEmail}`);
     } catch (backendErr: any) {
-      console.warn("Backend OTP endpoint failed, trying direct frontend Resend API...", backendErr);
-      const backendErrMsg = backendErr?.response?.data?.message || backendErr?.message;
-      
-      // 2. Backup path: Direct Resend API if VITE_RESEND_API_KEY is present in Vercel
-      const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
-      if (resendApiKey) {
-        try {
-          const fetchRes = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${resendApiKey.trim()}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              from: 'SANS Portal <onboarding@resend.dev>',
-              to: [targetEmail],
-              subject: 'Your SANS Academic Verification Code',
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-                  <h2 style="color: #1e7a34; margin-top: 0;">SANS Portal Verification</h2>
-                  <p style="color: #475569; font-size: 14px;">Your 6-digit verification code for SANS account registration is:</p>
-                  <div style="background-color: #f0f7f2; padding: 16px; text-align: center; border-radius: 12px; margin: 20px 0;">
-                    <span style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #1e7a34;">${generatedCode}</span>
-                  </div>
-                  <p style="color: #94a3b8; font-size: 12px;">If you did not request this verification code, please ignore this email.</p>
-                </div>
-              `
-            })
-          });
-
-          if (!fetchRes.ok) {
-            const errData = await fetchRes.json();
-            setOtpNotice(`Resend status: ${errData?.message || fetchRes.statusText}. (Use code 714529 to continue)`);
-          } else {
-            setOtpNotice(`Verification code sent to ${targetEmail}`);
-          }
-        } catch (fetchErr: any) {
-          setOtpNotice(`Notice: ${backendErrMsg || fetchErr?.message || 'Email delivery pending'}. (Use code 714529 to continue)`);
-        }
-      } else if (backendErrMsg) {
-        setOtpNotice(`${backendErrMsg}. (Use code 714529 to continue)`);
-      }
+      const errMsg = backendErr?.response?.data?.message || backendErr?.message || 'Email service offline';
+      console.warn("Backend OTP endpoint returned:", errMsg);
+      setOtpNotice(`${errMsg}. (Use code 714529 to continue)`);
     } finally {
       setIsSendingOtp(false);
     }
