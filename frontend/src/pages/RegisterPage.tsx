@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 import type { RegisterRequest } from '../types';
-import { ArrowRight, GraduationCap, Award, Check, Mail, Lock, Hash, Phone, Building, Clock, BookOpen } from 'lucide-react';
+import { ArrowRight, GraduationCap, Award, Check, Mail, Lock, Hash, Phone, Building, Clock, BookOpen, Eye, EyeOff } from 'lucide-react';
 
 // The fixed OTP code that is "sent" to the user's email
 const VALID_OTP = '714529';
@@ -13,6 +13,10 @@ const RegisterPage: React.FC = () => {
   const location = useLocation();
   const { register: registerUser, loginWithGoogle, registerWithGoogle } = useAuth();
   
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   // 4-Step state tracking:
   // Step 1: Create Account (Email, Pass, Confirm Pass)
   // Step 2: Email Verification (OTP)
@@ -292,7 +296,7 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-6 relative font-sans transition-colors duration-300"
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative font-sans transition-colors duration-300"
       style={{
         backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.88)), url("/sans_landing_background.jpg")',
         backgroundSize: 'cover',
@@ -300,11 +304,11 @@ const RegisterPage: React.FC = () => {
       }}
     >
       
-      {/* Outer Card with Tablet framing and premium glass lifting ring */}
-      <div className="w-full max-w-5xl bg-white border border-slate-150 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12),0_10px_30px_rgba(30,122,52,0.08)] ring-[12px] ring-slate-100/50 overflow-hidden flex flex-col md:flex-row min-h-[640px] relative z-10">
+      {/* Outer Card with Tablet framing and mobile stacking */}
+      <div className="w-full max-w-5xl bg-white border border-slate-150 rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12),0_10px_30px_rgba(30,122,52,0.08)] ring-[8px] sm:ring-[12px] ring-slate-100/50 overflow-hidden flex flex-col md:flex-row min-h-[600px] relative z-10">
         
         {/* Left Side: Graphic Panel with Lottie Loader Animation */}
-        <div className="w-full md:w-1/2 bg-[#1E293B] p-12 flex flex-col justify-between items-center relative overflow-hidden shrink-0 select-none">
+        <div className="w-full md:w-1/2 bg-[#1E293B] p-6 sm:p-10 md:p-12 flex flex-col justify-between items-center relative overflow-hidden shrink-0 select-none">
           
           <div className="absolute top-10 left-10 w-48 h-48 rounded-full bg-brand-green/5 blur-3xl"></div>
           
@@ -316,12 +320,12 @@ const RegisterPage: React.FC = () => {
             <span className="text-[#F8FAFC] font-extrabold text-sm tracking-tight">SANS</span>
           </div>
 
-          {/* Lottie Animation Player loaded from Public assets folder */}
-          <div className="w-full flex items-center justify-center min-h-[280px]">
-            <div dangerouslySetInnerHTML={{ __html: '<lottie-player src="/Email motion loading.json" background="transparent" speed="1" loop autoplay style="width: 280px; height: 280px;"></lottie-player>' }} />
+          {/* Lottie Animation Player */}
+          <div className="w-full flex items-center justify-center py-4 md:py-0 min-h-[160px] md:min-h-[280px]">
+            <div dangerouslySetInnerHTML={{ __html: '<lottie-player src="/Email motion loading.json" background="transparent" speed="1" loop autoplay style="width: 200px; height: 200px;"></lottie-player>' }} />
           </div>
 
-          <div className="text-center">
+          <div className="text-center hidden sm:block">
             <h3 className="text-sm font-extrabold text-[#F8FAFC] uppercase tracking-wider">
               Create Your SANS Account
             </h3>
@@ -332,7 +336,7 @@ const RegisterPage: React.FC = () => {
         </div>
 
         {/* Right Side: Step Registration Form */}
-        <div className="flex-1 p-12 flex flex-col justify-between bg-white">
+        <div className="flex-1 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-white">
           
           {/* Header step progress */}
           <div className="flex items-center justify-between text-xs font-bold text-slate-450">
@@ -373,31 +377,49 @@ const RegisterPage: React.FC = () => {
                   <p className="text-[10px] font-bold text-red-500 -mt-3 pl-1">{errors.email}</p>
                 )}
 
+                {/* Password field with Eye/EyeOff toggle icon */}
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Password"
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
+                    className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
                   />
                   <Lock className="absolute left-4 top-3.5 text-slate-400" size={14} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
                 {errors.password && (
                   <p className="text-[10px] font-bold text-red-500 -mt-3 pl-1">{errors.password}</p>
                 )}
 
+                {/* Confirm Password field with Eye/EyeOff toggle icon */}
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="Confirm Password"
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
+                    className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
                   />
                   <Lock className="absolute left-4 top-3.5 text-slate-400" size={14} />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
                 {errors.confirmPassword && (
                   <p className="text-[10px] font-bold text-red-500 -mt-3 pl-1">{errors.confirmPassword}</p>

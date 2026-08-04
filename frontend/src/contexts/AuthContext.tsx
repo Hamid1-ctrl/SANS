@@ -8,7 +8,8 @@ import {
   signOut, 
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
@@ -20,6 +21,7 @@ interface AuthContextType {
   register: (data: RegisterRequest) => Promise<void>;
   loginWithGoogle: () => Promise<{ isNewUser: boolean; email?: string; firstName?: string; lastName?: string; firebaseUid?: string }>;
   registerWithGoogle: (data: Omit<RegisterRequest, 'password'> & { firebaseUid: string }) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -221,6 +223,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string): Promise<void> => {
+    if (!auth) {
+      throw new Error('Password reset requires Firebase to be configured.');
+    }
+    await sendPasswordResetEmail(auth, email.trim());
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -229,6 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     loginWithGoogle,
     registerWithGoogle,
+    resetPassword,
     logout,
     refreshUser,
   };
