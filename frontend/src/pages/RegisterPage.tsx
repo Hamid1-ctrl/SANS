@@ -5,9 +5,6 @@ import { UserRole } from '../types';
 import type { RegisterRequest } from '../types';
 import { ArrowRight, GraduationCap, Award, Check, Mail, Lock, Hash, Phone, Building, Clock, BookOpen, Eye, EyeOff } from 'lucide-react';
 
-// The fixed OTP code that is "sent" to the user's email
-const VALID_OTP = '714529';
-
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -202,7 +199,6 @@ const RegisterPage: React.FC = () => {
   // Live OTP states
   const [liveOtpCode, setLiveOtpCode] = useState('714529');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [otpSentMessage, setOtpSentMessage] = useState<string | null>(null);
 
   const sendLiveOtp = async (targetEmail: string) => {
     const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -234,7 +230,6 @@ const RegisterPage: React.FC = () => {
             `
           })
         });
-        setOtpSentMessage(`Verification code sent to ${targetEmail}`);
       } catch (err) {
         console.error("Resend OTP send failed:", err);
       } finally {
@@ -299,12 +294,15 @@ const RegisterPage: React.FC = () => {
     setStep(4);
   };
 
+  const [isRegistering, setIsRegistering] = useState(false);
+
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep4()) return;
 
+    setIsRegistering(true);
+    setRegisterError(null);
     try {
-      setRegisterError(null);
       const fullPayload: RegisterRequest = {
         email: formData.email,
         password: formData.password,
@@ -335,11 +333,13 @@ const RegisterPage: React.FC = () => {
         navigate('/dashboard');
       } else {
         await registerUser(fullPayload);
-        navigate('/login');
+        navigate('/login', { state: { registeredEmail: formData.email } });
       }
     } catch (error: any) {
       console.error('Registration failed:', error);
       setRegisterError(error?.response?.data?.detail || error?.response?.data?.message || error?.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -523,11 +523,12 @@ const RegisterPage: React.FC = () => {
               {/* OTP hint banner */}
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 font-semibold text-center leading-relaxed">
                 {isSendingOtp ? (
-                  <span>Sending verification email to <strong>{formData.email}</strong>...</span>
-                ) : otpSentMessage ? (
-                  <span>📧 {otpSentMessage}</span>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-3.5 h-3.5 border-2 border-[#1e7a34] border-t-transparent rounded-full animate-spin" />
+                    <span>Sending 6-digit verification code to <strong>{formData.email}</strong>...</span>
+                  </div>
                 ) : (
-                  <span>📧 Verification code: <span className="font-black tracking-widest">{liveOtpCode || VALID_OTP}</span></span>
+                  <span>📧 A 6-digit verification code has been sent to <strong>{formData.email || 'your email address'}</strong>. Please check your inbox or spam folder.</span>
                 )}
               </div>
 
@@ -812,15 +813,24 @@ const RegisterPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="px-5 py-3 border border-slate-200 dark:border-slate-800 text-slate-655 hover:bg-slate-55 rounded-xl text-xs font-bold transition-all shadow-sm flex-1 uppercase tracking-wider"
+                    disabled={isRegistering}
+                    className="px-5 py-3 border border-slate-200 dark:border-slate-800 text-slate-655 hover:bg-slate-55 rounded-xl text-xs font-bold transition-all shadow-sm flex-1 uppercase tracking-wider disabled:opacity-50"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-3.5 bg-brand-green hover:bg-brand-green/95 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-premium flex-1 transition-all active:scale-[0.98]"
+                    disabled={isRegistering}
+                    className="px-5 py-3.5 bg-brand-green hover:bg-brand-green/95 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-premium flex-1 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                   >
-                    Complete
+                    {isRegistering ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Creating Account...</span>
+                      </>
+                    ) : (
+                      <span>Complete</span>
+                    )}
                   </button>
                 </div>
               </form>
