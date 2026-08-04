@@ -230,6 +230,19 @@ public class AuthController : ControllerBase
             var jsonContent = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
             var response = await client.PostAsync("https://api.resend.com/emails", jsonContent);
 
+            if (!response.IsSuccessStatusCode && apiKey != defaultKey)
+            {
+                using var retryClient = new HttpClient();
+                retryClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", defaultKey);
+                var retryJson = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+                var retryResponse = await retryClient.PostAsync("https://api.resend.com/emails", retryJson);
+                if (retryResponse.IsSuccessStatusCode)
+                {
+                    return Ok(new { Message = "OTP sent successfully" });
+                }
+                response = retryResponse;
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 var errBody = await response.Content.ReadAsStringAsync();
