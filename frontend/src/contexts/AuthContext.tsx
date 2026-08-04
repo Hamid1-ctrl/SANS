@@ -129,14 +129,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await api.get<User>('/auth/me');
       setUser(response.data);
     } catch (error: any) {
-      const status = error?.response?.status;
-      if (status === 401 || status === 404) {
-        try {
-          await userCredential.user.delete();
-        } catch (delErr) {
-          console.error("Failed to delete orphaned user during login:", delErr);
-        }
-      }
       throw error;
     }
   };
