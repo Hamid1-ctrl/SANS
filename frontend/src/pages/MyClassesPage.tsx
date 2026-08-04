@@ -734,13 +734,6 @@ const MyClassesPage: React.FC = () => {
             />
             <input
               type="text"
-              placeholder="Course Code (e.g. LOG102)"
-              value={courseCodeVal}
-              onChange={(e) => setCourseCodeVal(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-brand-primary font-semibold uppercase dark:text-white"
-            />
-            <input
-              type="text"
               placeholder="Department Name"
               value={departmentVal}
               onChange={(e) => setDepartmentVal(e.target.value)}
@@ -768,12 +761,6 @@ const MyClassesPage: React.FC = () => {
                 <option value="Third">Third Sem</option>
               </select>
             </div>
-            <textarea
-              placeholder="Short Description"
-              value={classDesc}
-              onChange={(e) => setClassDesc(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-brand-primary font-semibold dark:text-white h-16 resize-none"
-            />
             {createError && (
               <p className="text-[10px] text-red-500 font-bold pl-1 animate-pulse">{createError}</p>
             )}
@@ -991,26 +978,15 @@ const MyClassesPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Workspace Code</label>
-                  <input
-                    type="text"
-                    value={editClassCode}
-                    onChange={(e) => setEditClassCode(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-white"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Course Code</label>
-                  <input
-                    type="text"
-                    value={editCourseCode}
-                    onChange={(e) => setEditCourseCode(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-white"
-                  />
-                </div>
+              <div>
+                <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Workspace Code / Join Code</label>
+                <input
+                  type="text"
+                  value={editClassCode}
+                  onChange={(e) => setEditClassCode(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-white"
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1048,16 +1024,6 @@ const MyClassesPage: React.FC = () => {
                   value={editDepartment}
                   onChange={(e) => setEditDepartment(e.target.value)}
                   className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Description</label>
-                <textarea
-                  value={editClassDesc}
-                  onChange={(e) => setEditClassDesc(e.target.value)}
-                  rows={2}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-white resize-none"
                 />
               </div>
 
