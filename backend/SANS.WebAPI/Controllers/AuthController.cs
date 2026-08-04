@@ -197,6 +197,8 @@ public class AuthController : ControllerBase
             ?? Environment.GetEnvironmentVariable("VITE_RESEND_API_KEY")
             ?? Environment.GetEnvironmentVariable("ResendApiKey");
 
+        apiKey = apiKey.Trim().Trim('"', '\'', ' ', '\t', '\r', '\n');
+
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             return BadRequest(new { Message = "RESEND_API_KEY is missing. Please set RESEND_API_KEY in your Render environment variables." });
@@ -205,7 +207,7 @@ public class AuthController : ControllerBase
         try
         {
             using var client = new HttpClient();
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey.Trim());
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 
             var payload = new
             {
@@ -230,7 +232,11 @@ public class AuthController : ControllerBase
             if (!response.IsSuccessStatusCode)
             {
                 var errBody = await response.Content.ReadAsStringAsync();
-                return BadRequest(new { Message = $"Resend delivery failed: {errBody}" });
+                if ((int)response.StatusCode == 401 || errBody.Contains("API key is invalid"))
+                {
+                    return BadRequest(new { Message = "The RESEND_API_KEY set on Render was rejected by Resend as invalid. Please check your Resend Dashboard (resend.com/api-keys) and re-copy a fresh API key into Render." });
+                }
+                return BadRequest(new { Message = $"Resend delivery error: {errBody}" });
             }
 
             return Ok(new { Message = "OTP sent successfully" });
