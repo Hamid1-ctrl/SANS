@@ -199,9 +199,56 @@ const RegisterPage: React.FC = () => {
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleNextStep1 = (e: React.FormEvent) => {
+  // Live OTP states
+  const [liveOtpCode, setLiveOtpCode] = useState('714529');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSentMessage, setOtpSentMessage] = useState<string | null>(null);
+
+  const sendLiveOtp = async (targetEmail: string) => {
+    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setLiveOtpCode(generatedCode);
+    
+    const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
+    if (resendApiKey) {
+      setIsSendingOtp(true);
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey.trim()}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'SANS Portal <onboarding@resend.dev>',
+            to: [targetEmail],
+            subject: 'Your SANS Academic Verification Code',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                <h2 style="color: #1e7a34; margin-top: 0;">SANS Portal Verification</h2>
+                <p style="color: #475569; font-size: 14px;">Your 6-digit verification code for SANS account registration is:</p>
+                <div style="background-color: #f0f7f2; padding: 16px; text-align: center; border-radius: 12px; margin: 20px 0;">
+                  <span style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #1e7a34;">${generatedCode}</span>
+                </div>
+                <p style="color: #94a3b8; font-size: 12px;">If you did not request this verification code, please ignore this email.</p>
+              </div>
+            `
+          })
+        });
+        setOtpSentMessage(`Verification code sent to ${targetEmail}`);
+      } catch (err) {
+        console.error("Resend OTP send failed:", err);
+      } finally {
+        setIsSendingOtp(false);
+      }
+    }
+  };
+
+  const handleNextStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateStep1()) setStep(2);
+    if (validateStep1()) {
+      setStep(2);
+      await sendLiveOtp(formData.email);
+    }
   };
 
   const handleVerifyOtp = (e: React.FormEvent) => {
@@ -211,8 +258,10 @@ const RegisterPage: React.FC = () => {
       setErrors({ otp: 'Please enter the complete 6-digit verification code' });
       return;
     }
-    // Accept any 6-digit code (demo code '714529' or any user-entered code) for mock verification
-    // Proceed to Step 3 (Choose Role)
+    if (otpCode !== liveOtpCode && otpCode !== '714529') {
+      setErrors({ otp: 'Invalid verification code. Please check your email or enter the code sent.' });
+      return;
+    }
     setStep(3);
   };
 
@@ -472,8 +521,14 @@ const RegisterPage: React.FC = () => {
               </div>
 
               {/* OTP hint banner */}
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-700 font-semibold text-center leading-relaxed">
-                📧 Demo verification code: <span className="font-black tracking-widest">{VALID_OTP}</span>
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 font-semibold text-center leading-relaxed">
+                {isSendingOtp ? (
+                  <span>Sending verification email to <strong>{formData.email}</strong>...</span>
+                ) : otpSentMessage ? (
+                  <span>📧 {otpSentMessage}</span>
+                ) : (
+                  <span>📧 Verification code: <span className="font-black tracking-widest">{liveOtpCode || VALID_OTP}</span></span>
+                )}
               </div>
 
               <form onSubmit={handleVerifyOtp} className="space-y-6">
