@@ -298,10 +298,10 @@ const DashboardPage: React.FC = () => {
     const isHub = !activeClass;
 
     return (
-      <div className={`flex h-[calc(100vh-64px)] overflow-hidden bg-[#f7f6fb] dark:bg-[#0F172A] ${theme === 'dark' ? 'dark' : ''}`}>
+      <div className={`flex flex-col lg:flex-row h-full lg:h-[calc(100vh-64px)] overflow-y-auto lg:overflow-hidden bg-[#f7f6fb] dark:bg-[#0F172A] ${theme === 'dark' ? 'dark' : ''}`}>
         
         {/* Panel 1: Announcements Bulletins List */}
-        <aside className="w-72 bg-white dark:bg-[#1E293B] border-r border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col shrink-0 h-full overflow-y-auto">
+        <aside className="w-full lg:w-72 bg-white dark:bg-[#1E293B] border-b lg:border-b-0 lg:border-r border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col shrink-0 h-auto lg:h-full overflow-y-auto">
           <div className="mb-4 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-6 h-6 rounded-lg bg-emerald-500/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#1e7a34] dark:text-emerald-300">
@@ -732,7 +732,7 @@ const DashboardPage: React.FC = () => {
         </section>
 
         {/* Panel 3: Student Class Workspace Widgets / Enrolled Portfolio */}
-        <aside className="w-80 bg-white dark:bg-[#1E293B] border-l border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col gap-6 shrink-0 h-full overflow-y-auto">
+        <aside className="w-full lg:w-80 bg-white dark:bg-[#1E293B] border-t lg:border-t-0 lg:border-l border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col gap-6 shrink-0 h-auto lg:h-full overflow-y-auto">
           {/* Welcome Profile Widget */}
           <div className="flex flex-col items-center text-center bg-gradient-to-b from-[#f0f7f2] to-white dark:from-slate-900/40 dark:to-slate-950/40 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/40">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1e7a34] to-[#3ea556] flex items-center justify-center text-white text-xl font-black border-4 border-white dark:border-slate-900 shadow-md">
@@ -904,10 +904,10 @@ const DashboardPage: React.FC = () => {
     const isHub = !activeClass;
 
     return (
-      <div className={`flex h-[calc(100vh-64px)] overflow-hidden bg-[#f7f6fb] dark:bg-[#0F172A] ${theme === 'dark' ? 'dark' : ''}`}>
+      <div className={`flex flex-col lg:flex-row h-full lg:h-[calc(100vh-64px)] overflow-y-auto lg:overflow-hidden bg-[#f7f6fb] dark:bg-[#0F172A] ${theme === 'dark' ? 'dark' : ''}`}>
         
         {/* Panel 1: Faculty Console Sidebar */}
-        <aside className="w-72 bg-white dark:bg-[#1E293B] border-r border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col shrink-0 h-full overflow-y-auto">
+        <aside className="w-full lg:w-72 bg-white dark:bg-[#1E293B] border-b lg:border-b-0 lg:border-r border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col shrink-0 h-auto lg:h-full overflow-y-auto">
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-6 h-6 rounded-lg bg-emerald-500/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#1e7a34] dark:text-emerald-300">

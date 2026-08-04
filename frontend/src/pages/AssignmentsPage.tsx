@@ -300,7 +300,7 @@ const AssignmentsPage: React.FC = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#f7f6fb] dark:bg-[#0F172A] transition-colors duration-300 relative">
+    <div className="flex flex-col lg:flex-row h-full lg:h-[calc(100vh-64px)] overflow-y-auto lg:overflow-hidden bg-[#f7f6fb] dark:bg-[#0F172A] transition-colors duration-300 relative">
 
       {/* File Preview Modal */}
       {previewUrl && (
@@ -321,7 +321,7 @@ const AssignmentsPage: React.FC = () => {
       )}
 
       {/* PANEL 1: Left List */}
-      <aside className="w-80 bg-white dark:bg-[#1E293B] border-r border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col shrink-0 h-full overflow-y-auto">
+      <aside className="w-full lg:w-80 bg-white dark:bg-[#1E293B] border-b lg:border-b-0 lg:border-r border-[#ece8f3] dark:border-slate-800/40 p-5 flex flex-col shrink-0 h-auto lg:h-full overflow-y-auto">
         <div className="mb-4 space-y-3 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -469,7 +469,7 @@ const AssignmentsPage: React.FC = () => {
       </aside>
 
       {/* PANEL 2: Detail View */}
-      <section className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-white/45 dark:bg-[#1F2937]/10">
+      <section className="w-full lg:flex-1 flex flex-col min-w-0 h-auto lg:h-full overflow-y-auto bg-white/45 dark:bg-[#1F2937]/10">
         {activeAssignment ? (
           <div className="flex flex-col h-full overflow-hidden">
 
