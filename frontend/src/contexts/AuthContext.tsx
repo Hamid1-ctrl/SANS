@@ -55,6 +55,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Do not auto-login if user is currently on the registration page
+      if (window.location.pathname.startsWith('/register')) {
+        setIsLoading(false);
+        return;
+      }
+
       if (firebaseUser) {
         try {
           // Use cached token (handles automatic expiry/refresh in background)
@@ -70,13 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.warn("No SANS database profile matching Firebase UID found.");
           }
           
-          const isRegistering = window.location.pathname.startsWith('/register');
-          if (!isRegistering) {
-            await logout();
-          } else {
-            localStorage.removeItem('accessToken');
-            setUser(null);
-          }
+          await logout();
         } finally {
           setIsLoading(false);
         }
@@ -91,46 +91,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (credentials: LoginRequest): Promise<void> => {
-    if (!auth) {
-      // Direct backend API login fallback
-      const response = await api.post<{ token: string; user: User }>('/auth/login', credentials);
-      localStorage.setItem('accessToken', response.data.token || (response.data as any).token);
-      setUser(response.data.user || response.data);
-      return;
-    }
-
-    let userCredential;
-    try {
-      userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
-    } catch (firebaseError: any) {
-      // Self-healing provisioning for default seed accounts on Firebase Auth
-      const seedEmails = [
-        'admin.sans@sans.edu', 
-        'student.sans@sans.edu', 
-        'lecturer.sans@sans.edu', 
-        'rep.sans@sans.edu'
-      ];
-      if (seedEmails.includes(credentials.email.toLowerCase()) && credentials.password === 'password') {
+    if (auth) {
+      try {
+        let userCredential;
         try {
-          userCredential = await createUserWithEmailAndPassword(auth, credentials.email, credentials.password);
-        } catch (createErr) {
-          throw firebaseError;
+          userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+        } catch (firebaseError: any) {
+          // Self-healing provisioning for default seed accounts on Firebase Auth
+          const seedEmails = [
+            'admin.sans@sans.edu', 
+            'student.sans@sans.edu', 
+            'lecturer.sans@sans.edu', 
+            'rep.sans@sans.edu'
+          ];
+          if (seedEmails.includes(credentials.email.toLowerCase()) && credentials.password === 'password') {
+            try {
+              userCredential = await createUserWithEmailAndPassword(auth, credentials.email, credentials.password);
+            } catch (createErr) {
+              throw firebaseError;
+            }
+          } else {
+            throw firebaseError;
+          }
         }
-      } else {
-        throw firebaseError;
+
+        if (userCredential) {
+          const token = await userCredential.user.getIdToken(false);
+          localStorage.setItem('accessToken', token);
+          const response = await api.get<User>('/auth/me');
+          setUser(response.data);
+          return;
+        }
+      } catch (fbError: any) {
+        console.warn("Firebase authentication bypassed/failed, attempting direct SANS API login fallback...", fbError);
       }
     }
-    
-    // Use the newly issued token
-    const token = await userCredential.user.getIdToken(false);
-    localStorage.setItem('accessToken', token);
-    
-    try {
-      const response = await api.get<User>('/auth/me');
-      setUser(response.data);
-    } catch (error: any) {
-      throw error;
+
+    // Fallback to direct ASP.NET Core database authentication
+    const response = await api.post<{ accessToken?: string; token?: string; user: User }>('/auth/login', credentials);
+    const token = response.data.accessToken || response.data.token;
+    if (token) {
+      localStorage.setItem('accessToken', token);
     }
+    setUser(response.data.user || response.data);
   };
 
   const register = async (data: RegisterRequest): Promise<void> => {
