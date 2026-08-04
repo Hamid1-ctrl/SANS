@@ -249,14 +249,9 @@ public class ClassWorkspacesController : ControllerBase
         // Fetch creator user record from database
         var dbUser = await _context.Users.FindAsync(userId);
 
-        // Return 404 Not Found if creator user record does not exist
+        // Allow authenticated users to create class workspaces
         if (dbUser == null)
-            return NotFound();
-
-        // Enforce that only Lecturers or Course Representatives can create class workspaces
-        if (dbUser.Role != UserRole.Lecturer && dbUser.Role != UserRole.ClassRepresentative)
-            // Return 403 Forbidden
-            return Forbid();
+            return Unauthorized();
 
         // Normalize join code to uppercase trimmed string
         var normalizedCode = model.Code.Trim().ToUpper();

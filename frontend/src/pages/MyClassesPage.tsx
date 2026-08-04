@@ -181,13 +181,13 @@ const MyClassesPage: React.FC = () => {
     setCreateError('');
     try {
       await api.post('/classworkspaces', {
-        name: className,
-        code: classCode,
-        description: classDesc,
-        courseCode: courseCodeVal,
-        department: departmentVal,
-        academicLevel: academicLevelVal,
-        semester: semesterVal
+        name: className.trim(),
+        code: classCode.trim(),
+        description: classDesc ? classDesc.trim() : '',
+        courseCode: courseCodeVal ? courseCodeVal.trim() : '',
+        department: departmentVal ? departmentVal.trim() : '',
+        academicLevel: academicLevelVal || '100',
+        semester: semesterVal || 'First'
       });
       setSuccessMsg(`Class "${className}" created successfully!`);
       setClassName('');
@@ -201,7 +201,8 @@ const MyClassesPage: React.FC = () => {
       fetchAvailableClasses();
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
-      setCreateError(err.response?.data?.message || 'Failed to create class.');
+      console.error("Create class failed:", err);
+      setCreateError(err.response?.data?.message || err.message || 'Failed to create class.');
     }
   };
 
