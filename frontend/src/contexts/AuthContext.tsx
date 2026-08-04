@@ -183,6 +183,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 401 || status === 404) {
+        // Sign out temporary Firebase session so new user is forced to complete registration
+        await signOut(auth);
+        localStorage.removeItem('accessToken');
+        setUser(null);
+
         const nameParts = firebaseUser.displayName?.split(' ') || [];
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
@@ -204,8 +209,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password: '' // Allowed blank password for Google SSO in backend
     });
     
-    const meResponse = await api.get<User>('/auth/me');
-    setUser(meResponse.data);
+    // Always sign out after registration so user is returned to Login/SignIn page to log in explicitly
+    await signOut(auth);
+    localStorage.removeItem('accessToken');
+    setUser(null);
   };
 
   const logout = async () => {

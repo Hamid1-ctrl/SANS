@@ -315,7 +315,7 @@ const RegisterPage: React.FC = () => {
           specialization: selectedRole === UserRole.Lecturer ? formData.specialization : undefined,
           firebaseUid: googleUid
         });
-        navigate('/dashboard');
+        navigate('/login', { state: { registeredEmail: formData.email, googleSuccess: true } });
       } else {
         await registerUser(fullPayload);
         navigate('/login', { state: { registeredEmail: formData.email } });
