@@ -18,7 +18,9 @@ import {
   Bell,
   Beaker,
   GraduationCap,
-  Shield
+  Shield,
+  Menu,
+  X
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -36,9 +38,10 @@ const Layout: React.FC = () => {
   const markRead = useMarkNotificationAsRead();
   const unreadCount = Array.isArray(notificationsList) ? notificationsList.filter(n => !n.isRead).length : 0;
   
-  // Show / Hide keyboard shortcuts modal helper
+  // Show / Hide keyboard shortcuts modal & mobile drawer navigation
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -166,8 +169,8 @@ const Layout: React.FC = () => {
   return (
     <div className={`h-screen overflow-hidden bg-[#f7f6fb] dark:bg-[#0F172A] font-sans transition-colors duration-300 flex ${getThemeClass()} ${theme === 'dark' ? 'dark' : ''}`}>
       
-      {/* Sidebar: Fixed, custom-styled layout that adjusts dynamically based on the role */}
-      <aside className="w-24 h-full bg-white dark:bg-[#1E293B] border-r border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] flex flex-col items-center py-4 shrink-0 relative z-50 overflow-y-auto">
+      {/* Desktop Sidebar: Hidden on mobile screens (< md) */}
+      <aside className="hidden md:flex w-24 h-full bg-white dark:bg-[#1E293B] border-r border-[#ece8f3] dark:border-[rgba(255,255,255,0.18)] flex-col items-center py-4 shrink-0 relative z-50 overflow-y-auto">
         
         {/* Brand logo circular icon container */}
         <div className="mb-4">
@@ -183,7 +186,6 @@ const Layout: React.FC = () => {
         <nav className="flex-1 w-full space-y-1.5 px-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            // Allow isActive override
             const isActive = item.isActive !== undefined ? item.isActive : (location.pathname === item.path);
             return (
               <button
@@ -204,12 +206,10 @@ const Layout: React.FC = () => {
 
                 {/* Icon Box carrying the rotating lightning border */}
                 <div className="relative p-[1.5px] rounded-xl overflow-hidden flex items-center justify-center shrink-0">
-                  {/* Rotating lightning border line */}
                   <div className={`absolute inset-[-1000%] bg-[conic-gradient(from_0deg,transparent_20%,#3ea556_40%,#1e7a34_60%,transparent_80%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100 ${
                     isActive ? 'opacity-100 animate-[spin_3s_linear_infinite]' : 'group-hover:animate-[spin_4s_linear_infinite]'
                   }`} />
                   
-                  {/* Inner Icon Box content */}
                   <div className={`relative p-2 rounded-[10px] transition-all duration-200 flex items-center justify-center ${
                     isActive 
                       ? 'bg-white dark:bg-[#1F2937] text-brand-primary' 
@@ -244,15 +244,117 @@ const Layout: React.FC = () => {
         </div>
       </aside>
 
+      {/* Mobile Drawer Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="md:hidden fixed inset-0 z-[99] bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in"
+        />
+      )}
+
+      {/* Mobile Sliding Drawer Sidebar */}
+      <aside className={`md:hidden fixed inset-y-0 left-0 z-[100] w-72 bg-white dark:bg-[#1E293B] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between p-6 shadow-2xl transition-transform duration-300 ease-in-out ${
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div>
+          {/* Mobile Header Brand & Close Button */}
+          <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
+            <div 
+              onClick={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}
+              className="flex items-center gap-3 cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#f0f7f2] dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                <span className="text-[#1e7a34] font-black text-xs tracking-tighter">SANS</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white leading-tight">SANS Portal</h3>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{getRoleLabel()}</span>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer rounded-xl bg-slate-50 dark:bg-slate-800"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Mobile Navigation List */}
+          <nav className="mt-6 space-y-1.5">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.isActive !== undefined ? item.isActive : (location.pathname === item.path);
+              return (
+                <button
+                  key={'mobile-' + item.path + '-' + item.label}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (item.onClick) {
+                      item.onClick();
+                    } else {
+                      navigate(item.path);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                    isActive 
+                      ? 'bg-[#1e7a34] text-white shadow-md' 
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400'} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Mobile Drawer Footer User Profile & Logout */}
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
+          <div 
+            onClick={() => { navigate('/profile'); setIsMobileMenuOpen(false); }}
+            className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-2xl cursor-pointer"
+          >
+            <div className="w-9 h-9 rounded-full bg-[#1e7a34] text-white flex items-center justify-center font-bold text-xs">
+              {user?.profileImageUrl ? (
+                <img src={user.profileImageUrl} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <span>{user?.firstName?.[0] || 'J'}{user?.lastName?.[0] || 'D'}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{user?.firstName} {user?.lastName}</p>
+              <span className="text-[9px] text-slate-400 font-semibold block truncate">{user?.email}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
+            className="w-full py-2.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold rounded-xl hover:bg-red-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <LogOut size={16} />
+            <span>Logout Account</span>
+          </button>
+        </div>
+      </aside>
+
       {/* Main Content Pane */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <header className="h-16 px-8 flex items-center justify-between z-40 bg-white dark:bg-[#1E293B] select-none border-b border-[#ece8f3] dark:border-slate-800/85 shrink-0 shadow-sm transition-colors duration-200">
+        <header className="h-16 px-4 md:px-8 flex items-center justify-between z-40 bg-white dark:bg-[#1E293B] select-none border-b border-[#ece8f3] dark:border-slate-800/85 shrink-0 shadow-sm transition-colors duration-200">
           
-          {/* Breadcrumb Navigation Trail & Workspace Selector */}
-          <div className="flex items-center gap-5 text-xs font-semibold text-slate-400 dark:text-[#94A3B8]">
+          {/* Mobile Hamburger Menu Toggle Button & Breadcrumbs */}
+          <div className="flex items-center gap-3 text-xs font-semibold text-slate-400 dark:text-[#94A3B8]">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu size={22} />
+            </button>
+
             <div className="flex items-center gap-2">
-              <span>SANS</span>
-              <span>/</span>
+              <span className="hidden sm:inline">SANS</span>
+              <span className="hidden sm:inline">/</span>
               {getBreadcrumbs().map((b, i, arr) => (
                 <span key={i} className={i === arr.length - 1 ? 'text-slate-800 dark:text-[#CBD5E1] font-extrabold' : ''}>
                   {b}
