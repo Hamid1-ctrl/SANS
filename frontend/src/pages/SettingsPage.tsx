@@ -310,15 +310,27 @@ const SettingsPage: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider pl-1">Phone Number</label>
+                <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider pl-1">
+                  {user?.role === UserRole.Lecturer ? 'Staff / Lecturer Identification ID' : 'Student ID'}
+                </label>
                 <input 
                   type="text" 
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 text-xs placeholder:text-slate-400 focus:outline-none focus:border-brand-primary/30 focus:bg-white dark:focus:bg-slate-900 font-semibold"
+                  value={user?.studentId || ''} 
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-855 bg-slate-50 dark:bg-slate-900/20 text-slate-400 dark:text-slate-500 text-xs font-semibold cursor-not-allowed"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider pl-1">Phone Number</label>
+              <input 
+                type="text" 
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 text-xs placeholder:text-slate-400 focus:outline-none focus:border-brand-primary/30 focus:bg-white dark:focus:bg-slate-900 font-semibold"
+              />
             </div>
 
             {(user?.role === UserRole.Lecturer || user?.role === UserRole.Administrator) && (

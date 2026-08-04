@@ -634,35 +634,20 @@ const RegisterPage: React.FC = () => {
                   <p className="text-[10px] font-bold text-red-500 -mt-1 pl-1">Name details are required</p>
                 )}
 
-                {/* TAILORED ROW: Student ID vs Staff ID */}
+                {/* TAILORED ROW: Student ID for Student vs Staff ID for Lecturer */}
                 <div className="relative">
                   <input
                     type="text"
                     name="studentId"
                     value={formData.studentId}
                     onChange={handleChange}
-                    placeholder={selectedRole === UserRole.Lecturer ? 'Staff Identification ID' : 'Student Identification ID'}
+                    placeholder={selectedRole === UserRole.Lecturer ? 'Staff / Lecturer Identification ID' : 'Student ID (e.g. 10293847)'}
                     className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-805 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
                   />
                   <Hash className="absolute left-4 top-3.5 text-slate-400" size={14} />
                 </div>
                 {errors.studentId && (
                   <p className="text-[10px] font-bold text-red-500 -mt-3 pl-1">{errors.studentId}</p>
-                )}
-
-                {/* TAILORED FIELD: Student Index Number */}
-                {(selectedRole === UserRole.Student || selectedRole === UserRole.ClassRepresentative) && (
-                  <div className="relative animate-fade-in">
-                    <input
-                      type="text"
-                      name="indexNumber"
-                      value={formData.indexNumber}
-                      onChange={handleChange}
-                      placeholder="Student Index Number (e.g. 202410982)"
-                      className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#fbfbfe] dark:bg-slate-900/60 text-slate-805 dark:text-slate-100 text-xs focus:outline-none focus:border-brand-green/30 focus:bg-white transition-all font-semibold shadow-sm"
-                    />
-                    <Hash className="absolute left-4 top-3.5 text-slate-400" size={14} />
-                  </div>
                 )}
 
                 {/* Phone number */}

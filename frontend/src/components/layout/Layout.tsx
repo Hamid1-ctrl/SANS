@@ -25,6 +25,7 @@ import {
 import { UserRole } from '../../types';
 
 import { useNotifications, useMarkAllNotificationsAsRead, useMarkNotificationAsRead } from '../../hooks/useNotifications';
+import PageLoader from '../common/PageLoader';
 
 const Layout: React.FC = () => {
   const { user, isLoading, logout } = useAuth();
@@ -44,11 +45,7 @@ const Layout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (isLoading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#f7f6fb] dark:bg-[#0F172A] text-slate-500 font-bold text-xs select-none">
-        Loading SANS Workspace...
-      </div>
-    );
+    return <PageLoader message="Initializing SANS Workspace..." />;
   }
 
   if (!user) {

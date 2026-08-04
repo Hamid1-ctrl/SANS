@@ -509,10 +509,10 @@ const MyClassesPage: React.FC = () => {
 
           <form onSubmit={handleCreateClass} className="space-y-3 pt-2">
             <div>
-              <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Class Title</label>
+              <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Class Name</label>
               <input
                 type="text"
-                placeholder="e.g. Algorithms & Data Structures"
+                placeholder="e.g. Computer Science Level 300"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
                 required
@@ -520,59 +520,16 @@ const MyClassesPage: React.FC = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Course Code</label>
-                <input
-                  type="text"
-                  placeholder="e.g. CS204"
-                  value={courseCodeVal}
-                  onChange={(e) => setCourseCodeVal(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold uppercase dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Join Code</label>
-                <input
-                  type="text"
-                  placeholder="e.g. ALGO2"
-                  value={classCode}
-                  onChange={(e) => setClassCode(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold uppercase dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Academic Level</label>
-                <select
-                  value={academicLevelVal}
-                  onChange={(e) => setAcademicLevelVal(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold text-slate-800 dark:text-white cursor-pointer"
-                >
-                  <option value="100" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">100 Level</option>
-                  <option value="200" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">200 Level</option>
-                  <option value="300" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">300 Level</option>
-                  <option value="400" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">400 Level</option>
-                  <option value="Postgraduate" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Postgraduate</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Semester</label>
-                <select
-                  value={semesterVal}
-                  onChange={(e) => setSemesterVal(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold text-slate-800 dark:text-white cursor-pointer"
-                >
-                  <option value="First" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">First Semester</option>
-                  <option value="Second" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Second Semester</option>
-                  <option value="Third" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Third Semester</option>
-                </select>
-              </div>
+            <div>
+              <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Join Code</label>
+              <input
+                type="text"
+                placeholder="e.g. CS300"
+                value={classCode}
+                onChange={(e) => setClassCode(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold uppercase dark:text-white"
+              />
             </div>
 
             <div>
@@ -582,17 +539,8 @@ const MyClassesPage: React.FC = () => {
                 placeholder="e.g. Computer Science"
                 value={departmentVal}
                 onChange={(e) => setDepartmentVal(e.target.value)}
+                required
                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-[9px] font-bold text-slate-400 uppercase pl-1 block mb-1">Short Description</label>
-              <textarea
-                placeholder="Topic outlines..."
-                value={classDesc}
-                onChange={(e) => setClassDesc(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#1e7a34] font-semibold dark:text-white h-16 resize-none"
               />
             </div>
 
