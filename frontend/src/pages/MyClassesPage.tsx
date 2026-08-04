@@ -14,7 +14,8 @@ import {
   Mail,
   Layers,
   Edit,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 
 const MyClassesPage: React.FC = () => {
@@ -32,6 +33,7 @@ const MyClassesPage: React.FC = () => {
   const [semesterVal, setSemesterVal] = useState('First');
   const [classDesc, setClassDesc] = useState('');
   const [createError, setCreateError] = useState('');
+  const [isCreatingClass, setIsCreatingClass] = useState(false);
   
   // Class editing states
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -179,6 +181,7 @@ const MyClassesPage: React.FC = () => {
       return;
     }
     setCreateError('');
+    setIsCreatingClass(true);
     try {
       await api.post('/classworkspaces', {
         name: className.trim(),
@@ -203,6 +206,8 @@ const MyClassesPage: React.FC = () => {
     } catch (err: any) {
       console.error("Create class failed:", err);
       setCreateError(err.response?.data?.message || err.message || 'Failed to create class.');
+    } finally {
+      setIsCreatingClass(false);
     }
   };
 
@@ -765,8 +770,19 @@ const MyClassesPage: React.FC = () => {
             {createError && (
               <p className="text-[10px] text-red-500 font-bold pl-1 animate-pulse">{createError}</p>
             )}
-            <button type="submit" className="w-full py-2.5 bg-brand-primary text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-premium cursor-pointer">
-              Create Workspace
+            <button 
+              type="submit" 
+              disabled={isCreatingClass}
+              className="w-full py-2.5 bg-brand-primary hover:bg-brand-primary/95 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-premium cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 transition-all"
+            >
+              {isCreatingClass ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Creating Workspace...</span>
+                </>
+              ) : (
+                <span>Create Workspace</span>
+              )}
             </button>
           </form>
         </div>
