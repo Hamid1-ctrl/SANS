@@ -46,7 +46,11 @@ const LoginPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Google Sign-In failed:', error);
-      setLoginError(error?.message || 'Google Sign-In failed. Please try again.');
+      if (error?.code === 'auth/unauthorized-domain' || error?.message?.includes('unauthorized-domain')) {
+        setLoginError(`Firebase Auth Restriction: Please add "${window.location.hostname}" to Firebase Console -> Authentication -> Settings -> Authorized Domains.`);
+      } else {
+        setLoginError(error?.message || 'Google Sign-In failed. Please try again.');
+      }
     } finally {
       setIsGoogleLoading(false);
     }
