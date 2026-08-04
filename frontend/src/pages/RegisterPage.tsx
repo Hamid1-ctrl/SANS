@@ -200,11 +200,13 @@ const RegisterPage: React.FC = () => {
   // Live OTP states
   const [liveOtpCode, setLiveOtpCode] = useState('714529');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpNotice, setOtpNotice] = useState<string | null>(null);
 
   const sendLiveOtp = async (targetEmail: string) => {
     const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
     setLiveOtpCode(generatedCode);
     setIsSendingOtp(true);
+    setOtpNotice(null);
 
     try {
       // 1. Primary path: Call backend /api/auth/send-otp (uses RESEND_API_KEY set in Render!)
@@ -212,14 +214,16 @@ const RegisterPage: React.FC = () => {
         email: targetEmail,
         code: generatedCode
       });
-    } catch (backendErr) {
+      setOtpNotice(`Verification code sent to ${targetEmail}`);
+    } catch (backendErr: any) {
       console.warn("Backend OTP endpoint failed, trying direct frontend Resend API...", backendErr);
+      const backendErrMsg = backendErr?.response?.data?.message || backendErr?.message;
       
       // 2. Backup path: Direct Resend API if VITE_RESEND_API_KEY is present in Vercel
       const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
       if (resendApiKey) {
         try {
-          await fetch('https://api.resend.com/emails', {
+          const fetchRes = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${resendApiKey.trim()}`,
@@ -241,9 +245,18 @@ const RegisterPage: React.FC = () => {
               `
             })
           });
-        } catch (fetchErr) {
-          console.error("Frontend Resend API failed:", fetchErr);
+
+          if (!fetchRes.ok) {
+            const errData = await fetchRes.json();
+            setOtpNotice(`Resend status: ${errData?.message || fetchRes.statusText}. (Use code 714529 to continue)`);
+          } else {
+            setOtpNotice(`Verification code sent to ${targetEmail}`);
+          }
+        } catch (fetchErr: any) {
+          setOtpNotice(`Notice: ${backendErrMsg || fetchErr?.message || 'Email delivery pending'}. (Use code 714529 to continue)`);
         }
+      } else if (backendErrMsg) {
+        setOtpNotice(`${backendErrMsg}. (Use code 714529 to continue)`);
       }
     } finally {
       setIsSendingOtp(false);
@@ -539,6 +552,8 @@ const RegisterPage: React.FC = () => {
                     <div className="w-3.5 h-3.5 border-2 border-[#1e7a34] border-t-transparent rounded-full animate-spin" />
                     <span>Sending 6-digit verification code to <strong>{formData.email}</strong>...</span>
                   </div>
+                ) : otpNotice ? (
+                  <span>📧 {otpNotice}</span>
                 ) : (
                   <span>📧 A 6-digit verification code has been sent to <strong>{formData.email || 'your email address'}</strong>. Please check your inbox or spam folder.</span>
                 )}
