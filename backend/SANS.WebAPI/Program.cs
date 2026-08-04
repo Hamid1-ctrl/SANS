@@ -238,7 +238,18 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Map SignalR hubs
-app.MapHub<NotificationHub>("/hubs/notifications");
+// Automatically ensure SQLite database tables & schema exist on server startup
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        dbContext.Database.EnsureCreated();
+    }
+    catch (Exception dbEx)
+    {
+        Console.WriteLine($"Database initialization notice: {dbEx.Message}");
+    }
+}
 
 app.Run();
