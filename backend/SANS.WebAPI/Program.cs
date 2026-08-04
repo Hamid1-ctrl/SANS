@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SANS.Domain.Entities;
 using SANS.Application.Interfaces;
 using SANS.Application.Interfaces.Repositories;
 using SANS.Application.Interfaces.Services;
