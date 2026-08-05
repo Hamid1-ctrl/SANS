@@ -142,9 +142,31 @@ builder.Services.AddAuthentication(options =>
 
             if (user == null)
             {
-                // No matching user in DB — fail authentication so /me returns 401/404 for new users
-                context.Fail("No matching SANS user found for Firebase UID.");
-                return;
+                // Self-healing provisioning: If Firebase Auth verified the user's JWT token,
+                // but the local database record is missing (e.g. ephemeral Render container restart or DB reset),
+                // automatically recreate the user profile in DB so authentication never breaks for existing users!
+                var nameClaim = context.Principal?.FindFirst("name")?.Value ?? email?.Split('@')[0] ?? "User";
+                var nameParts = nameClaim.Split(' ', 2);
+                var firstName = nameParts.Length > 0 ? nameParts[0] : "User";
+                var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = !string.IsNullOrEmpty(email) ? email : $"{firebaseUid}@sans.edu",
+                    FirstName = firstName,
+                    LastName = lastName,
+                    StudentId = "SANS-" + Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper(),
+                    PhoneNumber = "",
+                    Role = SANS.Domain.Enums.UserRole.Student,
+                    Status = SANS.Domain.Enums.AccountStatus.Verified,
+                    FirebaseUid = firebaseUid,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await dbContext.Users.AddAsync(user);
+                await dbContext.SaveChangesAsync();
             }
 
             var claimsIdentity = (ClaimsIdentity)context.Principal!.Identity!;

@@ -9,7 +9,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  getAdditionalUserInfo
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
@@ -171,11 +172,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       prompt: 'select_account'
     });
     const userCredential = await signInWithPopup(auth, provider);
-    const firebaseUser = userCredential.user;
+    const additionalInfo = getAdditionalUserInfo(userCredential);
+    const isFirebaseNewUser = additionalInfo?.isNewUser ?? false;
     
+    const firebaseUser = userCredential.user;
     const token = await firebaseUser.getIdToken(false);
     localStorage.setItem('accessToken', token);
     
+    if (isFirebaseNewUser) {
+        await signOut(auth);
+        localStorage.removeItem('accessToken');
+        setUser(null);
+
+        const nameParts = firebaseUser.displayName?.split(' ') || [];
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        return {
+          isNewUser: true,
+          email: firebaseUser.email || '',
+          firstName,
+          lastName,
+          firebaseUid: firebaseUser.uid
+        };
+    }
+
     try {
       const response = await api.get<User>('/auth/me');
       setUser(response.data);
