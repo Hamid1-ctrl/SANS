@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,10 +14,34 @@ const loginSchema = z.object({
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loginWithGoogle, resetPassword } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [accountCreatedMsg, setAccountCreatedMsg] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state && (state.isAccountCreated || state.registeredEmail)) {
+      const email = state.registeredEmail ? ` for ${state.registeredEmail}` : '';
+      setAccountCreatedMsg(`Account created successfully${email}! Please sign in to access your SANS workspace.`);
+    }
+  }, [location.state]);
+
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<LoginRequest>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: (location.state as any)?.registeredEmail || ''
+    }
+  });
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.registeredEmail) {
+      setValue('email', state.registeredEmail);
+    }
+  }, [location.state, setValue]);
 
   // Forgot password modal state
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
@@ -55,10 +79,6 @@ const LoginPage: React.FC = () => {
       setIsGoogleLoading(false);
     }
   };
-
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginRequest>({
-    resolver: zodResolver(loginSchema),
-  });
 
   const onSubmit = async (data: LoginRequest) => {
     setLoginError(null);
@@ -144,6 +164,13 @@ const LoginPage: React.FC = () => {
                 Enter your academic credentials
               </p>
             </div>
+
+            {accountCreatedMsg && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-[#1e7a34] dark:text-emerald-300 rounded-xl text-xs font-bold text-center leading-relaxed animate-fade-in flex items-center justify-center gap-2">
+                <CheckCircle size={16} className="text-[#1e7a34] shrink-0" />
+                <span>{accountCreatedMsg}</span>
+              </div>
+            )}
 
             {loginError && (
               <div className="p-3 bg-red-500/10 border border-red-500/15 text-red-600 rounded-xl text-xs font-semibold text-center leading-relaxed animate-fade-in">

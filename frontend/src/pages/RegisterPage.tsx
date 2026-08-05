@@ -45,6 +45,7 @@ const RegisterPage: React.FC = () => {
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerSuccessMsg, setRegisterSuccessMsg] = useState<string | null>(null);
 
   // OTP Verification Code state (6 digits)
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
@@ -315,11 +316,14 @@ const RegisterPage: React.FC = () => {
           specialization: selectedRole === UserRole.Lecturer ? formData.specialization : undefined,
           firebaseUid: googleUid
         });
-        navigate('/login', { state: { registeredEmail: formData.email, googleSuccess: true } });
       } else {
         await registerUser(fullPayload);
-        navigate('/login', { state: { registeredEmail: formData.email } });
       }
+
+      setRegisterSuccessMsg('Account created successfully! Redirecting you to the Sign-In page...');
+      setTimeout(() => {
+        navigate('/login', { state: { registeredEmail: formData.email, isAccountCreated: true } });
+      }, 1200);
     } catch (error: any) {
       console.error('Registration failed:', error);
       setRegisterError(error?.response?.data?.detail || error?.response?.data?.message || error?.message || 'Registration failed. Please try again.');
@@ -648,6 +652,11 @@ const RegisterPage: React.FC = () => {
               </div>
 
               <form onSubmit={handleCreateAccount} className="space-y-4">
+                {registerSuccessMsg && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-[#1e7a34] dark:text-emerald-300 rounded-xl text-xs font-bold text-center leading-relaxed animate-pulse">
+                    ✨ {registerSuccessMsg}
+                  </div>
+                )}
                 {registerError && (
                   <div className="p-3 bg-red-500/10 border border-red-500/15 text-red-600 rounded-xl text-xs font-semibold text-center">
                     {registerError}
