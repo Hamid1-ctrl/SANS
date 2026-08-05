@@ -433,47 +433,54 @@ public class DiscussionsController : ControllerBase
 
     // ─── 7. Pin / Unpin Thread ───────────────────────────────────────────────────
     [HttpPut("{id}/pin")]
+    [HttpPost("{id}/pin")]
     public async Task<IActionResult> TogglePin(Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        if (currentUser.Role != UserRole.Lecturer && currentUser.Role != UserRole.ClassRepresentative && currentUser.Role != UserRole.Administrator)
+        var thread = await _context.DiscussionThreads.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        if (thread == null) return NotFound(new { Message = "Thread not found." });
+
+        bool isStaff = currentUser.Role == UserRole.Lecturer || currentUser.Role == UserRole.ClassRepresentative || currentUser.Role == UserRole.Administrator;
+        bool isAuthor = thread.AuthorId == currentUser.Id;
+
+        if (!isStaff && !isAuthor)
         {
             return Forbid();
         }
-
-        var thread = await _context.DiscussionThreads.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-        if (thread == null) return NotFound(new { Message = "Thread not found." });
 
         thread.IsPinned = !thread.IsPinned;
         thread.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return Ok(new { Message = thread.IsPinned ? "Thread pinned." : "Thread unpinned.", thread.IsPinned });
+        return Ok(new { Message = thread.IsPinned ? "Thread pinned." : "Thread unpinned.", isPinned = thread.IsPinned, IsPinned = thread.IsPinned });
     }
 
     // ─── 8. Lock / Unlock Thread ─────────────────────────────────────────────────
     [HttpPut("{id}/lock")]
+    [HttpPost("{id}/lock")]
     public async Task<IActionResult> ToggleLock(Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        // Course Representatives, Lecturers, and Administrators can lock/unlock group discussions
-        if (currentUser.Role != UserRole.Lecturer && currentUser.Role != UserRole.ClassRepresentative && currentUser.Role != UserRole.Administrator)
+        var thread = await _context.DiscussionThreads.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        if (thread == null) return NotFound(new { Message = "Thread not found." });
+
+        bool isStaff = currentUser.Role == UserRole.Lecturer || currentUser.Role == UserRole.ClassRepresentative || currentUser.Role == UserRole.Administrator;
+        bool isAuthor = thread.AuthorId == currentUser.Id;
+
+        if (!isStaff && !isAuthor)
         {
             return Forbid();
         }
-
-        var thread = await _context.DiscussionThreads.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-        if (thread == null) return NotFound(new { Message = "Thread not found." });
 
         thread.IsLocked = !thread.IsLocked;
         thread.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return Ok(new { Message = thread.IsLocked ? "Thread locked." : "Thread unlocked.", thread.IsLocked });
+        return Ok(new { Message = thread.IsLocked ? "Thread locked." : "Thread unlocked.", isLocked = thread.IsLocked, IsLocked = thread.IsLocked });
     }
 
     // ─── 9. Delete Thread ────────────────────────────────────────────────────────

@@ -251,24 +251,38 @@ const MessagesPage: React.FC = () => {
   const handleTogglePin = async () => {
     if (!selectedThreadId) return;
     try {
-      const res = await api.post<DiscussionThread>(`/discussions/${selectedThreadId}/pin`);
-      showToast(res.data.isPinned ? 'Discussion thread pinned to top.' : 'Discussion thread unpinned.');
+      let res: any;
+      try {
+        res = await api.put(`/discussions/${selectedThreadId}/pin`);
+      } catch {
+        res = await api.post(`/discussions/${selectedThreadId}/pin`);
+      }
+      const isPinnedNow = res.data?.isPinned ?? res.data?.IsPinned ?? !(currentThread?.isPinned);
+      showToast(isPinnedNow ? 'Discussion thread pinned to top.' : 'Discussion thread unpinned.');
       await fetchThreadDetail(selectedThreadId);
       await fetchThreads();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle pin:', err);
+      showToast(err?.response?.data?.message || 'Failed to toggle pin state.');
     }
   };
 
   const handleToggleLock = async () => {
     if (!selectedThreadId) return;
     try {
-      const res = await api.post<DiscussionThread>(`/discussions/${selectedThreadId}/lock`);
-      showToast(res.data.isLocked ? 'Discussion thread locked.' : 'Discussion thread unlocked.');
+      let res: any;
+      try {
+        res = await api.put(`/discussions/${selectedThreadId}/lock`);
+      } catch {
+        res = await api.post(`/discussions/${selectedThreadId}/lock`);
+      }
+      const isLockedNow = res.data?.isLocked ?? res.data?.IsLocked ?? !(currentThread?.isLocked);
+      showToast(isLockedNow ? 'Discussion thread locked.' : 'Discussion thread unlocked.');
       await fetchThreadDetail(selectedThreadId);
       await fetchThreads();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle lock:', err);
+      showToast(err?.response?.data?.message || 'Failed to toggle lock state.');
     }
   };
 
@@ -298,8 +312,11 @@ const MessagesPage: React.FC = () => {
   };
 
   // Helper checks
-  const isLecturerOrAdmin = currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator;
-  const isCourseRep = currentUser?.role === UserRole.ClassRepresentative;
+  const roleVal = currentUser?.role as any;
+  const isLecturer = roleVal === UserRole.Lecturer || roleVal === 1 || String(roleVal) === 'Lecturer' || String(roleVal) === '1';
+  const isCourseRep = roleVal === UserRole.ClassRepresentative || roleVal === 2 || String(roleVal) === 'ClassRepresentative' || String(roleVal) === 'CourseRep' || String(roleVal) === '2';
+  const isAdmin = roleVal === UserRole.Administrator || roleVal === 3 || String(roleVal) === 'Administrator' || String(roleVal) === 'Admin' || String(roleVal) === '3';
+  const isLecturerOrAdmin = isLecturer || isAdmin;
   const isStaff = isLecturerOrAdmin || isCourseRep;
 
   const getRoleBadge = (roleName?: string) => {
@@ -578,35 +595,31 @@ const MessagesPage: React.FC = () => {
 
                 {/* Moderation Toolbar Icons */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {isStaff && (
-                    <button
-                      onClick={handleTogglePin}
-                      title={currentThread.isPinned ? 'Unpin thread' : 'Pin thread'}
-                      className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                        currentThread.isPinned 
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' 
-                          : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
-                      }`}
-                    >
-                      <Pin size={14} />
-                    </button>
-                  )}
+                  <button
+                    onClick={handleTogglePin}
+                    title={currentThread.isPinned ? 'Unpin thread' : 'Pin thread'}
+                    className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                      currentThread.isPinned 
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' 
+                        : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                    }`}
+                  >
+                    <Pin size={14} className={currentThread.isPinned ? 'fill-amber-500 text-amber-500' : ''} />
+                  </button>
 
-                  {isStaff && (
-                    <button
-                      onClick={handleToggleLock}
-                      title={currentThread.isLocked ? 'Unlock thread' : 'Lock thread'}
-                      className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                        currentThread.isLocked 
-                          ? 'bg-rose-500/10 border-rose-500/30 text-rose-600' 
-                          : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
-                      }`}
-                    >
-                      {currentThread.isLocked ? <Lock size={14} /> : <Unlock size={14} />}
-                    </button>
-                  )}
+                  <button
+                    onClick={handleToggleLock}
+                    title={currentThread.isLocked ? 'Unlock thread' : 'Lock thread'}
+                    className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                      currentThread.isLocked 
+                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-600' 
+                        : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                    }`}
+                  >
+                    {currentThread.isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                  </button>
 
-                  {(currentThread.author?.id === currentUser?.id || isLecturerOrAdmin || (isCourseRep && currentThread.author?.roleName !== 'Lecturer' && currentThread.author?.role !== 1)) && (
+                  {(currentThread.author?.id === currentUser?.id || isStaff) && (
                     <button
                       onClick={handleDeleteThread}
                       title="Delete discussion"
@@ -960,7 +973,7 @@ const MessagesPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {(currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator) && currentThread.author.id && currentThread.author.roleName !== 'Lecturer' && (
+                    {isLecturerOrAdmin && currentThread.author.id && currentThread.author.roleName !== 'Lecturer' && (
                       <button
                         onClick={() => setSelectedStudentIdForModal(currentThread.author.id!)}
                         className="w-full py-2 px-3 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-[#1e7a34] dark:text-emerald-300 rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-emerald-500/20"
@@ -969,14 +982,12 @@ const MessagesPage: React.FC = () => {
                       </button>
                     )}
 
-                    {(currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator) && (
-                      <button
-                        onClick={() => setIsRosterOpen(true)}
-                        className="w-full py-2 px-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-white rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
-                      >
-                        <Users size={13} /> Enrolled Students Directory
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setIsRosterOpen(true)}
+                      className="w-full py-2 px-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-white rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
+                    >
+                      <Users size={13} /> Enrolled Students Directory
+                    </button>
                   </div>
 
                   {/* Class Context */}

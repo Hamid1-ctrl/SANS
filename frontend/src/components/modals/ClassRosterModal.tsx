@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, GraduationCap, ChevronRight } from 'lucide-react';
 import api from '../../lib/axios';
-import { useAuth } from '../../contexts/AuthContext';
-import { UserRole } from '../../types';
 
 interface ClassRosterModalProps {
   classWorkspaceId: string | null;
@@ -19,16 +17,13 @@ export const ClassRosterModal: React.FC<ClassRosterModalProps> = ({
   onClose,
   onSelectStudent,
 }) => {
-  const { user: currentUser } = useAuth();
   const [members, setMembers] = useState<{ lecturer: any; students: any[] }>({ lecturer: null, students: [] });
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const isLecturerOrAdmin = currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator;
-
   useEffect(() => {
-    if (isOpen && classWorkspaceId && isLecturerOrAdmin) {
+    if (isOpen && classWorkspaceId) {
       fetchClassRoster();
     }
   }, [isOpen, classWorkspaceId]);
@@ -47,7 +42,7 @@ export const ClassRosterModal: React.FC<ClassRosterModalProps> = ({
     }
   };
 
-  if (!isOpen || !isLecturerOrAdmin) return null;
+  if (!isOpen) return null;
 
   const filteredStudents = members.students.filter(student => {
     const q = searchQuery.toLowerCase();
