@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, Plus, Calendar, Trash2, Megaphone, CheckSquare, 
   Beaker, Clock, BookOpen, FileText, GraduationCap, CheckCircle2, 
-  X, Pin, Eye, Share2, EyeOff, AlertCircle
+  X, Pin, Eye, Share2, EyeOff, AlertCircle, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -49,6 +50,7 @@ interface UIAnnouncement {
 const AnnouncementsPage: React.FC = () => {
   const { user } = useAuth();
   const { classes, activeClass } = useWorkspace();
+  const navigate = useNavigate();
   const { data: apiAnnouncements, isLoading, error } = useAnnouncements(activeClass?.id);
   const createAnnouncement = useCreateAnnouncement();
   const deleteAnnouncement = useDeleteAnnouncement();
@@ -612,13 +614,28 @@ const AnnouncementsPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Discussion Forum / Comments */}
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/40">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Discussion Thread</h4>
-                <div className="bg-slate-50 dark:bg-slate-905 border border-slate-150 dark:border-slate-800/40 rounded-2xl p-6 text-center text-slate-450 dark:text-slate-400 text-xs font-semibold">
-                  Comments forum holds interactive discussions. Live threads will aggregate here.
+              {/* Discussion / Engagement Section */}
+              <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/40">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Discussion & Engagement</h4>
+                <div className="bg-[#eef7f1] dark:bg-slate-900/60 border border-[#1e7a34]/20 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#1e7a34]/10 flex items-center justify-center shrink-0">
+                      <MessageSquare size={16} className="text-[#1e7a34]" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-white">Have questions about this announcement?</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Start or join a discussion thread in your class workspace to ask questions and get answers from your lecturer and classmates.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate('/messages')}
+                    className="w-full py-2 bg-[#1e7a34] hover:bg-[#258d3f] text-white font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <MessageSquare size={13} /> Open Discussion Forum
+                  </button>
                 </div>
               </div>
+
             </div>
 
           </div>

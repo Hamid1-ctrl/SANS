@@ -57,6 +57,9 @@ const MessagesPage: React.FC = () => {
   // Right sidebar tab state
   const [activeRightTab, setActiveRightTab] = useState<'overview' | 'notes' | 'files' | 'roster'>('overview');
 
+  // Personal notes per thread (stored in memory keyed by threadId)
+  const [threadNotes, setThreadNotes] = useState<Record<string, string>>({});
+
   // Search and Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -876,132 +879,258 @@ const MessagesPage: React.FC = () => {
           )}
         </div>
 
-        {/* ─── COLUMN 3: Right Details & Overview Sidebar (Inspired by Image Right Pane) ─── */}
-        <div className="hidden xl:flex w-72 flex-col bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/80 rounded-[2rem] shadow-sm p-4 space-y-5 overflow-y-auto shrink-0">
-          
-          {/* Top Tab Bar (Overview, Notes, Files, Roster) */}
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 text-[11px] font-extrabold text-slate-500">
-            <button 
-              onClick={() => setActiveRightTab('overview')}
-              className={`pb-1 transition-all cursor-pointer ${activeRightTab === 'overview' ? 'text-[#1e7a34] border-b-2 border-[#1e7a34] font-black' : 'hover:text-slate-800'}`}
-            >
-              Overview
-            </button>
-            <button 
-              onClick={() => setActiveRightTab('notes')}
-              className={`pb-1 transition-all cursor-pointer ${activeRightTab === 'notes' ? 'text-[#1e7a34] border-b-2 border-[#1e7a34] font-black' : 'hover:text-slate-800'}`}
-            >
-              Notes
-            </button>
-            <button 
-              onClick={() => setActiveRightTab('files')}
-              className={`pb-1 transition-all cursor-pointer ${activeRightTab === 'files' ? 'text-[#1e7a34] border-b-2 border-[#1e7a34] font-black' : 'hover:text-slate-800'}`}
-            >
-              Files
-            </button>
-            <button 
-              onClick={() => setActiveRightTab('roster')}
-              className={`pb-1 transition-all cursor-pointer ${activeRightTab === 'roster' ? 'text-[#1e7a34] border-b-2 border-[#1e7a34] font-black' : 'hover:text-slate-800'}`}
-            >
-              Roster
-            </button>
+        {/* ─── COLUMN 3: Right Details & Overview Sidebar ─── */}
+        <div className="hidden xl:flex w-72 flex-col bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/80 rounded-[2rem] shadow-sm overflow-hidden shrink-0">
+
+          {/* Top Tab Bar */}
+          <div className="flex items-center border-b border-slate-100 dark:border-slate-800 px-4 pt-4 pb-0 gap-3 text-[11px] font-extrabold text-slate-400 shrink-0">
+            {(['overview','notes','files','roster'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveRightTab(tab);
+                  if (tab === 'roster') {
+                    setIsRosterOpen(true);
+                  }
+                }}
+                className={`pb-3 capitalize transition-all cursor-pointer border-b-2 ${
+                  activeRightTab === tab
+                    ? 'text-[#1e7a34] border-[#1e7a34] font-black'
+                    : 'border-transparent hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-3 gap-2 bg-[#f8f7fc] dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-150 dark:border-slate-800 text-center">
-            <div>
-              <span className="text-[9px] font-bold text-slate-400 uppercase block">Threads</span>
-              <span className="text-xs font-black text-slate-800 dark:text-white">{threads.length}</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-bold text-slate-400 uppercase block">Replies</span>
-              <span className="text-xs font-black text-slate-800 dark:text-white">{currentThread?.repliesCount || 0}</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-bold text-slate-400 uppercase block">Status</span>
-              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 block">Active</span>
-            </div>
-          </div>
+          {/* Tab Content Scrollable Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-          {currentThread?.author ? (
-            <>
-              {/* User Information Card */}
-              <div className="space-y-3.5 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div className="text-center space-y-2">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-[#1e7a34] to-[#3ea556] text-white text-xl font-black flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-md mx-auto relative select-none">
-                    {currentThread.author.profileImageUrl ? (
-                      <img src={currentThread.author.profileImageUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      currentThread.author.avatarText
+            {/* Quick Metrics Bar — always visible */}
+            <div className="grid grid-cols-3 gap-2 bg-[#f8f7fc] dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/60 dark:border-slate-800 text-center">
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Threads</span>
+                <span className="text-xs font-black text-slate-800 dark:text-white">{threads.length}</span>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Replies</span>
+                <span className="text-xs font-black text-slate-800 dark:text-white">{currentThread?.repliesCount || 0}</span>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Status</span>
+                <span className={`text-[10px] font-black block ${currentThread?.isLocked ? 'text-rose-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                  {currentThread?.isLocked ? 'Locked' : 'Active'}
+                </span>
+              </div>
+            </div>
+
+            {/* ── OVERVIEW TAB ── */}
+            {activeRightTab === 'overview' && (
+              currentThread?.author ? (
+                <div className="space-y-4">
+                  {/* Author Card */}
+                  <div className="space-y-3.5 pb-4 border-b border-slate-100 dark:border-slate-800">
+                    <div className="text-center space-y-2">
+                      <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-[#1e7a34] to-[#3ea556] text-white text-xl font-black flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-md mx-auto relative">
+                        {currentThread.author.profileImageUrl
+                          ? <img src={currentThread.author.profileImageUrl} alt="Avatar" className="w-full h-full object-cover" />
+                          : currentThread.author.avatarText}
+                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-800" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-black text-slate-800 dark:text-white">{currentThread.author.name}</h3>
+                        <div className="mt-1 flex justify-center">{getRoleBadge(currentThread.author.roleName)}</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-[11px]">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">User Information</span>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-800/40">
+                        <span className="text-slate-400 flex items-center gap-1.5 text-[10px]"><UserIcon size={12} /> Name</span>
+                        <span className="font-bold text-slate-800 dark:text-white text-[11px]">{currentThread.author.name}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-800/40">
+                        <span className="text-slate-400 flex items-center gap-1.5 text-[10px]"><MailIcon size={12} /> Email</span>
+                        <span className="font-bold text-slate-800 dark:text-white truncate max-w-[110px] text-[10px]">{currentThread.author.email || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-800/40">
+                        <span className="text-slate-400 flex items-center gap-1.5 text-[10px]"><School size={12} /> Class</span>
+                        <span className="font-bold text-[#1e7a34] dark:text-emerald-300 text-[10px]">{currentThread.classCode || currentThread.className}</span>
+                      </div>
+                    </div>
+
+                    {(currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator) && currentThread.author.id && currentThread.author.roleName !== 'Lecturer' && (
+                      <button
+                        onClick={() => setSelectedStudentIdForModal(currentThread.author.id!)}
+                        className="w-full py-2 px-3 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-[#1e7a34] dark:text-emerald-300 rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-emerald-500/20"
+                      >
+                        <GraduationCap size={13} /> View Student Profile
+                      </button>
                     )}
-                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-800" />
+
+                    {(currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator) && (
+                      <button
+                        onClick={() => setIsRosterOpen(true)}
+                        className="w-full py-2 px-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-white rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
+                      >
+                        <Users size={13} /> Enrolled Students Directory
+                      </button>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-800 dark:text-white">
-                      {currentThread.author.name}
-                    </h3>
-                    <div className="mt-1 flex justify-center">
-                      {getRoleBadge(currentThread.author.roleName)}
+
+                  {/* Class Context */}
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Class Context</span>
+                    <div className="p-3 bg-[#eef7f1] dark:bg-slate-900/60 border border-[#1e7a34]/20 rounded-2xl space-y-1">
+                      <h4 className="text-xs font-black text-slate-800 dark:text-white">{currentThread.className}</h4>
+                      <p className="text-[10px] font-extrabold text-[#1e7a34] dark:text-emerald-300">{currentThread.classCode}</p>
+                      <p className="text-[10px] text-slate-400 font-medium">{currentThread.isPinned ? '📌 Pinned' : ''} {currentThread.isLocked ? '🔒 Locked' : ''}</p>
                     </div>
                   </div>
                 </div>
-
-                {/* Information Fields */}
-                <div className="space-y-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300 pt-1">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">User Information</span>
-                  
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-800/40">
-                    <span className="text-slate-400 flex items-center gap-1.5 text-[10px]"><UserIcon size={12} /> Name</span>
-                    <span className="font-bold text-slate-800 dark:text-white">{currentThread.author.name}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-800/40">
-                    <span className="text-slate-400 flex items-center gap-1.5 text-[10px]"><MailIcon size={12} /> Email</span>
-                    <span className="font-bold text-slate-800 dark:text-white truncate max-w-[120px]">{currentThread.author.email || 'N/A'}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-800/40">
-                    <span className="text-slate-400 flex items-center gap-1.5 text-[10px]"><School size={12} /> Class</span>
-                    <span className="font-bold text-[#1e7a34] dark:text-emerald-300">{currentThread.classCode || currentThread.className}</span>
-                  </div>
+              ) : (
+                <div className="text-center py-8 space-y-2 text-slate-400">
+                  <BookOpen size={24} className="mx-auto" />
+                  <p className="text-xs font-bold">Class Forum Hub</p>
+                  <p className="text-[10px]">Select a thread to view author details.</p>
                 </div>
+              )
+            )}
 
-                {/* Profile Inspection Buttons */}
-                {(currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator) && currentThread.author.id && currentThread.author.roleName !== 'Lecturer' && (
-                  <button
-                    onClick={() => setSelectedStudentIdForModal(currentThread.author.id!)}
-                    className="w-full py-2 px-3 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-[#1e7a34] dark:text-emerald-300 rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-emerald-500/20 shadow-2xs"
-                  >
-                    <GraduationCap size={13} /> View Student Profile
-                  </button>
+            {/* ── NOTES TAB ── Personal scratchpad per thread */}
+            {activeRightTab === 'notes' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Personal Notes</span>
+                  <span className="text-[9px] text-slate-400">{currentThread ? `Thread: ${currentThread.title.slice(0,20)}...` : 'No thread selected'}</span>
+                </div>
+                {currentThread ? (
+                  <>
+                    <textarea
+                      rows={12}
+                      placeholder="Jot down personal notes about this discussion...&#10;&#10;e.g. Key points, follow-up actions, questions to ask..."
+                      value={threadNotes[currentThread.id] || ''}
+                      onChange={e => setThreadNotes(prev => ({ ...prev, [currentThread.id]: e.target.value }))}
+                      className="w-full p-3 bg-[#f8f7fc] dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-[#1e7a34]/40 resize-none transition-all leading-relaxed"
+                    />
+                    <p className="text-[9px] text-slate-400 text-right">{(threadNotes[currentThread.id] || '').length} chars · saved locally</p>
+                  </>
+                ) : (
+                  <div className="p-6 text-center text-slate-400 space-y-2">
+                    <FileText size={20} className="mx-auto" />
+                    <p className="text-xs">Select a thread to take notes.</p>
+                  </div>
                 )}
+              </div>
+            )}
 
-                {(currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator) && (
+            {/* ── FILES TAB ── All attachments from thread + replies */}
+            {activeRightTab === 'files' && (
+              <div className="space-y-3">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Thread Attachments</span>
+                {(() => {
+                  const allFiles = [
+                    ...(currentThread?.attachments || []).map(a => ({ ...a, source: 'Original Post' })),
+                    ...(currentThread?.replies || []).flatMap(r =>
+                      (r.attachments || []).map(a => ({ ...a, source: r.author?.name || 'Reply' }))
+                    )
+                  ];
+                  return allFiles.length === 0 ? (
+                    <div className="p-6 text-center text-slate-400 space-y-2">
+                      <Paperclip size={20} className="mx-auto" />
+                      <p className="text-xs font-bold">No files attached</p>
+                      <p className="text-[10px]">Attachments from this thread will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {allFiles.map((att) => (
+                        <a
+                          key={att.id}
+                          href={att.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between p-2.5 bg-[#f8f7fc] dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-[#1e7a34]/40 transition-all group"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isImageFile(att.fileType)
+                              ? <ImageIcon size={14} className="text-emerald-500 shrink-0" />
+                              : <FileText size={14} className="text-blue-500 shrink-0" />}
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-[#1e7a34]">{att.fileName}</p>
+                              <p className="text-[9px] text-slate-400">{att.source} · {formatFileSize(att.fileSize)}</p>
+                            </div>
+                          </div>
+                          <Download size={12} className="text-slate-400 group-hover:text-[#1e7a34] shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* ── ROSTER TAB ── Quick shortcut to open roster modal */}
+            {activeRightTab === 'roster' && (
+              <div className="space-y-3">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Class Roster</span>
+                <div className="p-5 bg-[#eef7f1] dark:bg-slate-900/60 border border-[#1e7a34]/20 rounded-2xl text-center space-y-3">
+                  <div className="w-12 h-12 bg-[#1e7a34]/10 rounded-full flex items-center justify-center mx-auto">
+                    <Users size={22} className="text-[#1e7a34]" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-800 dark:text-white">{activeClass?.name || currentThread?.className || 'Class Roster'}</h4>
+                    <p className="text-[10px] text-slate-500 mt-1">View all enrolled students and their profiles.</p>
+                  </div>
                   <button
                     onClick={() => setIsRosterOpen(true)}
-                    className="w-full py-2 px-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-white rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
+                    className="w-full py-2.5 bg-[#1e7a34] hover:bg-[#258d3f] text-white font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
                   >
-                    <Users size={13} /> Enrolled Students Directory
+                    <Users size={13} /> Open Class Roster
                   </button>
-                )}
-              </div>
-
-              {/* Class Context Info Box */}
-              <div className="space-y-2">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Class Context</span>
-                <div className="p-3 bg-[#eef7f1] dark:bg-slate-900/60 border border-[#1e7a34]/20 rounded-2xl space-y-1">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-white">{currentThread.className}</h4>
-                  <p className="text-[10px] font-extrabold text-[#1e7a34] dark:text-emerald-300">{currentThread.classCode}</p>
                 </div>
+
+                {/* Mini thread participants list */}
+                {currentThread && (() => {
+                  const seen = new Set<string>();
+                  const participants = [
+                    currentThread.author,
+                    ...(currentThread.replies || []).map(r => r.author)
+                  ].filter(a => {
+                    if (!a?.id || seen.has(a.id)) return false;
+                    seen.add(a.id);
+                    return true;
+                  });
+                  return participants.length > 0 ? (
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Thread Participants ({participants.length})</span>
+                      {participants.map(p => p && (
+                        <div key={p.id} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-all">
+                          <div className="w-7 h-7 rounded-full bg-[#1e7a34] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                            {p.avatarText || '?'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold text-slate-800 dark:text-white truncate">{p.name}</p>
+                            <div>{getRoleBadge(p.roleName)}</div>
+                          </div>
+                          {(currentUser?.role === UserRole.Lecturer || currentUser?.role === UserRole.Administrator) && p.roleName !== 'Lecturer' && (
+                            <button
+                              onClick={() => setSelectedStudentIdForModal(p.id!)}
+                              title="View profile"
+                              className="ml-auto p-1 text-slate-400 hover:text-[#1e7a34] cursor-pointer transition-colors shrink-0"
+                            >
+                              <UserIcon size={12} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
               </div>
-            </>
-          ) : (
-            <div className="text-center py-8 space-y-2 text-slate-400">
-              <BookOpen size={24} className="mx-auto" />
-              <p className="text-xs font-bold">Class Forum Hub</p>
-              <p className="text-[10px]">Select a thread to view author details and context.</p>
-            </div>
-          )}
+            )}
+
+          </div>
         </div>
 
       </div>

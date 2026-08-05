@@ -938,25 +938,39 @@ const DashboardPage: React.FC = () => {
 
           <div className="flex-1 space-y-2.5 overflow-y-auto pr-1">
             {lecturerTab === 'courses' ? (
-              classes.map(item => (
-                <div 
-                  key={item.id}
-                  onClick={() => handleSelectClass(item)}
-                  className={`p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border ${
-                    item.id === activeClass?.id ? 'bg-[#1e7a34] border-[#1e7a34] text-white shadow-md' : 'border-slate-100 dark:border-slate-800/40 bg-[#f0f7f2] dark:bg-slate-900/40 hover:border-[#1e7a34]/40'
-                  }`}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${item.id === activeClass?.id ? 'bg-white/20 text-white' : 'bg-emerald-500/10 dark:bg-emerald-950/40 text-[#1e7a34] dark:text-emerald-300'}`}>
-                      <BookOpen size={14} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`text-xs font-bold truncate ${item.id === activeClass?.id ? 'text-white' : 'text-slate-800 dark:text-[#CBD5E1]'}`}>{item.name}</h4>
-                      <p className={`text-[9px] mt-0.5 ${item.id === activeClass?.id ? 'text-white/80' : 'text-slate-400'}`}>{item.code}</p>
+              classes.length === 0 ? (
+                <div className="p-6 text-center text-slate-400 space-y-2">
+                  <BookOpen size={22} className="mx-auto opacity-50" />
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No Class Workspaces</p>
+                  <p className="text-[10px]">You haven't been assigned to any class workspaces yet. Use "My Classes" to create one.</p>
+                  <button
+                    onClick={() => navigate('/classes')}
+                    className="mt-2 px-4 py-2 bg-[#1e7a34] text-white rounded-xl text-[10px] font-bold hover:bg-[#258d3f] transition-all cursor-pointer"
+                  >
+                    Go to My Classes
+                  </button>
+                </div>
+              ) : (
+                classes.map(item => (
+                  <div 
+                    key={item.id}
+                    onClick={() => handleSelectClass(item)}
+                    className={`p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border ${
+                      item.id === activeClass?.id ? 'bg-[#1e7a34] border-[#1e7a34] text-white shadow-md' : 'border-slate-100 dark:border-slate-800/40 bg-[#f0f7f2] dark:bg-slate-900/40 hover:border-[#1e7a34]/40'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${item.id === activeClass?.id ? 'bg-white/20 text-white' : 'bg-emerald-500/10 dark:bg-emerald-950/40 text-[#1e7a34] dark:text-emerald-300'}`}>
+                        <BookOpen size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`text-xs font-bold truncate ${item.id === activeClass?.id ? 'text-white' : 'text-slate-800 dark:text-[#CBD5E1]'}`}>{item.name}</h4>
+                        <p className={`text-[9px] mt-0.5 ${item.id === activeClass?.id ? 'text-white/80' : 'text-slate-400'}`}>{item.code}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))
+              )
             ) : (
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between px-1 mb-1">

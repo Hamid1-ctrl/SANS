@@ -148,11 +148,18 @@ const MyClassesPage: React.FC = () => {
           setBulkLoading(false);
           return;
         }
-        await api.post('/messages/class/bulk', {
-          content: bulkMsgContent,
-          classWorkspaceIds: selectedBulkClasses
-        });
-        setSuccessMsg('Bulk Message sent successfully!');
+        // Broadcast as an announcement to each selected class
+        await Promise.all(
+          selectedBulkClasses.map(classId =>
+            api.post('/announcements', {
+              title: 'Bulk Class Message',
+              content: bulkMsgContent,
+              classWorkspaceId: classId,
+              priority: 'Normal'
+            })
+          )
+        );
+        setSuccessMsg('Bulk message sent as announcement to all selected classes!');
         setBulkMsgContent('');
       }
       setSelectedBulkClasses([]);
