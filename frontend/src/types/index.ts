@@ -348,6 +348,7 @@ export interface DiscussionAuthor {
   roleName: string;
   avatarText: string;
   profileImageUrl?: string;
+  email?: string;
 }
 
 export interface DiscussionReply {
