@@ -513,6 +513,132 @@ public class AuthFlowTests
     }
 
     [Fact]
+    public async Task Startup_Migration_Repairs_Old_D1_Database_So_Rep_Can_Create_Class()
+    {
+        // Simulates the deployed production database: created from the OLD schema,
+        // which lacks ClassWorkspaces.CourseCode and keeps LecturerId NOT NULL.
+        using var server = new D1MockServer(schemaFileName: "old_cloudflare_d1_schema.sql", applySeed: false);
+        var options = new D1Options
+        {
+            AccountId = "test-account",
+            DatabaseId = "test-database",
+            ApiToken = "test-token",
+            BaseUrl = server.BaseUrl.TrimEnd('/') + "/client/v4"
+        };
+        var client = new D1Client(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, options);
+
+        // 1. Reproduce the production 400: writing the current ClassWorkspace entity
+        //    (CourseCode column + NULL LecturerId) into the OLD table throws
+        //    InvalidOperationException — which GlobalExceptionMiddleware surfaces as
+        //    HTTP 400 "Request failed with status code 400" in the UI.
+        using (var preContext = new D1Context(client))
+        {
+            var preRepClass = new ClassWorkspace
+            {
+                Id = Guid.NewGuid(),
+                Name = "Old Schema Class",
+                Code = "OLD001",
+                Description = string.Empty,
+                CourseCode = "CS101",
+                DepartmentText = "Computer Science",
+                AcademicLevel = "100",
+                Semester = "First",
+                CreatedByUserId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+            preContext.ClassWorkspaces.Add(preRepClass);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => preContext.SaveChangesAsync());
+        }
+
+        // 2. The startup up-to-date check Program.cs runs detects the old schema: the
+        //    marker columns the migration adds are all missing (any missing one triggers
+        //    the migration, so a partial application cannot be skipped forever).
+        async Task<HashSet<string>> GetColumnsAsync(string table)
+        {
+            var cols = await client.ExecuteStatementAsync($"SELECT name FROM pragma_table_info('{table}')");
+            return cols.Rows
+                .Select(r => Convert.ToString(r.FirstOrDefault().Value))
+                .Where(n => n != null)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        Assert.DoesNotContain("CourseCode", await GetColumnsAsync("ClassWorkspaces"));
+        Assert.DoesNotContain("Category", await GetColumnsAsync("Announcements"));
+        Assert.DoesNotContain("ReceiverId", await GetColumnsAsync("Messages"));
+
+        // 3. Apply the migration exactly as Program.cs does on boot.
+        var migrationPath = Path.Combine(AppContext.BaseDirectory, "d1_schema_migration.sql");
+        Assert.True(File.Exists(migrationPath), $"Migration file not found at {migrationPath}");
+        var migration = File.ReadAllText(migrationPath);
+        foreach (var raw in migration.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var cleaned = string.Join("\n", raw.Split('\n').Where(l => !l.TrimStart().StartsWith("--"))).Trim();
+            if (cleaned.Length == 0) continue;
+            await client.ExecuteStatementAsync(cleaned);
+        }
+
+        // 4. The same check now passes — the schema is up to date again.
+        Assert.Contains("CourseCode", await GetColumnsAsync("ClassWorkspaces"));
+        Assert.Contains("Category", await GetColumnsAsync("Announcements"));
+        Assert.Contains("ReceiverId", await GetColumnsAsync("Messages"));
+
+        // 5. A Course Rep can now create a class workspace — the exact flow that
+        //    returned 400 before the migration.
+        using var context = new D1Context(client);
+        var rep = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "rep.after.migration@example.com",
+            FirstName = "Rep",
+            LastName = "Migrated",
+            StudentId = "SANS-MIG-REP-001",
+            PhoneNumber = "123",
+            Role = UserRole.ClassRepresentative,
+            Status = AccountStatus.Verified,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(rep);
+        await context.SaveChangesAsync();
+
+        var controller = new ClassWorkspacesController(context)
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+                {
+                    User = new System.Security.Claims.ClaimsPrincipal(
+                        new System.Security.Claims.ClaimsIdentity(new[]
+                        {
+                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, rep.Id.ToString())
+                        }))
+                }
+            }
+        };
+
+        var result = await controller.CreateClass(new CreateClassModel
+        {
+            Name = "Computer Science Level 200",
+            Code = "CS200",
+            Description = "Created after auto-migration",
+            CourseCode = "CS201",
+            Department = "Computer Science",
+            AcademicLevel = "200",
+            Semester = "First"
+        });
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.CreatedAtActionResult>(result);
+
+        var saved = await context.ClassWorkspaces.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Code\") = lower(?)", new object?[] { "CS200" });
+        Assert.NotNull(saved);
+        Assert.Null(saved!.LecturerId);
+        Assert.Equal("First", saved.Semester);
+        Assert.Equal(rep.Id, saved.CreatedByUserId);
+    }
+
+    [Fact]
     public async Task Seeded_Admin_Can_Login_With_Default_Password()
     {
         using var harness = new TestHarness();

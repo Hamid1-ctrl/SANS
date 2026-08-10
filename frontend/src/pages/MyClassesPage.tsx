@@ -60,6 +60,16 @@ const MyClassesPage: React.FC = () => {
 
   const [successMsg, setSuccessMsg] = useState('');
 
+  // The backend exception middleware returns { title, detail } instead of { message };
+  // surface whichever field is present so users see the real reason instead of the
+  // generic axios "Request failed with status code 400".
+  const extractApiError = (err: any, fallback: string) =>
+    err?.response?.data?.message ||
+    err?.response?.data?.detail ||
+    err?.response?.data?.title ||
+    err?.message ||
+    fallback;
+
   // Bulk Actions State
   const [selectedBulkClasses, setSelectedBulkClasses] = useState<string[]>([]);
   const [bulkActionType, setBulkActionType] = useState<'announcement' | 'resource' | 'message'>('announcement');
@@ -212,7 +222,7 @@ const MyClassesPage: React.FC = () => {
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
       console.error("Create class failed:", err);
-      setCreateError(err.response?.data?.message || err.message || 'Failed to create class.');
+      setCreateError(extractApiError(err, 'Failed to create class.'));
     } finally {
       setIsCreatingClass(false);
     }
@@ -307,7 +317,7 @@ const MyClassesPage: React.FC = () => {
       await refreshClasses();
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
-      setEditError(err.response?.data?.message || 'Failed to update class workspace.');
+      setEditError(extractApiError(err, 'Failed to update class workspace.'));
     }
   };
 

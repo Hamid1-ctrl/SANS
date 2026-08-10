@@ -434,6 +434,86 @@ using (var scope = app.Services.CreateScope())
                     Console.WriteLine($"[D1] ERROR: Schema file cloudflare_d1_schema.sql not found at {schemaPath}");
                 }
             }
+
+            // ─── Schema self-healing migration ─────────────────────────────────────
+            // A D1 database created from an OLDER cloudflare_d1_schema.sql is missing
+            // columns the current entities write (e.g. ClassWorkspaces.CourseCode and a
+            // nullable LecturerId). Without them, every INSERT throws
+            // InvalidOperationException, which GlobalExceptionMiddleware maps to HTTP 400
+            // ("request failed with status code 400" in the UI). Apply
+            // d1_schema_migration.sql automatically on boot so a redeploy alone repairs
+            // existing databases — no manual wrangler step required.
+            bool needsMigration = false;
+            try
+            {
+                // pragma_table_info is supported by Cloudflare D1 and lists the live columns.
+                // Gate on ONE marker column per table the migration touches: if any is
+                // missing the migration (or a retry of it) is required. This also makes a
+                // partially-applied migration self-heal on the next boot instead of being
+                // skipped forever because a single column happened to already exist.
+                var markerColumns = new Dictionary<string, string>
+                {
+                    ["ClassWorkspaces"] = "CourseCode",
+                    ["Announcements"] = "Category",
+                    ["Assignments"] = "AttachmentFileName",
+                    ["Notifications"] = "AnnouncementId",
+                    ["Messages"] = "ReceiverId",
+                    ["RepProposals"] = "SubmittedByRepId"
+                };
+
+                foreach (var marker in markerColumns)
+                {
+                    var columns = await d1Context.QueryRowsAsync($"SELECT name FROM pragma_table_info('{marker.Key}')");
+                    if (columns.Count == 0 ||
+                        !columns.Any(r => string.Equals(
+                            Convert.ToString(r.TryGetValue("name", out var v) ? v : null),
+                            marker.Value, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        needsMigration = true;
+                        break;
+                    }
+                }
+            }
+            catch (Exception checkEx)
+            {
+                // Connectivity/other failure — do NOT attempt the migration now.
+                Console.WriteLine($"[D1] Schema up-to-date check failed ({checkEx.Message}); skipping auto-migration.");
+            }
+
+            if (needsMigration)
+            {
+                var migrationPath = Path.Combine(app.Environment.ContentRootPath, "d1_schema_migration.sql");
+                if (!File.Exists(migrationPath))
+                {
+                    migrationPath = Path.Combine(AppContext.BaseDirectory, "d1_schema_migration.sql");
+                }
+
+                if (File.Exists(migrationPath))
+                {
+                    var migrationSql = await File.ReadAllTextAsync(migrationPath);
+                    int executed = 0;
+                    foreach (var raw in migrationSql.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var cleaned = string.Join("\n", raw.Split('\n').Where(l => !l.TrimStart().StartsWith("--"))).Trim();
+                        if (cleaned.Length == 0) continue;
+
+                        try
+                        {
+                            await d1Client.ExecuteStatementAsync(cleaned);
+                            executed++;
+                        }
+                        catch (Exception stmtEx)
+                        {
+                            Console.WriteLine($"[D1] Migration statement warning: {stmtEx.Message}");
+                        }
+                    }
+                    Console.WriteLine($"[D1] Auto-applied d1_schema_migration.sql ({executed} statements) — ClassWorkspaces and related tables are up to date.");
+                }
+                else
+                {
+                    Console.WriteLine($"[D1] ERROR: Migration file d1_schema_migration.sql not found at {migrationPath}");
+                }
+            }
         }
     }
     catch (Exception dbEx)
