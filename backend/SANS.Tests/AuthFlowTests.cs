@@ -746,6 +746,93 @@ public class AuthFlowTests
     }
 
     [Fact]
+    public async Task Factory_Reset_Script_Repairs_Old_D1_Database()
+    {
+        // Mirrors the exact wrangler commands given to the user for a broken (old-schema)
+        // production D1 database: reset -> fixed schema -> seed. Same database, no env change.
+        using var server = new D1MockServer(schemaFileName: "old_cloudflare_d1_schema.sql", applySeed: false);
+
+        void ApplySqlFile(string path)
+        {
+            Assert.True(File.Exists(path), $"SQL file not found at {path}");
+            foreach (var raw in File.ReadAllText(path).Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var cleaned = string.Join("\n", raw.Split('\n').Where(l => !l.TrimStart().StartsWith("--"))).Trim();
+                if (cleaned.Length == 0) continue;
+                if (cleaned.StartsWith("BEGIN", StringComparison.OrdinalIgnoreCase) ||
+                    cleaned.StartsWith("COMMIT", StringComparison.OrdinalIgnoreCase)) continue;
+                server.ExecuteRawSql(cleaned);
+            }
+        }
+
+        // 1. Factory reset: drop every table (children first, FK-safe).
+        ApplySqlFile(Path.Combine(AppContext.BaseDirectory, "d1_factory_reset.sql"));
+
+        // 2. Re-apply the FIXED schema, then the seed data.
+        ApplySqlFile(Path.Combine(AppContext.BaseDirectory, "cloudflare_d1_schema.sql"));
+        ApplySqlFile(Path.Combine(AppContext.BaseDirectory, "d1_seed_data.sql"));
+
+        var options = new D1Options
+        {
+            AccountId = "test-account",
+            DatabaseId = "test-database",
+            ApiToken = "test-token",
+            BaseUrl = server.BaseUrl.TrimEnd('/') + "/client/v4"
+        };
+        var client = new D1Client(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, options);
+        using var context = new D1Context(client);
+
+        // The recreated database matches the entities exactly and has the seed data.
+        var failures = GetSchemaFailures(context, server);
+        Assert.True(failures.Count == 0, "Recreated schema does not match entities:\n" + string.Join("\n", failures));
+        Assert.True(await context.ScalarAsync("SELECT COUNT(*) FROM \"Users\"") > 0, "Seed data was not applied");
+
+        // A Course Rep can create a class workspace (the exact flow that kept failing).
+        var rep = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "rep.factory@example.com",
+            FirstName = "Rep",
+            LastName = "Fresh",
+            StudentId = "SANS-FRESH-001",
+            PhoneNumber = "123",
+            Role = UserRole.ClassRepresentative,
+            Status = AccountStatus.Verified,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(rep);
+        await context.SaveChangesAsync();
+
+        var controller = new ClassWorkspacesController(context)
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+                {
+                    User = new System.Security.Claims.ClaimsPrincipal(
+                        new System.Security.Claims.ClaimsIdentity(new[]
+                        {
+                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, rep.Id.ToString())
+                        }))
+                }
+            }
+        };
+
+        var result = await controller.CreateClass(new CreateClassModel
+        {
+            Name = "Fresh Class",
+            Code = "FRESH1",
+            Description = "After factory reset",
+            CourseCode = "CS500",
+            Department = "Computer Science",
+            AcademicLevel = "100",
+            Semester = "First"
+        });
+        Assert.IsType<Microsoft.AspNetCore.Mvc.CreatedAtActionResult>(result);
+    }
+
+    [Fact]
     public async Task Seeded_Admin_Can_Login_With_Default_Password()
     {
         using var harness = new TestHarness();

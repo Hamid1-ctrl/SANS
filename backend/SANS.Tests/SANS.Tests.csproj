@@ -34,6 +34,7 @@
     <None Include="..\SANS.WebAPI\cloudflare_d1_schema.sql" Link="cloudflare_d1_schema.sql" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\SANS.WebAPI\d1_seed_data.sql" Link="d1_seed_data.sql" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\SANS.WebAPI\d1_schema_migration.sql" Link="d1_schema_migration.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\SANS.WebAPI\d1_factory_reset.sql" Link="d1_factory_reset.sql" CopyToOutputDirectory="PreserveNewest" />
     <None Include="old_cloudflare_d1_schema.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
