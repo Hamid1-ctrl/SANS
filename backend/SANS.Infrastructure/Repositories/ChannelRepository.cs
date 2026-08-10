@@ -1,42 +1,35 @@
-using Microsoft.EntityFrameworkCore;
 using SANS.Application.Interfaces.Repositories;
 using SANS.Domain.Entities;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 
 namespace SANS.Infrastructure.Repositories;
 
 public class ChannelRepository : Repository<Channel>, IChannelRepository
 {
-    public ChannelRepository(AppDbContext context) : base(context)
+    public ChannelRepository(D1Context context) : base(context)
     {
     }
 
     public async Task<IEnumerable<Channel>> GetByDepartmentAsync(Guid departmentId)
     {
-        return await _dbSet
-            .Include(c => c.Department)
-            .Include(c => c.CreatedByUser)
-            .Where(c => c.DepartmentId == departmentId && !c.IsDeleted)
-            .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE lower(\"DepartmentId\") = lower(?) AND \"IsDeleted\" = 0",
+            "ORDER BY \"CreatedAt\" DESC",
+            new object?[] { departmentId });
     }
 
     public async Task<IEnumerable<Channel>> GetByUserAsync(Guid userId)
     {
-        return await _dbSet
-            .Include(c => c.Members)
-            .Where(c => c.Members.Any(m => m.UserId == userId) && !c.IsDeleted)
-            .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE \"IsDeleted\" = 0 AND EXISTS (SELECT 1 FROM \"ChannelMembers\" cm WHERE cm.\"ChannelId\" = \"Channels\".\"Id\" AND lower(cm.\"UserId\") = lower(?))",
+            "ORDER BY \"CreatedAt\" DESC",
+            new object?[] { userId });
     }
 
     public async Task<Channel?> GetWithMembersAsync(Guid channelId)
     {
-        return await _dbSet
-            .Include(c => c.Department)
-            .Include(c => c.CreatedByUser)
-            .Include(c => c.Members)
-            .ThenInclude(m => m.User)
-            .FirstOrDefaultAsync(c => c.Id == channelId && !c.IsDeleted);
+        return await _dbSet.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { channelId });
     }
 }

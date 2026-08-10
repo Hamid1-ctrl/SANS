@@ -1,16 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SANS.Domain.Entities;
 using SANS.Domain.Enums;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 using SANS.Application.Interfaces.Services;
-using System;
-using System.IO;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 
 namespace SANS.WebAPI.Controllers;
 
@@ -19,10 +13,10 @@ namespace SANS.WebAPI.Controllers;
 [Authorize]
 public class UsersController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly D1Context _context;
     private readonly IStorageService _storageService;
 
-    public UsersController(AppDbContext context, IStorageService storageService)
+    public UsersController(D1Context context, IStorageService storageService)
     {
         _context = context;
         _storageService = storageService;
@@ -33,7 +27,9 @@ public class UsersController : ControllerBase
         var claim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (claim == null || !Guid.TryParse(claim.Value, out var userId))
             return null;
-        return await _context.Users.FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+        return await _context.Users.QueryFirstOrDefaultAsync(
+            "WHERE \"IsDeleted\" = 0 AND lower(\"Id\") = lower(?)",
+            new object?[] { userId });
     }
 
     [HttpGet("lecturers/pending")]
@@ -45,25 +41,25 @@ public class UsersController : ControllerBase
             return Forbid();
         }
 
-        var pending = await _context.Users
-            .Where(u => u.Role == UserRole.Lecturer && u.Status == AccountStatus.Pending && !u.IsDeleted)
-            .OrderByDescending(u => u.CreatedAt)
-            .Select(u => new
-            {
-                u.Id,
-                u.FirstName,
-                u.LastName,
-                u.Email,
-                u.PhoneNumber,
-                u.StudentId,
-                u.OfficeNumber,
-                u.OfficeHours,
-                u.Specialization,
-                Role = (int)u.Role,
-                Status = (int)u.Status,
-                u.CreatedAt
-            })
-            .ToListAsync();
+        var users = await _context.Users.QueryAsync(
+            "WHERE \"Role\" = 1 AND \"Status\" = 0 AND \"IsDeleted\" = 0",
+            "ORDER BY \"CreatedAt\" DESC");
+
+        var pending = users.Select(u => new
+        {
+            u.Id,
+            u.FirstName,
+            u.LastName,
+            u.Email,
+            u.PhoneNumber,
+            u.StudentId,
+            u.OfficeNumber,
+            u.OfficeHours,
+            u.Specialization,
+            Role = (int)u.Role,
+            Status = (int)u.Status,
+            u.CreatedAt
+        }).ToList();
 
         return Ok(pending);
     }
@@ -77,25 +73,25 @@ public class UsersController : ControllerBase
             return Forbid();
         }
 
-        var lecturers = await _context.Users
-            .Where(u => u.Role == UserRole.Lecturer && !u.IsDeleted)
-            .OrderByDescending(u => u.CreatedAt)
-            .Select(u => new
-            {
-                u.Id,
-                u.FirstName,
-                u.LastName,
-                u.Email,
-                u.PhoneNumber,
-                u.StudentId,
-                u.OfficeNumber,
-                u.OfficeHours,
-                u.Specialization,
-                Role = (int)u.Role,
-                Status = (int)u.Status,
-                u.CreatedAt
-            })
-            .ToListAsync();
+        var users = await _context.Users.QueryAsync(
+            "WHERE \"Role\" = 1 AND \"IsDeleted\" = 0",
+            "ORDER BY \"CreatedAt\" DESC");
+
+        var lecturers = users.Select(u => new
+        {
+            u.Id,
+            u.FirstName,
+            u.LastName,
+            u.Email,
+            u.PhoneNumber,
+            u.StudentId,
+            u.OfficeNumber,
+            u.OfficeHours,
+            u.Specialization,
+            Role = (int)u.Role,
+            Status = (int)u.Status,
+            u.CreatedAt
+        }).ToList();
 
         return Ok(lecturers);
     }
@@ -109,7 +105,9 @@ public class UsersController : ControllerBase
             return Forbid();
         }
 
-        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+        var targetUser = await _context.Users.QueryFirstOrDefaultAsync(
+            "WHERE \"IsDeleted\" = 0 AND lower(\"Id\") = lower(?)",
+            new object?[] { id });
         if (targetUser == null)
         {
             return NotFound(new { Message = "User not found." });
@@ -117,6 +115,7 @@ public class UsersController : ControllerBase
 
         targetUser.Status = AccountStatus.Verified;
         targetUser.IsActive = true;
+        _context.Users.Update(targetUser);
         await _context.SaveChangesAsync();
 
         return Ok(new { Message = "Lecturer approved successfully.", Status = (int)targetUser.Status });
@@ -131,13 +130,16 @@ public class UsersController : ControllerBase
             return Forbid();
         }
 
-        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+        var targetUser = await _context.Users.QueryFirstOrDefaultAsync(
+            "WHERE \"IsDeleted\" = 0 AND lower(\"Id\") = lower(?)",
+            new object?[] { id });
         if (targetUser == null)
         {
             return NotFound(new { Message = "User not found." });
         }
 
         targetUser.Status = AccountStatus.Rejected;
+        _context.Users.Update(targetUser);
         await _context.SaveChangesAsync();
 
         return Ok(new { Message = "Lecturer registration rejected.", Status = (int)targetUser.Status });
@@ -152,7 +154,9 @@ public class UsersController : ControllerBase
             return Forbid();
         }
 
-        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+        var targetUser = await _context.Users.QueryFirstOrDefaultAsync(
+            "WHERE \"IsDeleted\" = 0 AND lower(\"Id\") = lower(?)",
+            new object?[] { id });
         if (targetUser == null)
         {
             return NotFound(new { Message = "User not found." });
@@ -160,6 +164,7 @@ public class UsersController : ControllerBase
 
         targetUser.Status = AccountStatus.Suspended;
         targetUser.IsActive = false;
+        _context.Users.Update(targetUser);
         await _context.SaveChangesAsync();
 
         return Ok(new { Message = "Lecturer suspended successfully.", Status = (int)targetUser.Status });
@@ -174,7 +179,9 @@ public class UsersController : ControllerBase
             return Forbid();
         }
 
-        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+        var targetUser = await _context.Users.QueryFirstOrDefaultAsync(
+            "WHERE \"IsDeleted\" = 0 AND lower(\"Id\") = lower(?)",
+            new object?[] { id });
         if (targetUser == null)
         {
             return NotFound(new { Message = "User not found." });
@@ -182,6 +189,7 @@ public class UsersController : ControllerBase
 
         targetUser.Status = AccountStatus.Verified;
         targetUser.IsActive = true;
+        _context.Users.Update(targetUser);
         await _context.SaveChangesAsync();
 
         return Ok(new { Message = "Lecturer suspension lifted successfully.", Status = (int)targetUser.Status });
@@ -205,6 +213,7 @@ public class UsersController : ControllerBase
         currentUser.Bio = model.Bio;
         currentUser.UpdatedAt = DateTime.UtcNow;
 
+        _context.Users.Update(currentUser);
         await _context.SaveChangesAsync();
 
         return Ok(new
@@ -250,6 +259,7 @@ public class UsersController : ControllerBase
 
             currentUser.ProfileImageUrl = fileUrl;
             currentUser.UpdatedAt = DateTime.UtcNow;
+            _context.Users.Update(currentUser);
             await _context.SaveChangesAsync();
 
             return Ok(new { ProfileImageUrl = fileUrl });
@@ -269,6 +279,7 @@ public class UsersController : ControllerBase
 
         currentUser.ProfileImageUrl = null;
         currentUser.UpdatedAt = DateTime.UtcNow;
+        _context.Users.Update(currentUser);
         await _context.SaveChangesAsync();
 
         return Ok(new { Message = "Profile picture deleted successfully." });
@@ -283,14 +294,31 @@ public class UsersController : ControllerBase
             return Forbid();
         }
 
-        var student = await _context.Users
-            .Include(u => u.Department)
-            .Include(u => u.EnrolledClasses)
-            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+        var student = await _context.Users.QueryFirstOrDefaultAsync(
+            "WHERE \"IsDeleted\" = 0 AND lower(\"Id\") = lower(?)",
+            new object?[] { id });
 
         if (student == null)
         {
             return NotFound(new { Message = "Student profile not found." });
+        }
+
+        // Load Department navigation
+        Department? department = null;
+        if (student.DepartmentId.HasValue)
+        {
+            department = await _context.Departments.FindAsync(student.DepartmentId.Value);
+        }
+
+        // Load EnrolledClasses navigation
+        var enrolledClassIds = await _context.GetEnrolledClassIdsAsync(student.Id);
+        var enrolledClasses = new List<ClassWorkspace>();
+        if (enrolledClassIds.Count > 0)
+        {
+            var inClause = string.Join(", ", enrolledClassIds.Select(_ => "lower(?)"));
+            enrolledClasses = await _context.ClassWorkspaces.QueryAsync(
+                $"WHERE lower(\"Id\") IN ({inClause})",
+                enrolledClassIds.Cast<object?>().ToArray());
         }
 
         return Ok(new
@@ -306,11 +334,11 @@ public class UsersController : ControllerBase
             Status = (int)student.Status,
             student.IsActive,
             student.DepartmentId,
-            DepartmentName = student.Department?.Name ?? student.DepartmentName,
+            DepartmentName = department?.Name ?? student.DepartmentName,
             student.ProfileImageUrl,
             student.LastLoginAt,
             student.CreatedAt,
-            EnrolledClasses = student.EnrolledClasses.Select(c => new { c.Id, c.Code, c.Name })
+            EnrolledClasses = enrolledClasses.Select(c => new { c.Id, c.Code, c.Name })
         });
     }
 }

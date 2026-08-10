@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SANS.Domain.Entities;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 using System.Security.Claims;
 
 namespace SANS.WebAPI.Controllers;
@@ -12,9 +11,9 @@ namespace SANS.WebAPI.Controllers;
 [Authorize]
 public class BookmarksController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly D1Context _context;
 
-    public BookmarksController(AppDbContext context)
+    public BookmarksController(D1Context context)
     {
         _context = context;
     }
@@ -31,9 +30,9 @@ public class BookmarksController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var bookmarks = await _context.Bookmarks
-            .Where(b => b.UserId == userId)
-            .ToListAsync();
+        var bookmarks = await _context.Bookmarks.QueryAsync(
+            "WHERE lower(\"UserId\") = lower(?)",
+            new object?[] { userId });
 
         var resultList = new List<object>();
 
@@ -118,8 +117,9 @@ public class BookmarksController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var existing = await _context.Bookmarks
-            .FirstOrDefaultAsync(b => b.UserId == userId && b.EntityType == model.EntityType && b.EntityId == model.EntityId);
+        var existing = await _context.Bookmarks.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"UserId\") = lower(?) AND \"EntityType\" = ? AND lower(\"EntityId\") = lower(?)",
+            new object?[] { userId, model.EntityType, model.EntityId });
 
         if (existing != null)
         {
@@ -138,7 +138,7 @@ public class BookmarksController : ControllerBase
         };
 
         await _context.Bookmarks.AddAsync(newBookmark);
-        
+
         // Log announcement engagement if bookmarked
         if (model.EntityType.Equals("Announcement", StringComparison.OrdinalIgnoreCase))
         {

@@ -1,17 +1,11 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using SANS.Application.Interfaces.Services;
 using SANS.Domain.Entities;
 using SANS.Domain.Enums;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 using SANS.WebAPI.Hubs;
 
 namespace SANS.WebAPI.Controllers;
@@ -21,11 +15,11 @@ namespace SANS.WebAPI.Controllers;
 [Authorize]
 public class DiscussionsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly D1Context _context;
     private readonly IStorageService _storageService;
     private readonly IHubContext<NotificationHub> _hubContext;
 
-    public DiscussionsController(AppDbContext context, IStorageService storageService, IHubContext<NotificationHub> hubContext)
+    public DiscussionsController(D1Context context, IStorageService storageService, IHubContext<NotificationHub> hubContext)
     {
         _context = context;
         _storageService = storageService;
@@ -37,18 +31,81 @@ public class DiscussionsController : ControllerBase
         var firebaseUid = User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(firebaseUid)) return null;
 
-        var user = await _context.Users
-            .Where(u => !u.IsDeleted)
-            .FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+        var user = await _context.Users.QueryFirstOrDefaultAsync(
+            "WHERE \"IsDeleted\" = 0 AND lower(\"FirebaseUid\") = lower(?)",
+            new object?[] { firebaseUid });
 
         if (user == null && Guid.TryParse(firebaseUid, out var parsedGuid))
         {
-            user = await _context.Users
-                .Where(u => !u.IsDeleted)
-                .FirstOrDefaultAsync(u => u.Id == parsedGuid);
+            user = await _context.Users.QueryFirstOrDefaultAsync(
+                "WHERE \"IsDeleted\" = 0 AND lower(\"Id\") = lower(?)",
+                new object?[] { parsedGuid });
         }
 
         return user;
+    }
+
+    // ─── Bulk-load helpers (navigation property replacement) ─────────────────────
+    private async Task<Dictionary<Guid, User>> LoadUsersByIdsAsync(List<Guid> ids)
+    {
+        var map = new Dictionary<Guid, User>();
+        if (ids.Count == 0) return map;
+        var inClause = string.Join(", ", ids.Select(_ => "lower(?)"));
+        var users = await _context.Users.QueryAsync($"WHERE lower(\"Id\") IN ({inClause})", ids.Cast<object?>().ToArray());
+        foreach (var u in users) map[u.Id] = u;
+        return map;
+    }
+
+    private async Task<Dictionary<Guid, ClassWorkspace>> LoadClassesByIdsAsync(List<Guid> ids)
+    {
+        var map = new Dictionary<Guid, ClassWorkspace>();
+        if (ids.Count == 0) return map;
+        var inClause = string.Join(", ", ids.Select(_ => "lower(?)"));
+        var classes = await _context.ClassWorkspaces.QueryAsync($"WHERE lower(\"Id\") IN ({inClause})", ids.Cast<object?>().ToArray());
+        foreach (var c in classes) map[c.Id] = c;
+        return map;
+    }
+
+    private async Task<Dictionary<Guid, List<DiscussionAttachment>>> LoadThreadAttachmentsAsync(List<Guid> threadIds)
+    {
+        var map = new Dictionary<Guid, List<DiscussionAttachment>>();
+        if (threadIds.Count == 0) return map;
+        var inClause = string.Join(", ", threadIds.Select(_ => "lower(?)"));
+        var attachments = await _context.DiscussionAttachments.QueryAsync(
+            $"WHERE lower(\"DiscussionThreadId\") IN ({inClause})",
+            threadIds.Cast<object?>().ToArray());
+        foreach (var a in attachments)
+        {
+            if (!a.DiscussionThreadId.HasValue) continue;
+            if (!map.TryGetValue(a.DiscussionThreadId.Value, out var list))
+            {
+                list = new List<DiscussionAttachment>();
+                map[a.DiscussionThreadId.Value] = list;
+            }
+            list.Add(a);
+        }
+        return map;
+    }
+
+    private async Task<Dictionary<Guid, List<DiscussionAttachment>>> LoadReplyAttachmentsAsync(List<Guid> replyIds)
+    {
+        var map = new Dictionary<Guid, List<DiscussionAttachment>>();
+        if (replyIds.Count == 0) return map;
+        var inClause = string.Join(", ", replyIds.Select(_ => "lower(?)"));
+        var attachments = await _context.DiscussionAttachments.QueryAsync(
+            $"WHERE lower(\"DiscussionReplyId\") IN ({inClause})",
+            replyIds.Cast<object?>().ToArray());
+        foreach (var a in attachments)
+        {
+            if (!a.DiscussionReplyId.HasValue) continue;
+            if (!map.TryGetValue(a.DiscussionReplyId.Value, out var list))
+            {
+                list = new List<DiscussionAttachment>();
+                map[a.DiscussionReplyId.Value] = list;
+            }
+            list.Add(a);
+        }
+        return map;
     }
 
     // ─── 1. Get Threads ──────────────────────────────────────────────────────────
@@ -62,36 +119,33 @@ public class DiscussionsController : ControllerBase
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        var query = _context.DiscussionThreads
-            .Include(t => t.Author)
-            .Include(t => t.ClassWorkspace)
-            .Include(t => t.Attachments)
-            .Where(t => !t.IsDeleted);
+        var threads = await _context.DiscussionThreads.QueryAsync("WHERE \"IsDeleted\" = 0");
 
         if (classWorkspaceId.HasValue && classWorkspaceId.Value != Guid.Empty)
         {
-            query = query.Where(t => t.ClassWorkspaceId == classWorkspaceId.Value);
+            threads = threads.Where(t => t.ClassWorkspaceId == classWorkspaceId.Value).ToList();
         }
         else if (currentUser.Role == UserRole.Student || currentUser.Role == UserRole.ClassRepresentative)
         {
             // Only show threads for classes the student/rep is enrolled in
-            var enrolledClassIds = await _context.ClassWorkspaces
-                .Where(c => !c.IsDeleted && c.Students.Any(s => s.Id == currentUser.Id))
-                .Select(c => c.Id)
-                .ToListAsync();
+            var enrolledClassIds = (await _context.QueryRowsAsync(
+                "SELECT ce.\"EnrolledClassesId\" FROM \"ClassEnrollments\" ce WHERE lower(ce.\"StudentsId\") = lower(?)",
+                new object?[] { currentUser.Id }))
+                .Select(r => D1ValueConverter.ParseGuid(r.TryGetValue("EnrolledClassesId", out var v) ? v : null))
+                .ToList();
 
-            query = query.Where(t => enrolledClassIds.Contains(t.ClassWorkspaceId));
+            threads = threads.Where(t => enrolledClassIds.Contains(t.ClassWorkspaceId)).ToList();
         }
 
         if (!string.IsNullOrWhiteSpace(category) && !category.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(t => t.Category.ToLower() == category.ToLower());
+            threads = threads.Where(t => t.Category.Equals(category, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim().ToLower();
-            query = query.Where(t => t.Title.ToLower().Contains(term) || t.Content.ToLower().Contains(term));
+            threads = threads.Where(t => t.Title.ToLower().Contains(term) || t.Content.ToLower().Contains(term)).ToList();
         }
 
         if (!string.IsNullOrWhiteSpace(filter))
@@ -99,13 +153,13 @@ public class DiscussionsController : ControllerBase
             switch (filter.ToLower())
             {
                 case "pinned":
-                    query = query.Where(t => t.IsPinned);
+                    threads = threads.Where(t => t.IsPinned).ToList();
                     break;
                 case "unanswered":
-                    query = query.Where(t => t.RepliesCount == 0);
+                    threads = threads.Where(t => t.RepliesCount == 0).ToList();
                     break;
                 case "newest":
-                    query = query.OrderByDescending(t => t.CreatedAt);
+                    threads = threads.OrderByDescending(t => t.CreatedAt).ToList();
                     break;
                 default:
                     break;
@@ -114,44 +168,59 @@ public class DiscussionsController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(filter) || filter.ToLower() != "newest")
         {
-            query = query.OrderByDescending(t => t.IsPinned)
-                         .ThenByDescending(t => t.LastActivityAt);
+            threads = threads.OrderByDescending(t => t.IsPinned)
+                             .ThenByDescending(t => t.LastActivityAt)
+                             .ToList();
         }
 
-        var threads = await query.Select(t => new
-        {
-            t.Id,
-            t.ClassWorkspaceId,
-            ClassName = t.ClassWorkspace != null ? t.ClassWorkspace.Name : "General",
-            ClassCode = t.ClassWorkspace != null ? t.ClassWorkspace.Code : "",
-            t.Title,
-            t.Content,
-            t.Category,
-            t.IsPinned,
-            t.IsLocked,
-            t.RepliesCount,
-            t.LastActivityAt,
-            t.CreatedAt,
-            Author = t.Author != null ? new
-            {
-                t.Author.Id,
-                Name = $"{t.Author.FirstName} {t.Author.LastName}",
-                Role = (int)t.Author.Role,
-                RoleName = t.Author.Role.ToString(),
-                AvatarText = $"{t.Author.FirstName.Substring(0, 1)}{t.Author.LastName.Substring(0, 1)}",
-                t.Author.ProfileImageUrl
-            } : null,
-            Attachments = t.Attachments.Select(a => new
-            {
-                a.Id,
-                a.FileName,
-                a.FileUrl,
-                a.FileType,
-                a.FileSize
-            })
-        }).ToListAsync();
+        // Load related data
+        var authorMap = await LoadUsersByIdsAsync(threads.Select(t => t.AuthorId).Distinct().ToList());
+        var classMap = await LoadClassesByIdsAsync(threads.Select(t => t.ClassWorkspaceId).Distinct().ToList());
+        var attachmentMap = await LoadThreadAttachmentsAsync(threads.Select(t => t.Id).ToList());
 
-        return Ok(threads);
+        var result = threads.Select(t =>
+        {
+            authorMap.TryGetValue(t.AuthorId, out var author);
+            classMap.TryGetValue(t.ClassWorkspaceId, out var classWorkspace);
+            t.Author = author;
+            t.ClassWorkspace = classWorkspace;
+            t.Attachments = attachmentMap.TryGetValue(t.Id, out var attachments) ? attachments : new List<DiscussionAttachment>();
+
+            return new
+            {
+                t.Id,
+                t.ClassWorkspaceId,
+                ClassName = t.ClassWorkspace != null ? t.ClassWorkspace.Name : "General",
+                ClassCode = t.ClassWorkspace != null ? t.ClassWorkspace.Code : "",
+                t.Title,
+                t.Content,
+                t.Category,
+                t.IsPinned,
+                t.IsLocked,
+                t.RepliesCount,
+                t.LastActivityAt,
+                t.CreatedAt,
+                Author = t.Author != null ? new
+                {
+                    t.Author.Id,
+                    Name = $"{t.Author.FirstName} {t.Author.LastName}",
+                    Role = (int)t.Author.Role,
+                    RoleName = t.Author.Role.ToString(),
+                    AvatarText = $"{t.Author.FirstName.Substring(0, 1)}{t.Author.LastName.Substring(0, 1)}",
+                    t.Author.ProfileImageUrl
+                } : null,
+                Attachments = t.Attachments.Select(a => new
+                {
+                    a.Id,
+                    a.FileName,
+                    a.FileUrl,
+                    a.FileType,
+                    a.FileSize
+                })
+            };
+        }).ToList();
+
+        return Ok(result);
     }
 
     // ─── 2. Create Thread ────────────────────────────────────────────────────────
@@ -169,6 +238,7 @@ public class DiscussionsController : ControllerBase
 
         var thread = new DiscussionThread
         {
+            Id = Guid.NewGuid(),
             ClassWorkspaceId = form.ClassWorkspaceId,
             Title = form.Title.Trim(),
             Content = form.Content.Trim(),
@@ -190,6 +260,8 @@ public class DiscussionsController : ControllerBase
 
                 thread.Attachments.Add(new DiscussionAttachment
                 {
+                    Id = Guid.NewGuid(),
+                    DiscussionThreadId = thread.Id,
                     FileName = file.FileName,
                     FileUrl = fileUrl,
                     FileType = ext.Replace(".", ""),
@@ -200,6 +272,10 @@ public class DiscussionsController : ControllerBase
         }
 
         _context.DiscussionThreads.Add(thread);
+        foreach (var attachment in thread.Attachments)
+        {
+            _context.DiscussionAttachments.Add(attachment);
+        }
         await _context.SaveChangesAsync();
 
         // Broadcast SignalR real-time notification
@@ -215,20 +291,61 @@ public class DiscussionsController : ControllerBase
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        var thread = await _context.DiscussionThreads
-            .Include(t => t.Author)
-            .Include(t => t.ClassWorkspace)
-            .Include(t => t.Attachments)
-            .Include(t => t.Replies.Where(r => !r.IsDeleted))
-                .ThenInclude(r => r.Author)
-            .Include(t => t.Replies.Where(r => !r.IsDeleted))
-                .ThenInclude(r => r.Attachments)
-            .Include(t => t.Replies.Where(r => !r.IsDeleted))
-                .ThenInclude(r => r.ParentReply)
-                    .ThenInclude(pr => pr!.Author)
-            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        var thread = await _context.DiscussionThreads.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { id });
 
         if (thread == null) return NotFound(new { Message = "Thread not found." });
+
+        // Load related data
+        var author = await _context.Users.FindAsync(thread.AuthorId);
+        var classWorkspace = await _context.ClassWorkspaces.FindAsync(thread.ClassWorkspaceId);
+        thread.Author = author;
+        thread.ClassWorkspace = classWorkspace;
+
+        var threadAttachments = await _context.DiscussionAttachments.QueryAsync(
+            "WHERE lower(\"DiscussionThreadId\") = lower(?)",
+            new object?[] { thread.Id });
+        thread.Attachments = threadAttachments;
+
+        var replies = await _context.DiscussionReplies.QueryAsync(
+            "WHERE lower(\"DiscussionThreadId\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { thread.Id });
+
+        var replyAuthorMap = await LoadUsersByIdsAsync(replies.Select(r => r.AuthorId).Distinct().ToList());
+        var replyAttachmentMap = await LoadReplyAttachmentsAsync(replies.Select(r => r.Id).ToList());
+
+        // Load parent replies (for quoted/threaded replies)
+        var parentReplyIds = replies.Where(r => r.ParentReplyId.HasValue).Select(r => r.ParentReplyId!.Value).Distinct().ToList();
+        var parentReplies = new Dictionary<Guid, DiscussionReply>();
+        if (parentReplyIds.Count > 0)
+        {
+            var inClause = string.Join(", ", parentReplyIds.Select(_ => "lower(?)"));
+            var parents = await _context.DiscussionReplies.QueryAsync(
+                $"WHERE lower(\"Id\") IN ({inClause})",
+                parentReplyIds.Cast<object?>().ToArray());
+            var parentAuthorMap = await LoadUsersByIdsAsync(parents.Select(p => p.AuthorId).Distinct().ToList());
+            foreach (var p in parents)
+            {
+                if (parentAuthorMap.TryGetValue(p.AuthorId, out var parentAuthor)) p.Author = parentAuthor;
+                parentReplies[p.Id] = p;
+            }
+        }
+
+        foreach (var r in replies)
+        {
+            if (replyAuthorMap.TryGetValue(r.AuthorId, out var replyAuthor)) r.Author = replyAuthor;
+            if (replyAttachmentMap.TryGetValue(r.Id, out var rAttachments)) r.Attachments = rAttachments;
+
+            if (r.ParentReplyId.HasValue)
+            {
+                if (parentReplies.TryGetValue(r.ParentReplyId.Value, out var parentReply))
+                {
+                    r.ParentReply = parentReply;
+                }
+            }
+        }
+        thread.Replies = replies;
 
         var result = new
         {
@@ -300,7 +417,9 @@ public class DiscussionsController : ControllerBase
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        var thread = await _context.DiscussionThreads.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        var thread = await _context.DiscussionThreads.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { id });
         if (thread == null) return NotFound(new { Message = "Thread not found." });
 
         if (thread.IsLocked && currentUser.Role != UserRole.Lecturer && currentUser.Role != UserRole.Administrator)
@@ -315,6 +434,7 @@ public class DiscussionsController : ControllerBase
 
         var reply = new DiscussionReply
         {
+            Id = Guid.NewGuid(),
             DiscussionThreadId = thread.Id,
             AuthorId = currentUser.Id,
             Content = form.Content.Trim(),
@@ -334,6 +454,8 @@ public class DiscussionsController : ControllerBase
 
                 reply.Attachments.Add(new DiscussionAttachment
                 {
+                    Id = Guid.NewGuid(),
+                    DiscussionReplyId = reply.Id,
                     FileName = file.FileName,
                     FileUrl = fileUrl,
                     FileType = ext.Replace(".", ""),
@@ -344,15 +466,21 @@ public class DiscussionsController : ControllerBase
         }
 
         _context.DiscussionReplies.Add(reply);
+        foreach (var attachment in reply.Attachments)
+        {
+            _context.DiscussionAttachments.Add(attachment);
+        }
 
         thread.RepliesCount += 1;
         thread.LastActivityAt = DateTime.UtcNow;
+        _context.DiscussionThreads.Update(thread);
 
         // Create notification for thread author if reply is from another user
         if (thread.AuthorId != currentUser.Id)
         {
             _context.Notifications.Add(new Notification
             {
+                Id = Guid.NewGuid(),
                 UserId = thread.AuthorId,
                 Title = "New Discussion Reply",
                 Message = $"{currentUser.FirstName} {currentUser.LastName} replied to your thread: \"{thread.Title}\"",
@@ -377,7 +505,9 @@ public class DiscussionsController : ControllerBase
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        var reply = await _context.DiscussionReplies.FirstOrDefaultAsync(r => r.Id == replyId && !r.IsDeleted);
+        var reply = await _context.DiscussionReplies.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { replyId });
         if (reply == null) return NotFound(new { Message = "Reply not found." });
 
         if (reply.AuthorId != currentUser.Id && currentUser.Role != UserRole.Administrator)
@@ -387,6 +517,7 @@ public class DiscussionsController : ControllerBase
 
         reply.Content = model.Content.Trim();
         reply.UpdatedAt = DateTime.UtcNow;
+        _context.DiscussionReplies.Update(reply);
 
         await _context.SaveChangesAsync();
         return Ok(new { Message = "Reply updated successfully." });
@@ -399,18 +530,22 @@ public class DiscussionsController : ControllerBase
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        var reply = await _context.DiscussionReplies
-            .Include(r => r.Author)
-            .Include(r => r.DiscussionThread)
-            .FirstOrDefaultAsync(r => r.Id == replyId && !r.IsDeleted);
+        var reply = await _context.DiscussionReplies.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { replyId });
 
         if (reply == null) return NotFound(new { Message = "Reply not found." });
+
+        var author = await _context.Users.FindAsync(reply.AuthorId);
+        var thread = reply.DiscussionThreadId != Guid.Empty
+            ? await _context.DiscussionThreads.FindAsync(reply.DiscussionThreadId)
+            : null;
 
         bool isOwner = reply.AuthorId == currentUser.Id;
         bool isLecturerOrAdmin = currentUser.Role == UserRole.Lecturer || currentUser.Role == UserRole.Administrator;
         bool isCourseRep = currentUser.Role == UserRole.ClassRepresentative;
 
-        bool authorIsLecturer = reply.Author != null && (reply.Author.Role == UserRole.Lecturer || reply.Author.Role == UserRole.Administrator);
+        bool authorIsLecturer = author != null && (author.Role == UserRole.Lecturer || author.Role == UserRole.Administrator);
 
         // Course Reps can moderate student/peer replies, but CANNOT delete a Lecturer's reply!
         if (!isOwner && !isLecturerOrAdmin)
@@ -422,9 +557,12 @@ public class DiscussionsController : ControllerBase
         }
 
         reply.IsDeleted = true;
-        if (reply.DiscussionThread != null && reply.DiscussionThread.RepliesCount > 0)
+        _context.DiscussionReplies.Update(reply);
+
+        if (thread != null && thread.RepliesCount > 0)
         {
-            reply.DiscussionThread.RepliesCount -= 1;
+            thread.RepliesCount -= 1;
+            _context.DiscussionThreads.Update(thread);
         }
 
         await _context.SaveChangesAsync();
@@ -439,7 +577,9 @@ public class DiscussionsController : ControllerBase
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        var thread = await _context.DiscussionThreads.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        var thread = await _context.DiscussionThreads.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { id });
         if (thread == null) return NotFound(new { Message = "Thread not found." });
 
         bool isStaff = currentUser.Role == UserRole.Lecturer || currentUser.Role == UserRole.ClassRepresentative || currentUser.Role == UserRole.Administrator;
@@ -452,6 +592,7 @@ public class DiscussionsController : ControllerBase
 
         thread.IsPinned = !thread.IsPinned;
         thread.UpdatedAt = DateTime.UtcNow;
+        _context.DiscussionThreads.Update(thread);
 
         await _context.SaveChangesAsync();
         return Ok(new { Message = thread.IsPinned ? "Thread pinned." : "Thread unpinned.", isPinned = thread.IsPinned, IsPinned = thread.IsPinned });
@@ -465,7 +606,9 @@ public class DiscussionsController : ControllerBase
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        var thread = await _context.DiscussionThreads.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        var thread = await _context.DiscussionThreads.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { id });
         if (thread == null) return NotFound(new { Message = "Thread not found." });
 
         bool isStaff = currentUser.Role == UserRole.Lecturer || currentUser.Role == UserRole.ClassRepresentative || currentUser.Role == UserRole.Administrator;
@@ -478,6 +621,7 @@ public class DiscussionsController : ControllerBase
 
         thread.IsLocked = !thread.IsLocked;
         thread.UpdatedAt = DateTime.UtcNow;
+        _context.DiscussionThreads.Update(thread);
 
         await _context.SaveChangesAsync();
         return Ok(new { Message = thread.IsLocked ? "Thread locked." : "Thread unlocked.", isLocked = thread.IsLocked, IsLocked = thread.IsLocked });
@@ -490,17 +634,19 @@ public class DiscussionsController : ControllerBase
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
 
-        var thread = await _context.DiscussionThreads
-            .Include(t => t.Author)
-            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        var thread = await _context.DiscussionThreads.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { id });
 
         if (thread == null) return NotFound(new { Message = "Thread not found." });
+
+        var author = await _context.Users.FindAsync(thread.AuthorId);
 
         bool isOwner = thread.AuthorId == currentUser.Id;
         bool isLecturerOrAdmin = currentUser.Role == UserRole.Lecturer || currentUser.Role == UserRole.Administrator;
         bool isCourseRep = currentUser.Role == UserRole.ClassRepresentative;
 
-        bool authorIsLecturer = thread.Author != null && (thread.Author.Role == UserRole.Lecturer || thread.Author.Role == UserRole.Administrator);
+        bool authorIsLecturer = author != null && (author.Role == UserRole.Lecturer || author.Role == UserRole.Administrator);
 
         // Course Reps can moderate student/peer threads, but CANNOT delete a Lecturer's thread!
         if (!isOwner && !isLecturerOrAdmin)
@@ -512,6 +658,7 @@ public class DiscussionsController : ControllerBase
         }
 
         thread.IsDeleted = true;
+        _context.DiscussionThreads.Update(thread);
         await _context.SaveChangesAsync();
 
         return Ok(new { Message = "Thread deleted successfully." });

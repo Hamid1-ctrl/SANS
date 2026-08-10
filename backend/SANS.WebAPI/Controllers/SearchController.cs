@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 using System.Security.Claims;
 
 namespace SANS.WebAPI.Controllers;
@@ -11,9 +10,9 @@ namespace SANS.WebAPI.Controllers;
 [Authorize]
 public class SearchController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly D1Context _context;
 
-    public SearchController(AppDbContext context)
+    public SearchController(D1Context context)
     {
         _context = context;
     }
@@ -27,39 +26,37 @@ public class SearchController : ControllerBase
         }
 
         var normalizedQuery = q.Trim().ToLower();
+        var likeQuery = $"%{normalizedQuery}%";
 
         // Search Announcements
-        var announcements = await _context.Announcements
-            .Where(a => !a.IsDeleted && (a.Title.ToLower().Contains(normalizedQuery) || a.Content.ToLower().Contains(normalizedQuery)))
-            .Select(a => new { a.Id, a.Title, Type = "Announcement" })
-            .Take(10)
-            .ToListAsync();
+        var announcements = await _context.Announcements.QueryAsync(
+            "WHERE \"IsDeleted\" = 0 AND (lower(\"Title\") LIKE ? OR lower(\"Content\") LIKE ?) LIMIT 10",
+            null,
+            new object?[] { likeQuery, likeQuery });
 
         // Search Assignments
-        var assignments = await _context.Assignments
-            .Where(a => !a.IsDeleted && (a.Title.ToLower().Contains(normalizedQuery) || a.Description.ToLower().Contains(normalizedQuery)))
-            .Select(a => new { a.Id, a.Title, Type = "Assignment" })
-            .Take(10)
-            .ToListAsync();
+        var assignments = await _context.Assignments.QueryAsync(
+            "WHERE \"IsDeleted\" = 0 AND (lower(\"Title\") LIKE ? OR lower(\"Description\") LIKE ?) LIMIT 10",
+            null,
+            new object?[] { likeQuery, likeQuery });
 
         // Search Resources
-        var resources = await _context.LearningResources
-            .Where(r => !r.IsDeleted && (r.Title.ToLower().Contains(normalizedQuery) || r.Description.ToLower().Contains(normalizedQuery)))
-            .Select(r => new { r.Id, Title = r.Title, Type = "Resource" })
-            .Take(10)
-            .ToListAsync();
+        var resources = await _context.LearningResources.QueryAsync(
+            "WHERE \"IsDeleted\" = 0 AND (lower(\"Title\") LIKE ? OR lower(\"Description\") LIKE ?) LIMIT 10",
+            null,
+            new object?[] { likeQuery, likeQuery });
 
         // Search Classes
-        var classes = await _context.ClassWorkspaces
-            .Where(c => !c.IsDeleted && (c.Name.ToLower().Contains(normalizedQuery) || c.Code.ToLower().Contains(normalizedQuery)))
-            .Select(c => new { c.Id, Title = $"{c.Code} - {c.Name}", Type = "Class" })
-            .Take(10)
-            .ToListAsync();
+        var classes = await _context.ClassWorkspaces.QueryAsync(
+            "WHERE \"IsDeleted\" = 0 AND (lower(\"Name\") LIKE ? OR lower(\"Code\") LIKE ?) LIMIT 10",
+            null,
+            new object?[] { likeQuery, likeQuery });
 
         var mergedResults = announcements
-            .Concat(assignments)
-            .Concat(resources)
-            .Concat(classes)
+            .Select(a => new { a.Id, a.Title, Type = "Announcement" })
+            .Concat(assignments.Select(a => new { a.Id, a.Title, Type = "Assignment" }))
+            .Concat(resources.Select(r => new { r.Id, Title = r.Title, Type = "Resource" }))
+            .Concat(classes.Select(c => new { c.Id, Title = $"{c.Code} - {c.Name}", Type = "Class" }))
             .ToList();
 
         return Ok(mergedResults);

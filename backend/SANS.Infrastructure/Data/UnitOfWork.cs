@@ -1,12 +1,13 @@
 using SANS.Application.Interfaces;
 using SANS.Application.Interfaces.Repositories;
 using SANS.Infrastructure.Repositories;
+using SANS.Infrastructure.Services.D1;
 
 namespace SANS.Infrastructure.Data;
 
 public class UnitOfWork : IUnitOfWork
 {
-    private readonly AppDbContext _context;
+    private readonly D1Context _context;
     private IUserRepository? _users;
     private IDepartmentRepository? _departments;
     private IRefreshTokenRepository? _refreshTokens;
@@ -21,7 +22,7 @@ public class UnitOfWork : IUnitOfWork
     private IExamRepository? _exams;
     private IAuditLogRepository? _auditLogs;
 
-    public UnitOfWork(AppDbContext context)
+    public UnitOfWork(D1Context context)
     {
         _context = context;
     }
@@ -40,9 +41,9 @@ public class UnitOfWork : IUnitOfWork
     public IExamRepository Exams => _exams ??= new ExamRepository(_context);
     public IAuditLogRepository AuditLogs => _auditLogs ??= new AuditLogRepository(_context);
 
-    public async Task<int> SaveChangesAsync()
+    public Task<int> SaveChangesAsync()
     {
-        return await _context.SaveChangesAsync();
+        return _context.SaveChangesAsync();
     }
 
     public void Dispose()

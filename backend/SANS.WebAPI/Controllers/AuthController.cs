@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using SANS.Application.Interfaces.Services;
 using SANS.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
+using SANS.Infrastructure.Services.D1;
 
 namespace SANS.WebAPI.Controllers;
 
@@ -22,11 +22,16 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> TestDb()
     {
-        var db = HttpContext.RequestServices.GetRequiredService<SANS.Infrastructure.Data.AppDbContext>();
-        var depts = await db.Departments.Select(d => new { d.Id, d.Name }).ToListAsync();
-        var classes = await db.ClassWorkspaces.Select(c => new { c.Id, c.Name, c.LecturerId }).ToListAsync();
-        var users = await db.Users.Select(u => new { u.Id, u.FirstName, u.Email, u.Role, u.DepartmentId }).ToListAsync();
-        return Ok(new { depts, classes, users });
+        var db = HttpContext.RequestServices.GetRequiredService<D1Context>();
+        var depts = await db.Departments.QueryAsync();
+        var classes = await db.ClassWorkspaces.QueryAsync();
+        var users = await db.Users.QueryAsync();
+        return Ok(new
+        {
+            depts = depts.Select(d => new { d.Id, d.Name }),
+            classes = classes.Select(c => new { c.Id, c.Name, c.LecturerId }),
+            users = users.Select(u => new { u.Id, u.FirstName, u.Email, Role = (int)u.Role, u.DepartmentId })
+        });
     }
 
     [HttpPost("register")]

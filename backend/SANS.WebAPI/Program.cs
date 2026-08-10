@@ -1,15 +1,17 @@
 using System.Text;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SANS.Domain.Entities;
+using SANS.Domain.Enums;
 using SANS.Application.Interfaces;
 using SANS.Application.Interfaces.Repositories;
 using SANS.Application.Interfaces.Services;
 using SANS.Infrastructure.Data;
 using SANS.Infrastructure.Repositories;
 using SANS.Infrastructure.Services;
+using SANS.Infrastructure.Services.D1;
 using SANS.WebAPI.Hubs;
 using SANS.WebAPI.Middleware;
 using SANS.WebAPI.Services;
@@ -63,12 +65,42 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
-// Configure SQLite Database
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING")
-        ?? "Data Source=sans_local.db"));
+// ─── Cloudflare D1 configuration ──────────────────────────────────────────────
+// The app reads CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID and
+// CLOUDFLARE_API_TOKEN from configuration / environment (including frontend/.env
+// which is loaded above). An optional D1_API_BASE_URL override is used for local
+// testing against the in-memory mock server.
+builder.Services.Configure<D1Options>(options =>
+{
+    options.AccountId = builder.Configuration["CLOUDFLARE_ACCOUNT_ID"]
+        ?? builder.Configuration["CloudflareD1:AccountId"]
+        ?? Environment.GetEnvironmentVariable("CLOUDFLARE_ACCOUNT_ID") ?? string.Empty;
+    options.DatabaseId = builder.Configuration["CLOUDFLARE_D1_DATABASE_ID"]
+        ?? builder.Configuration["CloudflareD1:DatabaseId"]
+        ?? Environment.GetEnvironmentVariable("CLOUDFLARE_D1_DATABASE_ID") ?? string.Empty;
+
+    var apiToken = builder.Configuration["CLOUDFLARE_API_TOKEN"]
+        ?? builder.Configuration["CloudflareD1:ApiToken"]
+        ?? Environment.GetEnvironmentVariable("CLOUDFLARE_API_TOKEN") ?? string.Empty;
+    // appsettings.json ships a literal "CLOUDFLARE_API_TOKEN" placeholder; treat it as unset
+    options.ApiToken = apiToken == "CLOUDFLARE_API_TOKEN" ? string.Empty : apiToken;
+
+    options.BaseUrl = builder.Configuration["D1_API_BASE_URL"]
+        ?? Environment.GetEnvironmentVariable("D1_API_BASE_URL")
+        ?? "https://api.cloudflare.com/client/v4";
+});
+
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<D1Options>>().Value);
+
+builder.Services.AddSingleton<ID1Client>(sp =>
+{
+    var options = sp.GetRequiredService<D1Options>();
+    var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
+    return new D1Client(httpClient, options);
+});
+
+// Request-scoped data context (one shared write queue per request).
+builder.Services.AddScoped<D1Context>();
 
 // Register repositories and unit of work
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -78,7 +110,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Register storage service
+// Register storage service (Cloudflare R2)
 builder.Services.AddScoped<IStorageService, R2StorageService>();
 
 // Register background cleanup service for expired quizzes & assignments
@@ -109,12 +141,12 @@ builder.Services.AddAuthentication(options =>
     {
         OnTokenValidated = async context =>
         {
-            var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-            
+            var dbContext = context.HttpContext.RequestServices.GetRequiredService<D1Context>();
+
             // Firebase puts the UID under the "sub" claim (maps to ClaimTypes.NameIdentifier)
             var firebaseUid = context.Principal?.FindFirst("sub")?.Value
                 ?? context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var email = context.Principal?.FindFirst("email")?.Value 
+            var email = context.Principal?.FindFirst("email")?.Value
                 ?? context.Principal?.FindFirst(ClaimTypes.Email)?.Value;
 
             if (string.IsNullOrEmpty(firebaseUid))
@@ -123,34 +155,88 @@ builder.Services.AddAuthentication(options =>
                 return;
             }
 
-            var user = await dbContext.Users
-                .Where(u => !u.IsDeleted)
-                .FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
-                
+            var user = await dbContext.Users.QueryFirstOrDefaultAsync(
+                "WHERE \"IsDeleted\" = 0 AND lower(\"FirebaseUid\") = lower(?)",
+                new object?[] { firebaseUid });
+
             if (user == null && !string.IsNullOrEmpty(email))
             {
                 // Auto-link existing user by email if UID is missing (e.g. re-registration after delete)
-                user = await dbContext.Users
-                    .Where(u => !u.IsDeleted)
-                    .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+                user = await dbContext.Users.QueryFirstOrDefaultAsync(
+                    "WHERE \"IsDeleted\" = 0 AND lower(\"Email\") = lower(?)",
+                    new object?[] { email });
                 if (user != null)
                 {
                     user.FirebaseUid = firebaseUid;
+                    dbContext.Users.Update(user);
                     await dbContext.SaveChangesAsync();
                 }
             }
 
             if (user == null)
             {
-                // No D1 record exists for this Firebase UID/email.
-                // This is a brand-new user who has NOT completed registration yet.
-                // Fail with 401 so the frontend redirects them to the registration flow.
-                context.Fail("User profile not found. Please complete registration.");
-                return;
+                // Self-healing provisioning: Firebase Auth has already verified this user's
+                // ID token, but no matching record exists in the database (e.g. the D1 write
+                // during registration failed silently, or the database is ephemeral/reset).
+                // Auto-create a minimal profile so the user can sign in instead of being
+                // locked out; they can complete their details later from the profile page.
+                try
+                {
+                    var nameClaim = context.Principal?.FindFirst("name")?.Value
+                        ?? context.Principal?.FindFirst(ClaimTypes.Name)?.Value
+                        ?? email?.Split('@')[0]
+                        ?? "User";
+                    var nameParts = nameClaim.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                    var firstName = nameParts.Length > 0 ? nameParts[0] : "User";
+                    var lastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
+
+                    // Generate a unique StudentId (the Users table has a unique index on this column)
+                    string studentId;
+                    do
+                    {
+                        studentId = "SANS-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+                    }
+                    while (await dbContext.Users.AnyAsync(
+                        "WHERE lower(\"StudentId\") = lower(?)",
+                        new object?[] { studentId }));
+
+                    user = new User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = !string.IsNullOrEmpty(email) ? email : $"{firebaseUid}@sans.edu",
+                        FirstName = firstName,
+                        LastName = lastName,
+                        StudentId = studentId,
+                        PhoneNumber = string.Empty,
+                        Role = UserRole.Student,
+                        Status = AccountStatus.Verified,
+                        FirebaseUid = firebaseUid,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    dbContext.Users.Add(user);
+                    await dbContext.SaveChangesAsync();
+                }
+                catch (Exception provisioningEx)
+                {
+                    // A concurrent /auth/me request (this app fires several in parallel after
+                    // login) may have already provisioned this user, so re-check before failing.
+                    user = await dbContext.Users.QueryFirstOrDefaultAsync(
+                        "WHERE lower(\"FirebaseUid\") = lower(?)",
+                        new object?[] { firebaseUid });
+                    if (user == null || user.IsDeleted)
+                    {
+                        Console.WriteLine($"Self-healing profile provisioning failed: {provisioningEx.Message}");
+                        context.Fail("User profile not found. Please complete registration.");
+                        return;
+                    }
+                    // Provisioned by a concurrent request — fall through and continue normally.
+                }
             }
 
             var claimsIdentity = (ClaimsIdentity)context.Principal!.Identity!;
-            
+
             // Remove the original Firebase UID NameIdentifier claim to avoid duplicate/parse issues
             var existingNameId = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier);
             if (existingNameId != null)
@@ -247,17 +333,28 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Automatically ensure SQLite database tables & schema exist on server startup
+// Verify Cloudflare D1 connectivity at startup (best-effort; failures are logged
+// but do not prevent the app from starting).
 using (var scope = app.Services.CreateScope())
 {
     try
     {
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        dbContext.Database.EnsureCreated();
+        var d1Options = scope.ServiceProvider.GetRequiredService<D1Options>();
+        var d1Context = scope.ServiceProvider.GetRequiredService<D1Context>();
+        if (!d1Options.IsConfigured)
+        {
+            Console.WriteLine("[D1] WARNING: Cloudflare D1 is NOT configured. " +
+                "Set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID and CLOUDFLARE_API_TOKEN.");
+        }
+        else
+        {
+            var count = await d1Context.ScalarAsync("SELECT COUNT(*) FROM \"Users\"");
+            Console.WriteLine($"[D1] Connected to Cloudflare D1. Users table row count: {count}");
+        }
     }
     catch (Exception dbEx)
     {
-        Console.WriteLine($"Database initialization notice: {dbEx.Message}");
+        Console.WriteLine($"[D1] Database connectivity check failed: {dbEx.Message}");
     }
 }
 

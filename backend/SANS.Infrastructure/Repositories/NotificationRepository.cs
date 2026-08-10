@@ -1,34 +1,29 @@
-using Microsoft.EntityFrameworkCore;
 using SANS.Application.Interfaces.Repositories;
 using SANS.Domain.Entities;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 
 namespace SANS.Infrastructure.Repositories;
 
 public class NotificationRepository : Repository<Notification>, INotificationRepository
 {
-    public NotificationRepository(AppDbContext context) : base(context)
+    public NotificationRepository(D1Context context) : base(context)
     {
     }
 
     public async Task<IEnumerable<Notification>> GetByUserIdAsync(Guid userId)
     {
-        return await _dbSet
-            .Include(n => n.Announcement)
-            .Include(n => n.Assignment)
-            .Where(n => n.UserId == userId && !n.IsDeleted)
-            .OrderByDescending(n => n.CreatedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE lower(\"UserId\") = lower(?) AND \"IsDeleted\" = 0",
+            "ORDER BY \"CreatedAt\" DESC",
+            new object?[] { userId });
     }
 
     public async Task<IEnumerable<Notification>> GetUnreadByUserIdAsync(Guid userId)
     {
-        return await _dbSet
-            .Include(n => n.Announcement)
-            .Include(n => n.Assignment)
-            .Where(n => n.UserId == userId && !n.IsRead && !n.IsDeleted)
-            .OrderByDescending(n => n.CreatedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE lower(\"UserId\") = lower(?) AND \"IsRead\" = 0 AND \"IsDeleted\" = 0",
+            "ORDER BY \"CreatedAt\" DESC",
+            new object?[] { userId });
     }
 
     public async Task MarkAsReadAsync(Guid notificationId)
@@ -44,16 +39,14 @@ public class NotificationRepository : Repository<Notification>, INotificationRep
 
     public async Task MarkAllAsReadAsync(Guid userId)
     {
-        var notifications = await _dbSet
-            .Where(n => n.UserId == userId && !n.IsRead && !n.IsDeleted)
-            .ToListAsync();
-        
+        var notifications = await _dbSet.QueryAsync(
+            "WHERE lower(\"UserId\") = lower(?) AND \"IsRead\" = 0 AND \"IsDeleted\" = 0", null, new object?[] { userId });
+
         foreach (var notification in notifications)
         {
             notification.IsRead = true;
             notification.ReadAt = DateTime.UtcNow;
+            _dbSet.Update(notification);
         }
-        
-        _dbSet.UpdateRange(notifications);
     }
 }

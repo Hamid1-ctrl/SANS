@@ -1,37 +1,34 @@
-using Microsoft.EntityFrameworkCore;
 using SANS.Application.Interfaces.Repositories;
 using SANS.Domain.Entities;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 
 namespace SANS.Infrastructure.Repositories;
 
 public class AnnouncementRepository : Repository<Announcement>, IAnnouncementRepository
 {
-    public AnnouncementRepository(AppDbContext context) : base(context)
+    public AnnouncementRepository(D1Context context) : base(context)
     {
     }
 
     public async Task<IEnumerable<Announcement>> GetGlobalAnnouncementsAsync()
     {
-        return await _dbSet
-            .Where(a => a.IsGlobal && !a.IsDeleted)
-            .OrderByDescending(a => a.PublishedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE \"IsGlobal\" = 1 AND \"IsDeleted\" = 0",
+            "ORDER BY \"PublishedAt\" DESC");
     }
 
     public async Task<IEnumerable<Announcement>> GetByDepartmentAsync(Guid departmentId)
     {
-        return await _dbSet
-            .Where(a => a.DepartmentId == departmentId && !a.IsDeleted)
-            .OrderByDescending(a => a.PublishedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE lower(\"DepartmentId\") = lower(?) AND \"IsDeleted\" = 0",
+            "ORDER BY \"PublishedAt\" DESC",
+            new object?[] { departmentId });
     }
 
     public async Task<IEnumerable<Announcement>> GetPinnedAnnouncementsAsync()
     {
-        return await _dbSet
-            .Where(a => a.IsPinned && !a.IsDeleted)
-            .OrderByDescending(a => a.PublishedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE \"IsPinned\" = 1 AND \"IsDeleted\" = 0",
+            "ORDER BY \"PublishedAt\" DESC");
     }
 }

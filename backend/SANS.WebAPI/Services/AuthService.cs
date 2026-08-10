@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SANS.Application.Interfaces;
 using SANS.Application.Interfaces.Repositories;
@@ -56,6 +55,7 @@ public class AuthService : IAuthService
 
         var accessToken = GenerateAccessToken(user);
         var refreshToken = await GenerateRefreshTokenAsync(user);
+        await _unitOfWork.SaveChangesAsync();
 
         return (accessToken, refreshToken.Token, user);
     }
@@ -79,12 +79,34 @@ public class AuthService : IAuthService
         if (existingUser != null)
         {
             // If a fresh Firebase UID is provided and different from the stored one,
-            // this is a re-registration after account self-healing — re-link and return.
+            // this is a re-registration after account self-healing — re-link, upgrade the
+            // auto-provisioned profile with the full registration details, and return.
             if (!string.IsNullOrEmpty(firebaseUid) && existingUser.FirebaseUid != firebaseUid)
             {
                 existingUser.FirebaseUid = firebaseUid;
                 existingUser.LastLoginAt = DateTime.UtcNow;
+                if (!string.IsNullOrEmpty(firstName)) existingUser.FirstName = firstName;
+                if (!string.IsNullOrEmpty(lastName)) existingUser.LastName = lastName;
+                if (!string.IsNullOrEmpty(phoneNumber)) existingUser.PhoneNumber = phoneNumber;
+                if (!string.IsNullOrEmpty(officeNumber)) existingUser.OfficeNumber = officeNumber;
+                if (!string.IsNullOrEmpty(officeHours)) existingUser.OfficeHours = officeHours;
+                if (!string.IsNullOrEmpty(specialization)) existingUser.Specialization = specialization;
                 if (!string.IsNullOrEmpty(indexNumber)) existingUser.IndexNumber = indexNumber;
+
+                // Only update StudentId if it was provided and isn't already used by another user
+                if (!string.IsNullOrEmpty(studentId) &&
+                    !string.Equals(existingUser.StudentId, studentId, StringComparison.OrdinalIgnoreCase) &&
+                    !await _userRepository.StudentIdExistsAsync(studentId))
+                {
+                    existingUser.StudentId = studentId;
+                }
+
+                // Match the role/status rules of a fresh registration so an upgraded
+                // (self-healed) profile reflects what the user actually chose.
+                existingUser.Role = (UserRole)role;
+                existingUser.Status = (UserRole)role == UserRole.Lecturer ? AccountStatus.Pending : AccountStatus.Verified;
+                existingUser.IsActive = (UserRole)role != UserRole.Lecturer;
+
                 await _userRepository.UpdateAsync(existingUser);
                 await _unitOfWork.SaveChangesAsync();
 

@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using SANS.Application.Interfaces;
 using SANS.Application.Interfaces.Services;
 using SANS.Domain.Entities;
 using SANS.Domain.Enums;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 
 namespace SANS.WebAPI.Controllers;
 
@@ -16,10 +14,10 @@ namespace SANS.WebAPI.Controllers;
 [Authorize]
 public class SchedulesController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly D1Context _context;
     private readonly IStorageService _storageService;
 
-    public SchedulesController(AppDbContext context, IStorageService storageService)
+    public SchedulesController(D1Context context, IStorageService storageService)
     {
         _context = context;
         _storageService = storageService;
@@ -34,25 +32,22 @@ public class SchedulesController : ControllerBase
     // Helper to get all workspace IDs linked to the current user
     private async Task<List<Guid>> GetUserClassWorkspaceIdsAsync(Guid userId)
     {
-        var ids = await _context.ClassWorkspaces
-            .Where(c => !c.IsDeleted && (
-                c.Students.Any(st => st.Id == userId) ||
-                // User is assigned as 1st Course Representative for class workspace
-                c.ClassRepresentativeId == userId ||
-                // User is assigned as 2nd Course Representative for class workspace
-                c.SecondClassRepresentativeId == userId ||
-                c.LecturerId == userId ||
-                c.CreatedByUserId == userId
-            ))
-            .Select(c => c.Id)
-            .ToListAsync();
+        var ids = (await _context.QueryRowsAsync(
+            "SELECT c.\"Id\" FROM \"ClassWorkspaces\" c WHERE c.\"IsDeleted\" = 0 AND (" +
+            "(c.\"ClassRepresentativeId\" IS NOT NULL AND lower(c.\"ClassRepresentativeId\") = lower(?)) OR " +
+            "(c.\"SecondClassRepresentativeId\" IS NOT NULL AND lower(c.\"SecondClassRepresentativeId\") = lower(?)) OR " +
+            "(c.\"LecturerId\" IS NOT NULL AND lower(c.\"LecturerId\") = lower(?)) OR " +
+            "(c.\"CreatedByUserId\" IS NOT NULL AND lower(c.\"CreatedByUserId\") = lower(?)) OR " +
+            "EXISTS (SELECT 1 FROM \"ClassEnrollments\" ce WHERE ce.\"EnrolledClassesId\" = c.\"Id\" AND lower(ce.\"StudentsId\") = lower(?)))",
+            new object?[] { userId, userId, userId, userId, userId }))
+            .Select(r => D1ValueConverter.ParseGuid(r.TryGetValue("Id", out var v) ? v : null))
+            .ToList();
 
         if (ids.Count == 0)
         {
-            ids = await _context.ClassWorkspaces
-                .Where(c => !c.IsDeleted)
+            ids = (await _context.ClassWorkspaces.QueryAsync("WHERE \"IsDeleted\" = 0"))
                 .Select(c => c.Id)
-                .ToListAsync();
+                .ToList();
         }
 
         return ids;
@@ -74,18 +69,20 @@ public class SchedulesController : ControllerBase
         var dbUser = await _context.Users.FindAsync(userId);
         if (dbUser == null) return NotFound();
 
-        var query = _context.Schedules.Where(s => !s.IsDeleted && !s.IsMaster);
+        var schedules = await _context.Schedules.QueryAsync("WHERE \"IsDeleted\" = 0 AND \"IsMaster\" = 0");
 
         if (classId.HasValue && classId.Value != Guid.Empty)
         {
-            query = query.Where(s => s.ClassWorkspaceId == classId.Value || s.ClassWorkspaceId == null);
+            schedules = schedules.Where(s => s.ClassWorkspaceId == classId.Value || s.ClassWorkspaceId == null).ToList();
         }
         else
         {
             var userClassIds = await GetUserClassWorkspaceIdsAsync(userId);
             if (userClassIds.Count > 0)
             {
-                query = query.Where(s => (s.ClassWorkspaceId.HasValue && userClassIds.Contains(s.ClassWorkspaceId.Value)) || s.ClassWorkspaceId == null);
+                schedules = schedules
+                    .Where(s => (s.ClassWorkspaceId.HasValue && userClassIds.Contains(s.ClassWorkspaceId.Value)) || s.ClassWorkspaceId == null)
+                    .ToList();
             }
         }
 
@@ -93,32 +90,32 @@ public class SchedulesController : ControllerBase
         if (!string.IsNullOrWhiteSpace(course))
         {
             var term = course.Trim().ToLower();
-            query = query.Where(s => s.CourseCode.ToLower().Contains(term) || s.CourseTitle.ToLower().Contains(term) || s.Title.ToLower().Contains(term));
+            schedules = schedules.Where(s => s.CourseCode.ToLower().Contains(term) || s.CourseTitle.ToLower().Contains(term) || s.Title.ToLower().Contains(term)).ToList();
         }
 
         if (day.HasValue && day.Value >= 1 && day.Value <= 7)
         {
-            query = query.Where(s => s.DayOfWeek == day.Value);
+            schedules = schedules.Where(s => s.DayOfWeek == day.Value).ToList();
         }
 
         if (!string.IsNullOrWhiteSpace(lecturer))
         {
             var term = lecturer.Trim().ToLower();
-            query = query.Where(s => s.LecturerName.ToLower().Contains(term));
+            schedules = schedules.Where(s => s.LecturerName.ToLower().Contains(term)).ToList();
         }
 
         if (!string.IsNullOrWhiteSpace(venue))
         {
             var term = venue.Trim().ToLower();
-            query = query.Where(s => s.Room.ToLower().Contains(term) || s.Building.ToLower().Contains(term) || s.Location.ToLower().Contains(term));
+            schedules = schedules.Where(s => s.Room.ToLower().Contains(term) || s.Building.ToLower().Contains(term) || s.Location.ToLower().Contains(term)).ToList();
         }
 
         if (!string.IsNullOrWhiteSpace(lectureType) && lectureType != "All")
         {
-            query = query.Where(s => s.LectureType.ToLower() == lectureType.Trim().ToLower());
+            schedules = schedules.Where(s => s.LectureType.ToLower() == lectureType.Trim().ToLower()).ToList();
         }
 
-        var list = await query.OrderBy(s => s.DayOfWeek).ThenBy(s => s.StartTime).ToListAsync();
+        var list = schedules.OrderBy(s => s.DayOfWeek).ThenBy(s => s.StartTime).ToList();
         return Ok(list);
     }
 
@@ -126,10 +123,9 @@ public class SchedulesController : ControllerBase
     [HttpGet("master")]
     public async Task<IActionResult> GetMasterTimetable()
     {
-        var masterList = await _context.Schedules
-            .Where(s => !s.IsDeleted && s.IsMaster)
-            .OrderByDescending(s => s.CreatedAt)
-            .ToListAsync();
+        var masterList = await _context.Schedules.QueryAsync(
+            "WHERE \"IsDeleted\" = 0 AND \"IsMaster\" = 1",
+            "ORDER BY \"CreatedAt\" DESC");
 
         if (masterList.Count == 0)
         {
@@ -266,29 +262,29 @@ public class SchedulesController : ControllerBase
         int currentDayOfWeek = (int)today.DayOfWeek;
         if (currentDayOfWeek == 0) currentDayOfWeek = 7;
 
-        var query = _context.Schedules.Where(s => !s.IsDeleted && !s.IsMaster);
+        var allClassSchedules = await _context.Schedules.QueryAsync("WHERE \"IsDeleted\" = 0 AND \"IsMaster\" = 0");
 
         if (classId.HasValue && classId.Value != Guid.Empty)
         {
-            query = query.Where(s => s.ClassWorkspaceId == classId.Value || s.ClassWorkspaceId == null);
+            allClassSchedules = allClassSchedules
+                .Where(s => s.ClassWorkspaceId == classId.Value || s.ClassWorkspaceId == null)
+                .ToList();
         }
         else
         {
             var userClassIds = await GetUserClassWorkspaceIdsAsync(userId);
             if (userClassIds.Count > 0)
             {
-                query = query.Where(s => (s.ClassWorkspaceId.HasValue && userClassIds.Contains(s.ClassWorkspaceId.Value)) || s.ClassWorkspaceId == null);
+                allClassSchedules = allClassSchedules
+                    .Where(s => (s.ClassWorkspaceId.HasValue && userClassIds.Contains(s.ClassWorkspaceId.Value)) || s.ClassWorkspaceId == null)
+                    .ToList();
             }
         }
-
-        var allClassSchedules = await query.ToListAsync();
 
         if (allClassSchedules.Count == 0)
         {
             // Fallback: Return all non-deleted, non-master schedules if workspace filter returned empty
-            allClassSchedules = await _context.Schedules
-                .Where(s => !s.IsDeleted && !s.IsMaster)
-                .ToListAsync();
+            allClassSchedules = await _context.Schedules.QueryAsync("WHERE \"IsDeleted\" = 0 AND \"IsMaster\" = 0");
         }
 
         var todayClasses = allClassSchedules
@@ -392,7 +388,9 @@ public class SchedulesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var schedule = await _context.Schedules.FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
+        var schedule = await _context.Schedules.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { id });
         if (schedule == null)
         {
             return NotFound(new { Message = "Schedule not found" });
@@ -425,7 +423,7 @@ public class SchedulesController : ControllerBase
             }
             else
             {
-                var firstWorkspace = await _context.ClassWorkspaces.FirstOrDefaultAsync(c => !c.IsDeleted);
+                var firstWorkspace = await _context.ClassWorkspaces.QueryFirstOrDefaultAsync("WHERE \"IsDeleted\" = 0");
                 if (firstWorkspace != null)
                 {
                     targetWorkspaceId = firstWorkspace.Id;
@@ -469,13 +467,14 @@ public class SchedulesController : ControllerBase
 
         if (targetWorkspaceId.HasValue)
         {
-            var classWorkspace = await _context.ClassWorkspaces
-                .Include(c => c.Students)
-                .FirstOrDefaultAsync(c => c.Id == targetWorkspaceId.Value && !c.IsDeleted);
+            var classWorkspace = await _context.ClassWorkspaces.QueryFirstOrDefaultAsync(
+                "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+                new object?[] { targetWorkspaceId.Value });
 
             if (classWorkspace != null)
             {
-                foreach (var student in classWorkspace.Students)
+                var students = await _context.GetEnrolledStudentsAsync(classWorkspace.Id);
+                foreach (var student in students)
                 {
                     if (student.Id == userId) continue;
                     _context.Notifications.Add(new Notification
@@ -515,7 +514,9 @@ public class SchedulesController : ControllerBase
         var dbUser = await _context.Users.FindAsync(userId);
         if (dbUser == null) return NotFound();
 
-        var masterEntry = await _context.Schedules.FirstOrDefaultAsync(s => s.Id == model.MasterScheduleId && s.IsMaster && !s.IsDeleted);
+        var masterEntry = await _context.Schedules.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsMaster\" = 1 AND \"IsDeleted\" = 0",
+            new object?[] { model.MasterScheduleId });
         if (masterEntry == null)
         {
             return NotFound(new { Message = "Master timetable entry not found." });
@@ -558,13 +559,14 @@ public class SchedulesController : ControllerBase
 
         if (workspaceId.HasValue)
         {
-            var classWorkspace = await _context.ClassWorkspaces
-                .Include(c => c.Students)
-                .FirstOrDefaultAsync(c => c.Id == workspaceId.Value && !c.IsDeleted);
+            var classWorkspace = await _context.ClassWorkspaces.QueryFirstOrDefaultAsync(
+                "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+                new object?[] { workspaceId.Value });
 
             if (classWorkspace != null)
             {
-                foreach (var student in classWorkspace.Students)
+                var students = await _context.GetEnrolledStudentsAsync(classWorkspace.Id);
+                foreach (var student in students)
                 {
                     _context.Notifications.Add(new Notification
                     {
@@ -592,7 +594,9 @@ public class SchedulesController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var schedule = await _context.Schedules.FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
+        var schedule = await _context.Schedules.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { id });
         if (schedule == null) return NotFound(new { Message = "Schedule not found" });
 
         schedule.Title = model.Title;
@@ -611,6 +615,7 @@ public class SchedulesController : ControllerBase
         schedule.IsRecurring = model.IsRecurring;
         schedule.UpdatedAt = DateTime.UtcNow;
 
+        _context.Schedules.Update(schedule);
         await _context.SaveChangesAsync();
         return Ok(schedule);
     }
@@ -622,12 +627,15 @@ public class SchedulesController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var schedule = await _context.Schedules.FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
+        var schedule = await _context.Schedules.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { id });
         if (schedule == null) return NotFound(new { Message = "Schedule not found" });
 
         schedule.IsDeleted = true;
         schedule.DeletedAt = DateTime.UtcNow;
 
+        _context.Schedules.Update(schedule);
         await _context.SaveChangesAsync();
         return Ok(new { Message = "Schedule deleted successfully" });
     }

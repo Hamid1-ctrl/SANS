@@ -1,5 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 
 namespace SANS.WebAPI.Services;
 
@@ -56,14 +55,14 @@ public class ExpiredItemsCleanupService : BackgroundService
         if (cancellationToken.IsCancellationRequested) return;
 
         using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<D1Context>();
 
         var now = DateTime.UtcNow;
+        var madeChanges = false;
 
         // 1. Cleanup expired Quizzes (where Date < now)
-        var expiredQuizzes = await context.Quizzes
-            .Where(q => !q.IsDeleted && q.Date < now)
-            .ToListAsync(cancellationToken);
+        var quizzes = await context.Quizzes.QueryAsync("WHERE \"IsDeleted\" = 0");
+        var expiredQuizzes = quizzes.Where(q => q.Date < now).ToList();
 
         if (expiredQuizzes.Count > 0)
         {
@@ -72,14 +71,15 @@ public class ExpiredItemsCleanupService : BackgroundService
                 quiz.IsDeleted = true;
                 quiz.DeletedAt = now;
                 quiz.UpdatedBy = "System Expired Cleanup";
+                context.Quizzes.Update(quiz);
             }
             _logger.LogInformation("Auto-deleted {Count} expired quizzes.", expiredQuizzes.Count);
+            madeChanges = true;
         }
 
         // 2. Cleanup expired Assignments (where DueDate < now)
-        var expiredAssignments = await context.Assignments
-            .Where(a => !a.IsDeleted && a.DueDate < now)
-            .ToListAsync();
+        var assignments = await context.Assignments.QueryAsync("WHERE \"IsDeleted\" = 0");
+        var expiredAssignments = assignments.Where(a => a.DueDate < now).ToList();
 
         if (expiredAssignments.Count > 0)
         {
@@ -88,11 +88,13 @@ public class ExpiredItemsCleanupService : BackgroundService
                 assignment.IsDeleted = true;
                 assignment.DeletedAt = now;
                 assignment.UpdatedBy = "System Expired Cleanup";
+                context.Assignments.Update(assignment);
             }
             _logger.LogInformation("Auto-deleted {Count} expired assignments.", expiredAssignments.Count);
+            madeChanges = true;
         }
 
-        if (expiredQuizzes.Count > 0 || expiredAssignments.Count > 0)
+        if (madeChanges)
         {
             await context.SaveChangesAsync();
         }

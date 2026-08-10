@@ -115,8 +115,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
       const token = await userCredential.user.getIdToken(false);
       localStorage.setItem('accessToken', token);
-      const response = await api.get<User>('/auth/me');
-      setUser(response.data);
+      try {
+        const response = await api.get<User>('/auth/me');
+        setUser(response.data);
+      } catch (profileError: any) {
+        const status = profileError?.response?.status;
+        if (status === 401 || status === 404) {
+          // Firebase accepted the credentials but the app database has no profile
+          // for this user (e.g. the database write failed during registration).
+          // The backend self-heals on the next attempt, so give a clear message.
+          throw new Error('Your credentials were accepted, but no profile was found for this account yet. Please try signing in again in a moment.');
+        }
+        throw profileError;
+      }
       return;
     }
 

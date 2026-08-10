@@ -1,46 +1,37 @@
-using Microsoft.EntityFrameworkCore;
 using SANS.Application.Interfaces.Repositories;
 using SANS.Domain.Entities;
-using SANS.Infrastructure.Data;
+using SANS.Infrastructure.Services.D1;
 
 namespace SANS.Infrastructure.Repositories;
 
 public class LearningResourceRepository : Repository<LearningResource>, ILearningResourceRepository
 {
-    public LearningResourceRepository(AppDbContext context) : base(context)
+    public LearningResourceRepository(D1Context context) : base(context)
     {
     }
 
     public async Task<IEnumerable<LearningResource>> GetByDepartmentAsync(Guid departmentId)
     {
-        return await _dbSet
-            .Include(r => r.Department)
-            .Include(r => r.UploadedByUser)
-            .Where(r => r.DepartmentId == departmentId && !r.IsDeleted)
-            .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE lower(\"DepartmentId\") = lower(?) AND \"IsDeleted\" = 0",
+            "ORDER BY \"CreatedAt\" DESC",
+            new object?[] { departmentId });
     }
 
     public async Task<IEnumerable<LearningResource>> GetByCategoryAsync(string category)
     {
-        return await _dbSet
-            .Include(r => r.Department)
-            .Include(r => r.UploadedByUser)
-            .Where(r => r.Category == category && !r.IsDeleted)
-            .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
+        return await _dbSet.QueryAsync(
+            "WHERE lower(\"Category\") = lower(?) AND \"IsDeleted\" = 0",
+            "ORDER BY \"CreatedAt\" DESC",
+            new object?[] { category.Trim() });
     }
 
     public async Task<IEnumerable<LearningResource>> SearchAsync(string searchTerm)
     {
-        return await _dbSet
-            .Include(r => r.Department)
-            .Include(r => r.UploadedByUser)
-            .Where(r => !r.IsDeleted && 
-                (r.Title.Contains(searchTerm) || 
-                 r.Description.Contains(searchTerm) || 
-                 r.Tags.Contains(searchTerm)))
-            .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
+        var term = searchTerm.Trim().ToLower();
+        return await _dbSet.QueryAsync(
+            "WHERE \"IsDeleted\" = 0 AND (lower(\"Title\") LIKE '%' || ? || '%' OR lower(\"Description\") LIKE '%' || ? || '%' OR lower(\"Tags\") LIKE '%' || ? || '%')",
+            "ORDER BY \"CreatedAt\" DESC",
+            new object?[] { term, term, term });
     }
 }
