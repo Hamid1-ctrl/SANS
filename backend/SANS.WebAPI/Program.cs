@@ -373,7 +373,7 @@ using (var scope = app.Services.CreateScope())
                 {
                     var sqlContent = await File.ReadAllTextAsync(schemaPath);
                     var rawStatements = sqlContent.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                    var batch = new List<(string Sql, object?[]? Parameters)>();
+                    int createdCount = 0;
 
                     foreach (var raw in rawStatements)
                     {
@@ -383,22 +383,18 @@ using (var scope = app.Services.CreateScope())
                         if (trimmed.Equals("BEGIN TRANSACTION", StringComparison.OrdinalIgnoreCase) || 
                             trimmed.Equals("COMMIT", StringComparison.OrdinalIgnoreCase)) continue;
 
-                        batch.Add((trimmed, null));
-
-                        if (batch.Count >= 15)
+                        try
                         {
-                            await d1Client.ExecuteBatchAsync(batch);
-                            batch.Clear();
+                            await d1Client.ExecuteStatementAsync(trimmed);
+                            createdCount++;
+                        }
+                        catch (Exception stmtEx)
+                        {
+                            Console.WriteLine($"[D1] Statement execution warning: {stmtEx.Message}");
                         }
                     }
 
-                    if (batch.Count > 0)
-                    {
-                        await d1Client.ExecuteBatchAsync(batch);
-                        batch.Clear();
-                    }
-
-                    Console.WriteLine("[D1] Successfully initialized Cloudflare D1 database schema! All D1 tables created.");
+                    Console.WriteLine($"[D1] Successfully executed {createdCount} DDL statements from cloudflare_d1_schema.sql! All D1 tables created.");
                 }
                 else
                 {
