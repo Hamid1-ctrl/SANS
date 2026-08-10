@@ -769,9 +769,8 @@ const MyClassesPage: React.FC = () => {
                 onChange={(e) => setSemesterVal(e.target.value)}
                 className="px-2 py-2 bg-slate-50 dark:bg-slate-900 border border-[#ece8f3] dark:border-slate-850 rounded-xl text-xs focus:outline-none focus:border-brand-primary font-semibold dark:text-slate-300"
               >
-                <option value="First">First Sem</option>
-                <option value="Second">Second Sem</option>
-                <option value="Third">Third Sem</option>
+                <option value="First">First Semester</option>
+                <option value="Second">Second Semester</option>
               </select>
             </div>
             {createError && (

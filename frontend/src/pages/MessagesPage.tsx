@@ -302,7 +302,7 @@ const MessagesPage: React.FC = () => {
   const handleDeleteReply = async (replyId: string) => {
     if (!selectedThreadId || !window.confirm('Are you sure you want to delete this reply?')) return;
     try {
-      await api.delete(`/discussions/${selectedThreadId}/replies/${replyId}`);
+      await api.delete(`/discussions/replies/${replyId}`);
       showToast('Reply deleted.');
       await fetchThreadDetail(selectedThreadId);
       await fetchThreads();
@@ -320,11 +320,15 @@ const MessagesPage: React.FC = () => {
   const isStaff = isLecturerOrAdmin || isCourseRep;
 
   const getRoleBadge = (roleName?: string) => {
+    // Backend sends Role.ToString() (e.g. "ClassRepresentative", "Administrator")
     if (roleName === 'Lecturer') {
       return <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-500/10 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-500/20">Lecturer</span>;
     }
-    if (roleName === 'CourseRep') {
+    if (roleName === 'ClassRepresentative' || roleName === 'CourseRep') {
       return <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-blue-500/10 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-500/20">Course Rep</span>;
+    }
+    if (roleName === 'Administrator' || roleName === 'Admin') {
+      return <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/10 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-500/20">Administrator</span>;
     }
     return <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500">Student</span>;
   };
@@ -593,33 +597,34 @@ const MessagesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Moderation Toolbar Icons */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={handleTogglePin}
-                    title={currentThread.isPinned ? 'Unpin thread' : 'Pin thread'}
-                    className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                      currentThread.isPinned 
-                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' 
-                        : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
-                    }`}
-                  >
-                    <Pin size={14} className={currentThread.isPinned ? 'fill-amber-500 text-amber-500' : ''} />
-                  </button>
+                {/* Moderation Toolbar Icons — only shown to the author or staff
+                    (backend TogglePin/ToggleLock/DeleteThread enforce the same rule) */}
+                {(currentThread.author?.id === currentUser?.id || isStaff) && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={handleTogglePin}
+                      title={currentThread.isPinned ? 'Unpin thread' : 'Pin thread'}
+                      className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                        currentThread.isPinned 
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' 
+                          : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                      }`}
+                    >
+                      <Pin size={14} className={currentThread.isPinned ? 'fill-amber-500 text-amber-500' : ''} />
+                    </button>
 
-                  <button
-                    onClick={handleToggleLock}
-                    title={currentThread.isLocked ? 'Unlock thread' : 'Lock thread'}
-                    className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                      currentThread.isLocked 
-                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-600' 
-                        : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
-                    }`}
-                  >
-                    {currentThread.isLocked ? <Lock size={14} /> : <Unlock size={14} />}
-                  </button>
+                    <button
+                      onClick={handleToggleLock}
+                      title={currentThread.isLocked ? 'Unlock thread' : 'Lock thread'}
+                      className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                        currentThread.isLocked 
+                          ? 'bg-rose-500/10 border-rose-500/30 text-rose-600' 
+                          : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                      }`}
+                    >
+                      {currentThread.isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                    </button>
 
-                  {(currentThread.author?.id === currentUser?.id || isStaff) && (
                     <button
                       onClick={handleDeleteThread}
                       title="Delete discussion"
@@ -627,8 +632,8 @@ const MessagesPage: React.FC = () => {
                     >
                       <Trash2 size={14} />
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Chat Thread Scrollable Messages Canvas */}
@@ -797,7 +802,7 @@ const MessagesPage: React.FC = () => {
               {/* REPLY FORM / COMPOSITION BOX (INSPIRED BY REFERENCE BOTTOM TOOLBAR) */}
               <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 bg-white dark:bg-[#1E293B] space-y-3 shrink-0">
                 
-                {currentThread.isLocked && !isStaff ? (
+                {currentThread.isLocked && !isLecturerOrAdmin ? (
                   <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
                     <Lock size={14} />
                     <span>This discussion has been locked by faculty moderation. Replies are disabled.</span>

@@ -5,6 +5,7 @@ using SANS.Domain.Enums;
 using SANS.Infrastructure.Data;
 using SANS.Infrastructure.Repositories;
 using SANS.Infrastructure.Services.D1;
+using SANS.WebAPI.Controllers;
 using SANS.WebAPI.Services;
 
 namespace SANS.Tests;
@@ -421,6 +422,94 @@ public class AuthFlowTests
         Assert.Equal(1, await context.ScalarAsync("SELECT COUNT(*) FROM \"Messages\" WHERE \"Content\" = 'pre-migration message'"));
         Assert.Equal(1, await context.ScalarAsync("SELECT COUNT(*) FROM \"ChannelMembers\""));
         Assert.Equal(1, await context.ScalarAsync("SELECT COUNT(*) FROM \"RepProposals\" WHERE \"Title\" = 'Proposal'"));
+
+        // A Course Rep creates a class with NO lecturer — the rebuilt ClassWorkspaces
+        // table must accept a NULL LecturerId (the old NOT NULL column rejected it).
+        var repClass = new ClassWorkspace
+        {
+            Id = Guid.NewGuid(),
+            Name = "Migrated Rep Class",
+            Code = "MIG001",
+            Description = string.Empty,
+            CourseCode = "CS301",
+            DepartmentText = "Computer Science",
+            AcademicLevel = "300",
+            Semester = "First",
+            CreatedByUserId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
+        };
+        context.ClassWorkspaces.Add(repClass);
+        await context.SaveChangesAsync();
+
+        var savedRepClass = await context.ClassWorkspaces.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Code\") = lower(?)", new object?[] { "MIG001" });
+        Assert.NotNull(savedRepClass);
+        Assert.Null(savedRepClass!.LecturerId);
+        Assert.Equal("First", savedRepClass.Semester);
+    }
+
+    [Fact]
+    public async Task Rep_Creating_Class_Workspace_Succeeds_Without_Lecturer()
+    {
+        using var harness = new TestHarness();
+
+        // Course Representative user
+        var rep = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "classrep@example.com",
+            FirstName = "Class",
+            LastName = "Rep",
+            StudentId = "SANS-REP-001",
+            PhoneNumber = "123",
+            Role = UserRole.ClassRepresentative,
+            Status = AccountStatus.Verified,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        harness.Context.Users.Add(rep);
+        await harness.Context.SaveChangesAsync();
+
+        // Exercise the real controller action (the flow that failed in production)
+        var controller = new ClassWorkspacesController(harness.Context)
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+                {
+                    User = new System.Security.Claims.ClaimsPrincipal(
+                        new System.Security.Claims.ClaimsIdentity(new[]
+                        {
+                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, rep.Id.ToString())
+                        }))
+                }
+            }
+        };
+
+        var result = await controller.CreateClass(new CreateClassModel
+        {
+            Name = "Computer Science Level 300",
+            Code = "CS300",
+            Description = "Rep-created class",
+            CourseCode = "CS301",
+            Department = "Computer Science",
+            AcademicLevel = "300",
+            Semester = "Second"
+        });
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.CreatedAtActionResult>(result);
+
+        var saved = await harness.Context.ClassWorkspaces.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Code\") = lower(?)", new object?[] { "CS300" });
+        Assert.NotNull(saved);
+        Assert.Null(saved!.LecturerId); // rep-created => no lecturer yet
+        Assert.Equal("Second", saved.Semester);
+        Assert.Equal(rep.Id, saved.CreatedByUserId);
+
+        // Duplicate code is still rejected
+        var duplicate = await controller.CreateClass(new CreateClassModel { Name = "Dup", Code = "cs300" });
+        Assert.IsType<Microsoft.AspNetCore.Mvc.BadRequestObjectResult>(duplicate);
     }
 
     [Fact]

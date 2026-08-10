@@ -11,14 +11,44 @@
 --
 --  NOT idempotent: do NOT run it against a database that was already created
 --  from the FIXED schema (ALTER TABLE ADD COLUMN would fail on duplicate names).
+--
+--  The table REBUILDS below DROP + RENAME tables. DROP TABLE runs an implicit
+--  DELETE, which would cascade-delete dependent rows in child tables (several
+--  tables have ON DELETE CASCADE foreign keys to ClassWorkspaces). Foreign key
+--  enforcement is therefore disabled for the duration of this migration and
+--  re-enabled at the end.
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- ── ClassWorkspaces: add the academic/creator columns the entity writes ───────
-ALTER TABLE "ClassWorkspaces" ADD COLUMN "CreatedByUserId" TEXT;
-ALTER TABLE "ClassWorkspaces" ADD COLUMN "CourseCode" TEXT;
-ALTER TABLE "ClassWorkspaces" ADD COLUMN "DepartmentText" TEXT;
-ALTER TABLE "ClassWorkspaces" ADD COLUMN "AcademicLevel" TEXT;
-ALTER TABLE "ClassWorkspaces" ADD COLUMN "Semester" TEXT;
+PRAGMA foreign_keys = OFF;
+
+-- ── ClassWorkspaces: rebuild (add the academic/creator columns the entity writes
+--    AND relax the stale NOT NULL LecturerId — a Course Rep creates a class with
+--    no lecturer, so NOT NULL would reject every rep-created workspace) ──────────
+CREATE TABLE "ClassWorkspaces_v2" (
+    "Id" TEXT NOT NULL CONSTRAINT "PK_ClassWorkspaces" PRIMARY KEY,
+    "Name" TEXT NOT NULL,
+    "Code" TEXT NOT NULL,
+    "Description" TEXT NOT NULL,
+    "LecturerId" TEXT NULL,
+    "CreatedByUserId" TEXT NULL,
+    "CourseCode" TEXT NULL,
+    "DepartmentText" TEXT NULL,
+    "AcademicLevel" TEXT NULL,
+    "Semester" TEXT NULL,
+    "ClassRepresentativeId" TEXT NULL,
+    "SecondClassRepresentativeId" TEXT NULL,
+    "CreatedAt" TEXT NOT NULL,
+    "UpdatedAt" TEXT NULL,
+    "CreatedBy" TEXT NULL,
+    "UpdatedBy" TEXT NULL,
+    "IsDeleted" INTEGER NOT NULL,
+    "DeletedAt" TEXT NULL,
+    CONSTRAINT "FK_ClassWorkspaces_Users_LecturerId" FOREIGN KEY ("LecturerId") REFERENCES "Users" ("Id") ON DELETE RESTRICT
+);
+INSERT INTO "ClassWorkspaces_v2" ("Id", "Name", "Code", "Description", "LecturerId", "ClassRepresentativeId", "SecondClassRepresentativeId", "CreatedAt", "UpdatedAt", "CreatedBy", "UpdatedBy", "IsDeleted", "DeletedAt", "CreatedByUserId", "CourseCode", "DepartmentText", "AcademicLevel", "Semester")
+SELECT "Id", "Name", "Code", "Description", "LecturerId", "ClassRepresentativeId", "SecondClassRepresentativeId", "CreatedAt", "UpdatedAt", "CreatedBy", "UpdatedBy", "IsDeleted", "DeletedAt", NULL, NULL, NULL, NULL, NULL FROM "ClassWorkspaces";
+DROP TABLE "ClassWorkspaces";
+ALTER TABLE "ClassWorkspaces_v2" RENAME TO "ClassWorkspaces";
 
 -- ── Announcements: add Category (Priority already existed) ────────────────────
 ALTER TABLE "Announcements" ADD COLUMN "Category" TEXT;
@@ -116,3 +146,5 @@ ALTER TABLE "RepProposals_v2" RENAME TO "RepProposals";
 -- ── Guarantee the seeded admin account is an Administrator (the backend also
 --    self-heals this on every login, so this is belt-and-braces) ──────────────
 UPDATE "Users" SET "Role" = 3, "Status" = 1, "IsActive" = 1 WHERE lower("Email") = 'admin.sans@sans.edu';
+
+PRAGMA foreign_keys = ON;
