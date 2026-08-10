@@ -18,4 +18,8 @@
     <ProjectReference Include="..\SANS.Infrastructure\SANS.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="cloudflare_d1_schema.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -333,14 +333,15 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Verify Cloudflare D1 connectivity at startup (best-effort; failures are logged
-// but do not prevent the app from starting).
+// Verify Cloudflare D1 connectivity & auto-initialize schema if missing at startup
 using (var scope = app.Services.CreateScope())
 {
     try
     {
         var d1Options = scope.ServiceProvider.GetRequiredService<D1Options>();
         var d1Context = scope.ServiceProvider.GetRequiredService<D1Context>();
+        var d1Client = scope.ServiceProvider.GetRequiredService<ID1Client>();
+
         if (!d1Options.IsConfigured)
         {
             Console.WriteLine("[D1] WARNING: Cloudflare D1 is NOT configured. " +
@@ -348,13 +349,67 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-            var count = await d1Context.ScalarAsync("SELECT COUNT(*) FROM \"Users\"");
-            Console.WriteLine($"[D1] Connected to Cloudflare D1. Users table row count: {count}");
+            bool tablesExist = false;
+            try
+            {
+                var count = await d1Context.ScalarAsync("SELECT COUNT(*) FROM \"Users\"");
+                Console.WriteLine($"[D1] Connected to Cloudflare D1. Users table row count: {count}");
+                tablesExist = true;
+            }
+            catch (Exception ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("SQLITE_ERROR", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("[D1] Users table missing in Cloudflare D1 database! Initializing D1 schema...");
+            }
+
+            if (!tablesExist)
+            {
+                var schemaPath = Path.Combine(app.Environment.ContentRootPath, "cloudflare_d1_schema.sql");
+                if (!File.Exists(schemaPath))
+                {
+                    schemaPath = Path.Combine(AppContext.BaseDirectory, "cloudflare_d1_schema.sql");
+                }
+
+                if (File.Exists(schemaPath))
+                {
+                    var sqlContent = await File.ReadAllTextAsync(schemaPath);
+                    var rawStatements = sqlContent.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                    var batch = new List<(string Sql, object?[]? Parameters)>();
+
+                    foreach (var raw in rawStatements)
+                    {
+                        var trimmed = raw.Trim();
+                        if (string.IsNullOrWhiteSpace(trimmed)) continue;
+                        if (trimmed.StartsWith("--")) continue;
+                        if (trimmed.Equals("BEGIN TRANSACTION", StringComparison.OrdinalIgnoreCase) || 
+                            trimmed.Equals("COMMIT", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        batch.Add((trimmed, null));
+
+                        if (batch.Count >= 15)
+                        {
+                            await d1Client.ExecuteBatchAsync(batch);
+                            batch.Clear();
+                        }
+                    }
+
+                    if (batch.Count > 0)
+                    {
+                        await d1Client.ExecuteBatchAsync(batch);
+                        batch.Clear();
+                    }
+
+                    Console.WriteLine("[D1] Successfully initialized Cloudflare D1 database schema! All D1 tables created.");
+                }
+                else
+                {
+                    Console.WriteLine($"[D1] ERROR: Schema file cloudflare_d1_schema.sql not found at {schemaPath}");
+                }
+            }
         }
     }
     catch (Exception dbEx)
     {
-        Console.WriteLine($"[D1] Database connectivity check failed: {dbEx.Message}");
+        Console.WriteLine($"[D1] Database connectivity/initialization check failed: {dbEx.Message}");
     }
 }
 
