@@ -318,6 +318,111 @@ public class AuthFlowTests
             new object?[] { "anycount@example.com" }));
     }
 
+    /// <summary>
+    /// Verifies every D1Table&lt;Entity&gt; exposed by D1Context has a table in the given
+    /// database containing every column the entity maps (D1Table.BuildInsert writes ALL
+    /// mapped columns) and no NOT NULL columns the entity never writes.
+    /// </summary>
+    private static List<string> GetSchemaFailures(D1Context context, D1MockServer server)
+    {
+        var tableProps = typeof(D1Context).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(D1Table<>))
+            .ToList();
+
+        var failures = new List<string>();
+        foreach (var prop in tableProps)
+        {
+            var table = prop.GetValue(context)!;
+            var tableName = (string)prop.PropertyType.GetProperty(nameof(D1Table<object>.TableName))!.GetValue(table)!;
+            var mapped = (string[])prop.PropertyType
+                .GetMethod("GetMappedColumnNames", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(table, null)!;
+
+            var actual = server.GetTableColumns(tableName);
+            var actualNames = actual.Select(c => c.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var missing = mapped.Where(m => !actualNames.Contains(m)).ToList();
+            if (missing.Count > 0)
+            {
+                failures.Add($"Table \"{tableName}\" is missing columns the entity writes: {string.Join(", ", missing)}");
+            }
+
+            var unmappedNotNull = actual
+                .Where(c => c.NotNull && string.IsNullOrEmpty(c.DefaultValue) && !mapped.Contains(c.Name, StringComparer.OrdinalIgnoreCase))
+                .Select(c => c.Name)
+                .ToList();
+            if (unmappedNotNull.Count > 0)
+            {
+                failures.Add($"Table \"{tableName}\" has NOT NULL columns the entity never writes (inserts would fail): {string.Join(", ", unmappedNotNull)}");
+            }
+        }
+        return failures;
+    }
+
+    [Fact]
+    public async Task Schema_Contains_All_Entity_Mapped_Columns()
+    {
+        using var harness = new TestHarness();
+
+        var failures = GetSchemaFailures(harness.Context, harness.Server);
+        Assert.True(failures.Count == 0, "Schema does not match the entities:\n" + string.Join("\n", failures));
+    }
+
+    [Fact]
+    public async Task Old_D1_Schema_Can_Be_Migrated_To_Match_Entities()
+    {
+        // Simulates the deployed production database: created from the OLD schema.
+        using var server = new D1MockServer(schemaFileName: "old_cloudflare_d1_schema.sql", applySeed: false);
+
+        // Seed one row into each table that gets REBUILT by the migration, so the test
+        // proves existing data survives the CREATE-new / COPY / DROP / RENAME dance.
+        // Foreign keys are enforced (as in D1), so insert prerequisites first.
+        server.ExecuteRawSql("INSERT INTO \"Departments\" (\"Id\", \"Name\", \"Code\", \"Description\", \"IsActive\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Dept', 'D1', 'd', 1, '2026-01-01 00:00:00', 0)");
+        server.ExecuteRawSql("INSERT INTO \"Users\" (\"Id\", \"FirstName\", \"LastName\", \"Email\", \"PasswordHash\", \"PhoneNumber\", \"StudentId\", \"Role\", \"IsActive\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('22222222-2222-2222-2222-222222222222', 'A', 'B', 'a@b.com', '', '123', 'S1', 0, 1, '2026-01-01 00:00:00', 0)");
+        server.ExecuteRawSql("INSERT INTO \"Channels\" (\"Id\", \"Name\", \"Description\", \"IsGroup\", \"DepartmentId\", \"CreatedByUserId\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('33333333-3333-3333-3333-333333333333', 'Chan', 'c', 0, 'dddddddd-dddd-dddd-dddd-dddddddddddd', '22222222-2222-2222-2222-222222222222', '2026-01-01 00:00:00', 0)");
+        server.ExecuteRawSql("INSERT INTO \"ClassWorkspaces\" (\"Id\", \"Name\", \"Code\", \"Description\", \"LecturerId\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Class', 'C1', 'x', '22222222-2222-2222-2222-222222222222', '2026-01-01 00:00:00', 0)");
+        server.ExecuteRawSql("INSERT INTO \"Messages\" (\"Id\", \"Content\", \"SenderId\", \"ChannelId\", \"SentAt\", \"IsEdited\", \"IsRead\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('11111111-1111-1111-1111-111111111111', 'pre-migration message', '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333', '2026-01-01 00:00:00', 0, 0, '2026-01-01 00:00:00', 0)");
+        server.ExecuteRawSql("INSERT INTO \"ChannelMembers\" (\"Id\", \"ChannelId\", \"UserId\", \"Role\", \"JoinedAt\", \"IsMuted\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '33333333-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222222', 0, '2026-01-01 00:00:00', 0, '2026-01-01 00:00:00', 0)");
+        server.ExecuteRawSql("INSERT INTO \"RepProposals\" (\"Id\", \"Title\", \"Description\", \"Category\", \"ClassWorkspaceId\", \"SubmittedByUserId\", \"SubmittedByName\", \"Status\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Proposal', 'Details', 'General', 'cccccccc-cccc-cccc-cccc-cccccccccccc', '22222222-2222-2222-2222-222222222222', 'Some Rep', 'Pending', '2026-01-01 00:00:00', 0)");
+
+        // Apply the exact migration the user runs against their existing D1 database.
+        var migrationPath = Path.Combine(AppContext.BaseDirectory, "d1_schema_migration.sql");
+        Assert.True(File.Exists(migrationPath), $"Migration file not found at {migrationPath}");
+
+        var migration = File.ReadAllText(migrationPath);
+        foreach (var raw in migration.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var cleaned = string.Join("\n", raw.Split('\n').Where(l => !l.TrimStart().StartsWith("--"))).Trim();
+            if (cleaned.Length == 0) continue;
+            server.ExecuteRawSql(cleaned);
+        }
+
+        var options = new D1Options
+        {
+            AccountId = "test-account",
+            DatabaseId = "test-database",
+            ApiToken = "test-token",
+            BaseUrl = server.BaseUrl.TrimEnd('/') + "/client/v4"
+        };
+        var client = new D1Client(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, options);
+        using var context = new D1Context(client);
+
+        var failures = GetSchemaFailures(context, server);
+        Assert.True(failures.Count == 0, "Migrated schema does not match the entities:\n" + string.Join("\n", failures));
+
+        // The rebuilt tables must have preserved the pre-migration rows.
+        Assert.Equal(1, await context.ScalarAsync("SELECT COUNT(*) FROM \"Messages\" WHERE \"Content\" = 'pre-migration message'"));
+        Assert.Equal(1, await context.ScalarAsync("SELECT COUNT(*) FROM \"ChannelMembers\""));
+        Assert.Equal(1, await context.ScalarAsync("SELECT COUNT(*) FROM \"RepProposals\" WHERE \"Title\" = 'Proposal'"));
+    }
+
     [Fact]
     public async Task Seeded_Admin_Can_Login_With_Default_Password()
     {

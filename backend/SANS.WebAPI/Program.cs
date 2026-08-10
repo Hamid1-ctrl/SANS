@@ -149,6 +149,12 @@ builder.Services.AddAuthentication(options =>
             var email = context.Principal?.FindFirst("email")?.Value
                 ?? context.Principal?.FindFirst(ClaimTypes.Email)?.Value;
 
+            // The seeded SANS administrator account (matches d1_seed_data.sql). Firebase
+            // authenticates it, but the D1 profile can be missing or mis-provisioned by
+            // self-healing (which defaults unknown users to Student). This account must
+            // always sign in with full Administrator access.
+            const string adminEmail = "admin.sans@sans.edu";
+
             if (string.IsNullOrEmpty(firebaseUid))
             {
                 context.Fail("Firebase UID not found in token.");
@@ -208,7 +214,9 @@ builder.Services.AddAuthentication(options =>
                         LastName = lastName,
                         StudentId = studentId,
                         PhoneNumber = string.Empty,
-                        Role = UserRole.Student,
+                        Role = email != null && string.Equals(email.Trim(), adminEmail, StringComparison.OrdinalIgnoreCase)
+                            ? UserRole.Administrator
+                            : UserRole.Student,
                         Status = AccountStatus.Verified,
                         FirebaseUid = firebaseUid,
                         IsActive = true,
@@ -232,6 +240,31 @@ builder.Services.AddAuthentication(options =>
                         return;
                     }
                     // Provisioned by a concurrent request — fall through and continue normally.
+                }
+            }
+
+            // ─── Administrator account reconciliation ─────────────────────────────
+            // The admin's D1 row may already exist but with a downgraded role (e.g. it
+            // was auto-provisioned as Student before this fix, or the seed data was never
+            // applied to the D1 database). Upgrade it in place so the admin dashboard is
+            // shown instead of the student dashboard.
+            if (user.Email != null &&
+                string.Equals(user.Email.Trim(), adminEmail, StringComparison.OrdinalIgnoreCase) &&
+                (user.Role != UserRole.Administrator || user.Status != AccountStatus.Verified || !user.IsActive))
+            {
+                try
+                {
+                    user.Role = UserRole.Administrator;
+                    user.Status = AccountStatus.Verified;
+                    user.IsActive = true;
+                    dbContext.Users.Update(user);
+                    await dbContext.SaveChangesAsync();
+                }
+                catch (Exception reconciliationEx)
+                {
+                    // A failed admin-role write must not break authentication;
+                    // log it and continue with the (possibly still wrong) role.
+                    Console.WriteLine($"[D1] Admin reconciliation write failed: {reconciliationEx.Message}");
                 }
             }
 

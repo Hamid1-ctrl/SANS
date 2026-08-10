@@ -30,12 +30,12 @@ public sealed class D1MockServer : IDisposable
 
     public string BaseUrl { get; }
 
-    public D1MockServer()
+    public D1MockServer(string schemaFileName = "cloudflare_d1_schema.sql", bool applySeed = true)
     {
         _db = new SqliteConnection("Data Source=:memory:");
         _db.Open();
 
-        var schemaPath = Path.Combine(AppContext.BaseDirectory, "cloudflare_d1_schema.sql");
+        var schemaPath = Path.Combine(AppContext.BaseDirectory, schemaFileName);
         if (!File.Exists(schemaPath))
         {
             throw new InvalidOperationException($"Schema file not found at {schemaPath}");
@@ -53,6 +53,28 @@ public sealed class D1MockServer : IDisposable
             using var cmd = _db.CreateCommand();
             cmd.CommandText = sql;
             cmd.ExecuteNonQuery();
+        }
+
+        // Apply the real seed data (mirrors production): creates the seeded admin
+        // (admin.sans@sans.edu, Role=Administrator), demo users, classes, etc.
+        if (applySeed)
+        {
+            var seedPath = Path.Combine(AppContext.BaseDirectory, "d1_seed_data.sql");
+            if (File.Exists(seedPath))
+            {
+                var seed = File.ReadAllText(seedPath);
+                foreach (var rawStatement in seed.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var sql = rawStatement.Trim();
+                    if (sql.Length == 0) continue;
+                    if (sql.StartsWith("--")) continue;
+                    if (sql.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    using var cmd = _db.CreateCommand();
+                    cmd.CommandText = sql;
+                    cmd.ExecuteNonQuery();
+                }
+            }
         }
 
         var builder = WebApplication.CreateBuilder();
@@ -216,6 +238,34 @@ public sealed class D1MockServer : IDisposable
             }
         }
         return sb.ToString();
+    }
+
+    /// <summary>Runs a raw SQL statement directly against the mock database (used to apply migrations).</summary>
+    public void ExecuteRawSql(string sql)
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>Describes one column of a table via PRAGMA table_info.</summary>
+    public sealed record TableColumnInfo(string Name, bool NotNull, string? DefaultValue);
+
+    /// <summary>Returns the live column definitions of a table in the mock database.</summary>
+    public List<TableColumnInfo> GetTableColumns(string tableName)
+    {
+        var columns = new List<TableColumnInfo>();
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = $"PRAGMA table_info(\"{tableName}\")";
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            columns.Add(new TableColumnInfo(
+                reader.GetString(1),
+                reader.GetInt32(3) == 1,
+                reader.IsDBNull(4) ? null : reader.GetString(4)));
+        }
+        return columns;
     }
 
     public void Dispose()

@@ -40,6 +40,9 @@ public class D1Table<T> where T : class, new()
 
     public string TableName { get; }
 
+    /// <summary>Column names this table's entity maps (for schema verification).</summary>
+    internal string[] GetMappedColumnNames() => _columns.Select(c => c.ColumnName).ToArray();
+
     internal D1Table(ID1Client client, D1Context context)
     {
         _client = client;
@@ -49,13 +52,44 @@ public class D1Table<T> where T : class, new()
     }
 
     /// <summary>
-    /// Maps an entity type to its EF Core table name. EF Core pluralises entity
-    /// names (User -&gt; Users, Quiz -&gt; Quizzes, DiscussionReply -&gt; DiscussionReplies),
-    /// which is what the D1 schema uses. The rules below cover every entity in the
-    /// project; a mismatch would surface as "no such table" at runtime.
+    /// Maps an entity type to its EF Core table name. The D1 schema was generated
+    /// from EF Core migrations, which uses a full inflector with irregular plurals
+    /// (Quiz -&gt; Quizzes), so an explicit map for every known entity is safer than a
+    /// heuristic. Unknown entities fall back to the standard pluralisation rules.
     /// </summary>
+    private static readonly Dictionary<string, string> KnownTableNames = new(StringComparer.Ordinal)
+    {
+        ["User"] = "Users",
+        ["Department"] = "Departments",
+        ["RefreshToken"] = "RefreshTokens",
+        ["Announcement"] = "Announcements",
+        ["Notification"] = "Notifications",
+        ["Assignment"] = "Assignments",
+        ["AssignmentSubmission"] = "AssignmentSubmissions",
+        ["LearningResource"] = "LearningResources",
+        ["Message"] = "Messages",
+        ["Channel"] = "Channels",
+        ["ChannelMember"] = "ChannelMembers",
+        ["Schedule"] = "Schedules",
+        ["Exam"] = "Exams",
+        ["AuditLog"] = "AuditLogs",
+        ["ClassWorkspace"] = "ClassWorkspaces",
+        ["Bookmark"] = "Bookmarks",
+        ["AnnouncementEngagement"] = "AnnouncementEngagements",
+        ["Quiz"] = "Quizzes",
+        ["DiscussionThread"] = "DiscussionThreads",
+        ["DiscussionReply"] = "DiscussionReplies",
+        ["DiscussionAttachment"] = "DiscussionAttachments",
+        ["RepProposal"] = "RepProposals"
+    };
+
     private static string GetTableName(Type type)
     {
+        if (KnownTableNames.TryGetValue(type.Name, out var mapped))
+        {
+            return mapped;
+        }
+
         var name = type.Name;
         if (name.Length == 0) return name;
 
@@ -65,10 +99,9 @@ public class D1Table<T> where T : class, new()
             return name.Substring(0, name.Length - 1) + "ies";
         }
 
-        // s, x, z, ch, sh -> es (Quiz -> Quizzes)
+        // s, x, ch, sh -> es
         if (name.EndsWith("s", StringComparison.Ordinal) ||
             name.EndsWith("x", StringComparison.Ordinal) ||
-            name.EndsWith("z", StringComparison.Ordinal) ||
             name.EndsWith("ch", StringComparison.Ordinal) ||
             name.EndsWith("sh", StringComparison.Ordinal))
         {
