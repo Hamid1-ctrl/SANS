@@ -2,32 +2,37 @@ namespace SANS.Infrastructure.Services.D1;
 
 /// <summary>
 /// Startup-time schema self-healing. Verifies that every table the app writes has
-/// exactly the columns its entity maps (D1Table writes ALL mapped columns), and
-/// rebuilds any table that is out of date:
-///   - missing columns the entity writes (e.g. an old ClassWorkspaces table with no
-///     CourseCode / CreatedByUserId), or
-///   - NOT NULL columns the entity never writes (e.g. ClassWorkspaces.LecturerId was
-///     NOT NULL, which rejected every rep-created class).
+/// exactly the columns its entity maps (D1Table writes ALL mapped columns) and repairs
+/// anything that is out of date, in two distinct passes:
+///   1. Missing columns the entity writes (e.g. an old ClassWorkspaces table with no
+///      CourseCode / CreatedByUserId) are added IN PLACE with an additive
+///      ALTER TABLE ... ADD COLUMN. This is the important, low-risk path: ALTER ADD
+///      COLUMN never touches foreign keys, so it works even under Cloudflare D1's
+///      ENFORCED foreign keys (where the full rebuild below is unsafe). It alone fixes
+///      the long-standing "table classworkspaces has no column named createdbyuserid"
+///      error on existing databases without a destructive reset.
+///   2. NOT NULL columns the entity never writes (e.g. ClassWorkspaces.LecturerId was
+///      NOT NULL, which rejected every rep-created class) cannot be relaxed with ALTER,
+///      so those tables are rebuilt.
 ///
 /// Cloudflare D1 ENFORCES foreign keys and ignores PRAGMA foreign_keys = OFF inside
 /// its implicit transactions, so DROPping a parent table would cascade-delete (or be
-/// blocked by) rows in child tables that still carry FK constraints. The repairer
-/// therefore rebuilds the transitive closure of all FK-affected tables, children
-/// BEFORE parents, so every child's FK constraints are stripped before its parent is
-/// dropped. Rebuilding is idempotent: once a table matches the entity it is skipped,
-/// and data in columns shared between the old and new layout is preserved.
+/// blocked by) rows in child tables that still carry FK constraints. The rebuild pass
+/// therefore targets the transitive closure of all FK-affected tables, children BEFORE
+/// parents, so every child's FK constraints are stripped before its parent is dropped.
+/// Rebuilding is idempotent: once a table matches the entity it is skipped, and data in
+/// columns shared between the old and new layout is preserved.
 ///
 /// Notes / accepted trade-offs:
 ///  - Rebuilding strips FK constraints from every rebuilt table, and the closure also
 ///    rebuilds healthy FK children of a repaired table. After a repair the affected
 ///    tables are FK-free — safe for this app, which soft-deletes and never relies on
-///    database cascades.
-///  - A table whose columns are ALL present but which has a stale NOT NULL on a
-///    nullable entity column (e.g. the old ClassWorkspaces.LecturerId) is only rebuilt
-///    when it is also missing a column or is an FK child of a rebuilt table — which is
-///    exactly the case for every old-schema database this repairer exists for.
+///    database cascades. Because missing columns are now added in place first, this
+///    rebuild path is reserved for the (rarer) stale-NOT-NULL case.
 ///  - If foreign-key introspection fails for any table, the repair ABORTS (fail-closed)
-///    rather than risk dropping a parent whose children still carry constraints.
+///    rather than risk dropping a parent whose children still carry constraints. The
+///    in-place ADD COLUMN pass still runs for tables repaired before the abort point
+///    (it is safe), but any rebuild that cannot be proven safe is skipped.
 /// </summary>
 public class D1SchemaRepairer
 {
@@ -43,7 +48,8 @@ public class D1SchemaRepairer
     }
 
     /// <summary>
-    /// Repairs every out-of-date table. Returns the number of tables that were rebuilt.
+    /// Repairs every out-of-date table — adding missing columns in place and rebuilding
+    /// where a rebuild is required. Returns the number of tables that were repaired.
     /// Never throws: failures are logged and skipped so a bad table cannot block startup
     /// or the repair of the others.
     /// </summary>
@@ -51,39 +57,63 @@ public class D1SchemaRepairer
     {
         var specs = BuildSpecs(context);
         var specsByName = specs.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
-        var repaired = new List<string>();
+        var repaired = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
             // 1. FK graph: parent table -> tables that reference it (children).
             var children = await BuildForeignKeyGraphAsync(specs);
 
-            // 2. Find tables whose live schema no longer matches their entity.
+            // 2. Diff every table against its entity.
+            //    - addColumns: tables missing an entity-mapped column (e.g. the old
+            //      ClassWorkspaces without CreatedByUserId) -> fixed FIRST, safely, IN PLACE
+            //      via an additive ALTER TABLE ADD COLUMN.
+            //    - needsRepair: the original rebuild trigger — any table with missing columns
+            //      OR a stale NOT NULL. This is kept separate from addColumns because the full
+            //      RebuildTableAsync is also what relaxes a NOT NULL on a *nullable* entity
+            //      column (e.g. the old ClassWorkspaces.LecturerId was NOT NULL, which rejected
+            //      every rep-created class). ALTER ADD COLUMN cannot drop a NOT NULL constraint.
+            var addColumns = new List<TableSpec>();
             var needsRepair = new List<TableSpec>();
+
             foreach (var spec in specs)
             {
                 var (missing, staleNotNull) = await DiffAsync(spec);
-                if (missing.Count > 0 || staleNotNull.Count > 0)
-                {
-                    needsRepair.Add(spec);
-                }
+                if (missing.Count == 0 && staleNotNull.Count == 0) continue;
+                if (missing.Count > 0) addColumns.Add(spec);
+                needsRepair.Add(spec);
             }
 
-            if (needsRepair.Count == 0)
+            if (addColumns.Count == 0 && needsRepair.Count == 0)
             {
                 return 0;
             }
 
-            // 3. Rebuilding a parent DROPs it, which (with D1's enforced foreign keys)
-            //    would cascade into child tables still carrying FK constraints. Rebuilding
-            //    a child strips its FKs, so the closure of ALL affected children must be
-            //    rebuilt too — and children must be rebuilt BEFORE their parents.
+            // 3. FIRST, add missing columns IN PLACE. This additive ALTER never touches
+            //    foreign keys, so unlike the full rebuild it is unaffected by D1's ENFORCED
+            //    foreign keys. It alone fixes "no column named CreatedByUserId" style errors
+            //    on old databases, preserving every existing row — even if the rebuild below
+            //    is blocked by D1's foreign-key enforcement on the next boot.
+            foreach (var spec in addColumns)
+            {
+                if (await AddMissingColumnsAsync(spec))
+                {
+                    repaired.Add(spec.Name);
+                }
+            }
+
+            // 4. Rebuild out-of-date tables (missing columns OR stale NOT NULL). Rebuilding a
+            //    parent DROPs it, which (with D1's enforced foreign keys) would cascade into
+            //    child tables still carrying FK constraints, so the closure of ALL affected
+            //    children must be rebuilt too — children BEFORE parents. Rebuilding is what
+            //    makes a nullable entity column actually nullable in storage, which is required
+            //    for a Course Rep to create a class with no lecturer assigned.
             var repairSet = ExpandToChildren(
                 needsRepair.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase),
                 children);
             var order = TopologicalOrder(repairSet, children);
 
-            // 4. Rebuild each table atomically (one D1 batch per table).
+            // 5. Rebuild each table atomically (one D1 batch per table).
             foreach (var name in order)
             {
                 await RebuildTableAsync(specsByName[name]);
@@ -273,6 +303,51 @@ public class D1SchemaRepairer
         statements.Add(("PRAGMA foreign_keys = ON", null));
 
         await TryExecuteBatchAsync(statements, spec.Name);
+    }
+
+    /// <summary>
+    /// Adds any missing (entity-mapped but not live) columns to a table IN PLACE via an
+    /// additive ALTER TABLE ADD COLUMN. Every added column is nullable (matching how the
+    /// rebuild path emits them), so the statement is valid even on a table that already
+    /// holds rows. Because ALTER ADD COLUMN never touches foreign keys, it works even
+    /// under Cloudflare D1's ENFORCED foreign keys — the primary fix for "no column named
+    /// CreatedByUserId". Idempotent: only columns the entity maps and the live table lacks
+    /// are added; once present they are skipped. Returns true if at least one column was
+    /// added.
+    /// </summary>
+    private async Task<bool> AddMissingColumnsAsync(TableSpec spec)
+    {
+        var live = await GetLiveColumnsAsync(spec.Name);
+        if (live.Count == 0)
+        {
+            // Table does not exist yet — schema init / the rebuild path will create it.
+            return false;
+        }
+
+        var statements = spec.Columns
+            .Where(c => !live.ContainsKey(c.Name))
+            .Select(c => ($"ALTER TABLE \"{spec.Name}\" ADD COLUMN \"{c.Name}\" {SqlType(c.Kind)}", (object?[]?)null))
+            .ToList();
+
+        if (statements.Count == 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            // One atomic D1 batch per table; all statements are attribute-additive so the
+            // batch is safe and idempotent (a partially-repaired table just reports fewer).
+            await _client.ExecuteBatchAsync(statements);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Atomic batch — nothing was applied. The table is left untouched and will be
+            // retried on the next boot. In-place column adds are harmless to re-attempt.
+            Console.WriteLine($"[D1] Adding missing column(s) to \"{spec.Name}\" failed (will retry next boot): {ex.Message}");
+            return false;
+        }
     }
 
     private async Task TryExecuteBatchAsync(List<(string Sql, object?[]? Parameters)> statements, string tableName)

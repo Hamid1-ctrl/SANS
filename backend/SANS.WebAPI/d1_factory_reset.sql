@@ -20,6 +20,10 @@
 
 PRAGMA foreign_keys = OFF;
 
+-- EF migration history (unused by the D1 app, but present in the schema file)
+DROP TABLE IF EXISTS "__EFMigrationsHistory";
+DROP TABLE IF EXISTS "__EFMigrationsHistory_v2";
+
 -- Leftover tables from any earlier (unsafe) DROP/RENAME migration attempts
 DROP TABLE IF EXISTS "RepProposals_v2";
 DROP TABLE IF EXISTS "DiscussionAttachments_v2";
