@@ -435,84 +435,33 @@ using (var scope = app.Services.CreateScope())
                 }
             }
 
-            // ─── Schema self-healing migration ─────────────────────────────────────
-            // A D1 database created from an OLDER cloudflare_d1_schema.sql is missing
-            // columns the current entities write (e.g. ClassWorkspaces.CourseCode and a
-            // nullable LecturerId). Without them, every INSERT throws
-            // InvalidOperationException, which GlobalExceptionMiddleware maps to HTTP 400
-            // ("request failed with status code 400" in the UI). Apply
-            // d1_schema_migration.sql automatically on boot so a redeploy alone repairs
-            // existing databases — no manual wrangler step required.
-            bool needsMigration = false;
+            // ─── Schema repair engine (startup self-healing) ──────────────────────
+            // Validates EVERY table against the columns its entity maps and rebuilds any
+            // table that is out of date (missing columns the entity writes, or NOT NULL
+            // columns the entity never writes). Runs on every boot, so no matter what
+            // state an existing D1 database is in — old schema, partially applied
+            // migration, a column the app now writes that the DB never had — it is
+            // repaired automatically while preserving existing data. Because Cloudflare
+            // D1 ENFORCES foreign keys (and ignores PRAGMA foreign_keys = OFF inside its
+            // implicit transactions), the repairer rebuilds FK children before their
+            // parents so dropping a parent can never cascade-delete dependent rows.
+            // Idempotent: once a table matches, it is skipped.
             try
             {
-                // pragma_table_info is supported by Cloudflare D1 and lists the live columns.
-                // Gate on ONE marker column per table the migration touches: if any is
-                // missing the migration (or a retry of it) is required. This also makes a
-                // partially-applied migration self-heal on the next boot instead of being
-                // skipped forever because a single column happened to already exist.
-                var markerColumns = new Dictionary<string, string>
+                var repairer = new D1SchemaRepairer(d1Client);
+                int repaired = await repairer.RepairIfNeededAsync(d1Context);
+                if (repaired < 0)
                 {
-                    ["ClassWorkspaces"] = "CourseCode",
-                    ["Announcements"] = "Category",
-                    ["Assignments"] = "AttachmentFileName",
-                    ["Notifications"] = "AnnouncementId",
-                    ["Messages"] = "ReceiverId",
-                    ["RepProposals"] = "SubmittedByRepId"
-                };
-
-                foreach (var marker in markerColumns)
+                    Console.WriteLine("[D1] Schema repair skipped this boot (see abort reason above); it will retry on the next boot.");
+                }
+                else if (repaired == 0)
                 {
-                    var columns = await d1Context.QueryRowsAsync($"SELECT name FROM pragma_table_info('{marker.Key}')");
-                    if (columns.Count == 0 ||
-                        !columns.Any(r => string.Equals(
-                            Convert.ToString(r.TryGetValue("name", out var v) ? v : null),
-                            marker.Value, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        needsMigration = true;
-                        break;
-                    }
+                    Console.WriteLine("[D1] Schema check OK — every table matches the app's entities.");
                 }
             }
-            catch (Exception checkEx)
+            catch (Exception repairEx)
             {
-                // Connectivity/other failure — do NOT attempt the migration now.
-                Console.WriteLine($"[D1] Schema up-to-date check failed ({checkEx.Message}); skipping auto-migration.");
-            }
-
-            if (needsMigration)
-            {
-                var migrationPath = Path.Combine(app.Environment.ContentRootPath, "d1_schema_migration.sql");
-                if (!File.Exists(migrationPath))
-                {
-                    migrationPath = Path.Combine(AppContext.BaseDirectory, "d1_schema_migration.sql");
-                }
-
-                if (File.Exists(migrationPath))
-                {
-                    var migrationSql = await File.ReadAllTextAsync(migrationPath);
-                    int executed = 0;
-                    foreach (var raw in migrationSql.Split(';', StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        var cleaned = string.Join("\n", raw.Split('\n').Where(l => !l.TrimStart().StartsWith("--"))).Trim();
-                        if (cleaned.Length == 0) continue;
-
-                        try
-                        {
-                            await d1Client.ExecuteStatementAsync(cleaned);
-                            executed++;
-                        }
-                        catch (Exception stmtEx)
-                        {
-                            Console.WriteLine($"[D1] Migration statement warning: {stmtEx.Message}");
-                        }
-                    }
-                    Console.WriteLine($"[D1] Auto-applied d1_schema_migration.sql ({executed} statements) — ClassWorkspaces and related tables are up to date.");
-                }
-                else
-                {
-                    Console.WriteLine($"[D1] ERROR: Migration file d1_schema_migration.sql not found at {migrationPath}");
-                }
+                Console.WriteLine($"[D1] Schema repair check failed: {repairEx.Message}");
             }
         }
     }

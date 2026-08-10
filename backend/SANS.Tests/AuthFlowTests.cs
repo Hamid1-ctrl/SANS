@@ -370,7 +370,7 @@ public class AuthFlowTests
     }
 
     [Fact]
-    public async Task Old_D1_Schema_Can_Be_Migrated_To_Match_Entities()
+    public async Task Old_D1_Schema_Is_Fully_Repaired_By_Startup_Repairer()
     {
         // Simulates the deployed production database: created from the OLD schema.
         using var server = new D1MockServer(schemaFileName: "old_cloudflare_d1_schema.sql", applySeed: false);
@@ -393,18 +393,6 @@ public class AuthFlowTests
         server.ExecuteRawSql("INSERT INTO \"RepProposals\" (\"Id\", \"Title\", \"Description\", \"Category\", \"ClassWorkspaceId\", \"SubmittedByUserId\", \"SubmittedByName\", \"Status\", \"CreatedAt\", \"IsDeleted\") " +
             "VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Proposal', 'Details', 'General', 'cccccccc-cccc-cccc-cccc-cccccccccccc', '22222222-2222-2222-2222-222222222222', 'Some Rep', 'Pending', '2026-01-01 00:00:00', 0)");
 
-        // Apply the exact migration the user runs against their existing D1 database.
-        var migrationPath = Path.Combine(AppContext.BaseDirectory, "d1_schema_migration.sql");
-        Assert.True(File.Exists(migrationPath), $"Migration file not found at {migrationPath}");
-
-        var migration = File.ReadAllText(migrationPath);
-        foreach (var raw in migration.Split(';', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var cleaned = string.Join("\n", raw.Split('\n').Where(l => !l.TrimStart().StartsWith("--"))).Trim();
-            if (cleaned.Length == 0) continue;
-            server.ExecuteRawSql(cleaned);
-        }
-
         var options = new D1Options
         {
             AccountId = "test-account",
@@ -414,6 +402,13 @@ public class AuthFlowTests
         };
         var client = new D1Client(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, options);
         using var context = new D1Context(client);
+
+        // Run the startup repair engine exactly as Program.cs does on boot. Because D1
+        // enforces foreign keys, the repairer rebuilds FK children BEFORE their parents
+        // so the DROP of a parent can never cascade-delete the child rows seeded below.
+        var repairer = new D1SchemaRepairer(client);
+        int repaired = await repairer.RepairIfNeededAsync(context);
+        Assert.True(repaired > 0, "The old-schema database should require repairs");
 
         var failures = GetSchemaFailures(context, server);
         Assert.True(failures.Count == 0, "Migrated schema does not match the entities:\n" + string.Join("\n", failures));
@@ -513,7 +508,7 @@ public class AuthFlowTests
     }
 
     [Fact]
-    public async Task Startup_Migration_Repairs_Old_D1_Database_So_Rep_Can_Create_Class()
+    public async Task Repair_Engine_Repairs_Old_D1_Database_So_Rep_Can_Create_Class()
     {
         // Simulates the deployed production database: created from the OLD schema,
         // which lacks ClassWorkspaces.CourseCode and keeps LecturerId NOT NULL.
@@ -559,7 +554,8 @@ public class AuthFlowTests
             var cols = await client.ExecuteStatementAsync($"SELECT name FROM pragma_table_info('{table}')");
             return cols.Rows
                 .Select(r => Convert.ToString(r.FirstOrDefault().Value))
-                .Where(n => n != null)
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Select(n => n!)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
 
@@ -567,16 +563,11 @@ public class AuthFlowTests
         Assert.DoesNotContain("Category", await GetColumnsAsync("Announcements"));
         Assert.DoesNotContain("ReceiverId", await GetColumnsAsync("Messages"));
 
-        // 3. Apply the migration exactly as Program.cs does on boot.
-        var migrationPath = Path.Combine(AppContext.BaseDirectory, "d1_schema_migration.sql");
-        Assert.True(File.Exists(migrationPath), $"Migration file not found at {migrationPath}");
-        var migration = File.ReadAllText(migrationPath);
-        foreach (var raw in migration.Split(';', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var cleaned = string.Join("\n", raw.Split('\n').Where(l => !l.TrimStart().StartsWith("--"))).Trim();
-            if (cleaned.Length == 0) continue;
-            await client.ExecuteStatementAsync(cleaned);
-        }
+        // 3. Run the startup repair engine exactly as Program.cs does on boot.
+        using var repairContext = new D1Context(client);
+        var repairer = new D1SchemaRepairer(client);
+        int repaired = await repairer.RepairIfNeededAsync(repairContext);
+        Assert.True(repaired > 0, "The old-schema database should require repairs");
 
         // 4. The same check now passes — the schema is up to date again.
         Assert.Contains("CourseCode", await GetColumnsAsync("ClassWorkspaces"));
@@ -636,6 +627,122 @@ public class AuthFlowTests
         Assert.Null(saved!.LecturerId);
         Assert.Equal("First", saved.Semester);
         Assert.Equal(rep.Id, saved.CreatedByUserId);
+    }
+
+    [Fact]
+    public async Task Repair_Engine_Fixes_Old_D1_Database_Preserves_Data_And_Allows_Create()
+    {
+        // The deployed production database is still on the OLD schema (ClassWorkspaces
+        // lacks CourseCode / CreatedByUserId and LecturerId is NOT NULL) — exactly the
+        // state that produced "no column named CreatedByUserId" / HTTP 400 on create.
+        using var server = new D1MockServer(schemaFileName: "old_cloudflare_d1_schema.sql", applySeed: false);
+
+        // A class created before the repair must survive the automated rebuild.
+        // (Foreign keys are enforced in the mock as in D1, so the referenced lecturer
+        // must exist first.)
+        server.ExecuteRawSql("INSERT INTO \"Users\" (\"Id\", \"FirstName\", \"LastName\", \"Email\", \"PasswordHash\", \"PhoneNumber\", \"StudentId\", \"Role\", \"IsActive\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('22222222-2222-2222-2222-222222222222', 'L', 'T', 'lecturer@example.com', '', '123', 'S1', 1, 1, '2026-01-01 00:00:00', 0)");
+        server.ExecuteRawSql("INSERT INTO \"ClassWorkspaces\" (\"Id\", \"Name\", \"Code\", \"Description\", \"LecturerId\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Pre-existing Class', 'PRE001', 'x', '22222222-2222-2222-2222-222222222222', '2026-01-01 00:00:00', 0)");
+
+        // A CHILD row (Announcement -> ClassWorkspaces via ON DELETE CASCADE) must survive
+        // the repair: rebuilding a parent must never cascade-delete dependent rows, which
+        // is why the repairer rebuilds FK children first (stripping their constraints).
+        server.ExecuteRawSql("INSERT INTO \"Announcements\" (\"Id\", \"Title\", \"Content\", \"IsGlobal\", \"IsPinned\", \"ViewCount\", \"IsVerified\", \"ClassWorkspaceId\", \"CreatedAt\", \"IsDeleted\") " +
+            "VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Pre-repair Announcement', 'child of the pre-existing class', 0, 0, 0, 0, 'cccccccc-cccc-cccc-cccc-cccccccccccc', '2026-01-01 00:00:00', 0)");
+
+        var options = new D1Options
+        {
+            AccountId = "test-account",
+            DatabaseId = "test-database",
+            ApiToken = "test-token",
+            BaseUrl = server.BaseUrl.TrimEnd('/') + "/client/v4"
+        };
+        var client = new D1Client(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, options);
+        using var context = new D1Context(client);
+
+        // The repair engine rebuilds every out-of-date table on boot.
+        var repairer = new D1SchemaRepairer(client);
+        int repaired = await repairer.RepairIfNeededAsync(context);
+        Assert.True(repaired > 0, "The old-schema database should require repairs");
+
+        var failures = GetSchemaFailures(context, server);
+        Assert.True(failures.Count == 0, "Schema still does not match entities after repair:\n" + string.Join("\n", failures));
+
+        // Pre-existing data survives the rebuild — both the parent row and its child row
+        // (no FK cascade deletion).
+        Assert.Equal(1, await context.ScalarAsync("SELECT COUNT(*) FROM \"ClassWorkspaces\" WHERE \"Code\" = 'PRE001'"));
+        Assert.Equal(1, await context.ScalarAsync("SELECT COUNT(*) FROM \"Announcements\" WHERE \"Id\" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'"));
+
+        // And a Course Rep can now create a class workspace — the exact flow that
+        // returned HTTP 400 before.
+        var rep = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "rep.after.repair@example.com",
+            FirstName = "Rep",
+            LastName = "Repaired",
+            StudentId = "SANS-REPAIR-001",
+            PhoneNumber = "123",
+            Role = UserRole.ClassRepresentative,
+            Status = AccountStatus.Verified,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(rep);
+        await context.SaveChangesAsync();
+
+        var controller = new ClassWorkspacesController(context)
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+                {
+                    User = new System.Security.Claims.ClaimsPrincipal(
+                        new System.Security.Claims.ClaimsIdentity(new[]
+                        {
+                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, rep.Id.ToString())
+                        }))
+                }
+            }
+        };
+
+        var result = await controller.CreateClass(new CreateClassModel
+        {
+            Name = "Rep Class After Repair",
+            Code = "REPAIR1",
+            Description = "Created after repair",
+            CourseCode = "CS400",
+            Department = "Computer Science",
+            AcademicLevel = "400",
+            Semester = "Second"
+        });
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.CreatedAtActionResult>(result);
+
+        var saved = await context.ClassWorkspaces.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Code\") = lower(?)", new object?[] { "REPAIR1" });
+        Assert.NotNull(saved);
+        Assert.Null(saved!.LecturerId);
+        Assert.Equal(rep.Id, saved.CreatedByUserId);
+    }
+
+    [Fact]
+    public async Task Repair_Engine_Is_NoOp_On_UpToDate_Schema()
+    {
+        using var harness = new TestHarness();
+        var client = new D1Client(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, new D1Options
+        {
+            AccountId = "test-account",
+            DatabaseId = "test-database",
+            ApiToken = "test-token",
+            BaseUrl = harness.Server.BaseUrl.TrimEnd('/') + "/client/v4"
+        });
+
+        // A database created from the current (fixed) schema needs no repairs.
+        var repairer = new D1SchemaRepairer(client);
+        int repaired = await repairer.RepairIfNeededAsync(harness.Context);
+        Assert.Equal(0, repaired);
     }
 
     [Fact]

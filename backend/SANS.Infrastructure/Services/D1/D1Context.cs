@@ -44,6 +44,28 @@ public class D1Context : IDisposable
 
     public D1Table<T> Table<T>() where T : class, new() => (D1Table<T>)GetTable(typeof(T));
 
+    /// <summary>
+    /// Enumerates every D1Table-backed entity mapping (table name + mapped columns) so
+    /// the startup schema repairer can verify/repair the live D1 schema against it.
+    /// </summary>
+    internal List<(string TableName, D1Column[] Columns)> GetTables()
+    {
+        var result = new List<(string, D1Column[])>();
+        var tableProps = typeof(D1Context)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(D1Table<>));
+        foreach (var prop in tableProps)
+        {
+            var table = prop.GetValue(this)!;
+            var tableName = (string)prop.PropertyType.GetProperty(nameof(D1Table<object>.TableName))!.GetValue(table)!;
+            var columns = (D1Column[])prop.PropertyType
+                .GetProperty(nameof(D1Table<object>.Columns), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(table)!;
+            result.Add((tableName, columns));
+        }
+        return result;
+    }
+
     private object GetTable(Type type)
     {
         if (_tables.TryGetValue(type, out var table))

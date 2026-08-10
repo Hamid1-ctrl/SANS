@@ -43,6 +43,9 @@ public class D1Table<T> where T : class, new()
     /// <summary>Column names this table's entity maps (for schema verification).</summary>
     internal string[] GetMappedColumnNames() => _columns.Select(c => c.ColumnName).ToArray();
 
+    /// <summary>Mapped columns with their storage kinds (for schema verification/repair).</summary>
+    internal D1Column[] Columns => _columns;
+
     internal D1Table(ID1Client client, D1Context context)
     {
         _client = client;
