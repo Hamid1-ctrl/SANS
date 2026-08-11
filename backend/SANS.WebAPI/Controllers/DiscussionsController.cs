@@ -585,7 +585,6 @@ public class DiscussionsController : ControllerBase
     [HttpPost("{id}/pin")]
     [HttpPut("{id}/pin")]
     [HttpPatch("{id}/pin")]
-    [Consumes("application/json", "text/plain", "application/x-www-form-urlencoded", "multipart/form-data", "*/*")]
     public async Task<IActionResult> TogglePin([FromRoute] Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
@@ -614,7 +613,6 @@ public class DiscussionsController : ControllerBase
     [HttpPost("{id}/lock")]
     [HttpPut("{id}/lock")]
     [HttpPatch("{id}/lock")]
-    [Consumes("application/json", "text/plain", "application/x-www-form-urlencoded", "multipart/form-data", "*/*")]
     public async Task<IActionResult> ToggleLock([FromRoute] Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
