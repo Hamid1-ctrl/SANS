@@ -68,13 +68,23 @@ public class ClassWorkspacesController : ControllerBase
 
         List<ClassWorkspace> classes;
 
-        if (dbUser.Role == UserRole.Lecturer)
+        if (dbUser.Role == UserRole.Administrator)
+        {
+            classes = await _context.ClassWorkspaces.QueryAsync("WHERE \"IsDeleted\" = 0");
+        }
+        else if (dbUser.Role == UserRole.Lecturer)
         {
             classes = await _context.ClassWorkspaces.QueryAsync(
                 "WHERE \"IsDeleted\" = 0 AND (" +
                 "(\"LecturerId\" IS NOT NULL AND lower(\"LecturerId\") = lower(?)) OR " +
-                "(\"CreatedByUserId\" IS NOT NULL AND lower(\"CreatedByUserId\") = lower(?)))",
+                "(\"CreatedByUserId\" IS NOT NULL AND lower(\"CreatedByUserId\") = lower(?)) OR " +
+                "\"LecturerId\" IS NULL)",
                 new object?[] { userId, userId });
+
+            if (classes.Count == 0)
+            {
+                classes = await _context.ClassWorkspaces.QueryAsync("WHERE \"IsDeleted\" = 0");
+            }
         }
         else
         {
@@ -278,7 +288,7 @@ public class ClassWorkspacesController : ControllerBase
             AcademicLevel = model.AcademicLevel,
             Semester = model.Semester,
             CreatedByUserId = userId,
-            LecturerId = dbUser.Role == UserRole.Lecturer ? userId : null,
+            LecturerId = (dbUser.Role == UserRole.Lecturer || dbUser.Role == UserRole.Administrator) ? userId : null,
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false
         };
