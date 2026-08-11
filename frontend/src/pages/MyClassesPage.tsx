@@ -304,11 +304,12 @@ const MyClassesPage: React.FC = () => {
     }
     try {
       await api.put(`/classworkspaces/${editingClassId}`, {
-        name: editClassName,
-        code: editClassCode,
-        courseCode: editCourseCode,
-        departmentText: editDepartment,
-        academicLevel: parseInt(editLevel),
+        name: editClassName.trim(),
+        code: editClassCode.trim(),
+        courseCode: editCourseCode.trim(),
+        department: editDepartment.trim(),
+        departmentText: editDepartment.trim(),
+        academicLevel: String(editLevel).trim(),
         semester: editSemester,
         description: editClassDesc
       });
@@ -317,7 +318,7 @@ const MyClassesPage: React.FC = () => {
       await refreshClasses();
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
-      setEditError(extractApiError(err, 'Failed to update class workspace.'));
+      setEditError(err.response?.data?.message || extractApiError(err, 'Failed to update class workspace.'));
     }
   };
 

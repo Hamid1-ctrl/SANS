@@ -453,15 +453,23 @@ public class ClassWorkspacesController : ControllerBase
         if (classWorkspace == null || classWorkspace.IsDeleted)
             return NotFound(new { Message = "Class workspace not found" });
 
-        if (classWorkspace.LecturerId != userId && classWorkspace.CreatedByUserId != userId)
+        var dbUser = await _context.Users.FindAsync(userId);
+        bool isStaff = dbUser != null && (dbUser.Role == UserRole.Lecturer || dbUser.Role == UserRole.Administrator || dbUser.Role == UserRole.ClassRepresentative);
+        bool isOwner = classWorkspace.LecturerId == userId || classWorkspace.CreatedByUserId == userId;
+
+        if (!isStaff && !isOwner)
             return Forbid();
 
-        classWorkspace.Name = model.Name;
-        classWorkspace.Description = model.Description ?? string.Empty;
-        classWorkspace.CourseCode = model.CourseCode;
-        classWorkspace.DepartmentText = model.Department;
-        classWorkspace.AcademicLevel = model.AcademicLevel;
-        classWorkspace.Semester = model.Semester;
+        if (!string.IsNullOrWhiteSpace(model.Name)) classWorkspace.Name = model.Name.Trim();
+        if (!string.IsNullOrWhiteSpace(model.Code)) classWorkspace.Code = model.Code.Trim().ToUpper();
+        if (!string.IsNullOrWhiteSpace(model.CourseCode)) classWorkspace.CourseCode = model.CourseCode.Trim().ToUpper();
+        if (model.Description != null) classWorkspace.Description = model.Description;
+
+        string? dept = !string.IsNullOrWhiteSpace(model.DepartmentText) ? model.DepartmentText : model.Department;
+        if (!string.IsNullOrWhiteSpace(dept)) classWorkspace.DepartmentText = dept.Trim();
+
+        if (!string.IsNullOrWhiteSpace(model.AcademicLevel)) classWorkspace.AcademicLevel = model.AcademicLevel.Trim();
+        if (!string.IsNullOrWhiteSpace(model.Semester)) classWorkspace.Semester = model.Semester.Trim();
         classWorkspace.UpdatedAt = DateTime.UtcNow;
 
         _context.ClassWorkspaces.Update(classWorkspace);
@@ -653,9 +661,11 @@ public class CreateClassModel
 public class UpdateClassModel
 {
     public string Name { get; set; } = string.Empty;
+    public string? Code { get; set; }
     public string? Description { get; set; }
     public string? CourseCode { get; set; }
     public string? Department { get; set; }
+    public string? DepartmentText { get; set; }
     public string? AcademicLevel { get; set; }
     public string? Semester { get; set; }
 }
