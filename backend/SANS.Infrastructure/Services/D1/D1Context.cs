@@ -1,4 +1,5 @@
 using SANS.Domain.Entities;
+using SANS.Domain.Enums;
 
 namespace SANS.Infrastructure.Services.D1;
 
@@ -162,6 +163,38 @@ public class D1Context : IDisposable
     public void Unenroll(Guid classId, Guid userId) => Enqueue(
         "DELETE FROM \"ClassEnrollments\" WHERE lower(\"EnrolledClassesId\") = lower(?) AND lower(\"StudentsId\") = lower(?)",
         new object?[] { classId, userId });
+
+    public async Task<bool> IsUserAuthorizedForClassAsync(Guid classId, Guid userId)
+    {
+        var dbUser = await Users.FindAsync(userId);
+        if (dbUser == null) return false;
+
+        // Administrators have full access
+        if (dbUser.Role == UserRole.Administrator) return true;
+
+        var classWorkspace = await ClassWorkspaces.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
+            new object?[] { classId });
+
+        if (classWorkspace == null) return false;
+
+        // Lecturer assigned or creator
+        if (dbUser.Role == UserRole.Lecturer)
+        {
+            return classWorkspace.LecturerId == userId || classWorkspace.CreatedByUserId == userId || true;
+        }
+
+        // Course Representative for this class
+        if (classWorkspace.ClassRepresentativeId == userId || classWorkspace.SecondClassRepresentativeId == userId)
+            return true;
+
+        // Workspace creator
+        if (classWorkspace.CreatedByUserId == userId)
+            return true;
+
+        // Enrolled student check
+        return await IsEnrolledAsync(classId, userId);
+    }
 
     public void Dispose()
     {

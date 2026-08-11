@@ -923,4 +923,87 @@ public class AuthFlowTests
         Assert.Equal("admin.sans@sans.edu", login.user.Email);
         Assert.Equal(UserRole.Administrator, login.user.Role);
     }
+
+    /// <summary>
+    /// Reproduces the "HTTP 400 when a lecturer posts an assignment" bug.
+    /// The seeded database stores Guid ids as UPPERCASE text (see d1_seed_data.sql), while the
+    /// app writes newly-generated Guids as LOWERCASE ("D" format) via
+    /// <see cref="D1ValueConverter.ToTransportValue"/>. Cloudflare D1 enforces foreign keys with
+    /// case-sensitive TEXT comparison, so a newly-posted assignment that references a seeded
+    /// (uppercase) class/student via its Guid fails the FK constraint. Because D1 batches are
+    /// atomic, that single failure aborts the whole assignment + notification batch, and the
+    /// GlobalExceptionMiddleware turns the resulting InvalidOperationException into HTTP 400.
+    /// </summary>
+    [Fact]
+    public async Task Lecturer_Posting_Assignment_To_Seeded_Class_Fails_FK_Case_Mismatch()
+    {
+        using var server = new D1MockServer(applySeed: true);
+
+        // Seeded database stores GUID ids as UPPERCASE text (mirrors d1_seed_data.sql).
+        var seededClassId = "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB";
+        var seededStudentId = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA";
+        server.ExecuteRawSql("INSERT OR IGNORE INTO \"Users\" (\"Id\",\"FirstName\",\"LastName\",\"Email\",\"PasswordHash\",\"PhoneNumber\",\"StudentId\",\"Role\",\"IsActive\",\"CreatedAt\",\"IsDeleted\") " +
+            $"VALUES ('{seededStudentId}','Seed','Student','seed.student@example.com','','123','S-SEED',0,1,'2026-07-01 00:00:00',0)");
+        server.ExecuteRawSql("INSERT OR IGNORE INTO \"ClassWorkspaces\" (\"Id\",\"Name\",\"Code\",\"Description\",\"CreatedAt\",\"IsDeleted\") " +
+            $"VALUES ('{seededClassId}','Seed Class','SEED101','Seeded class','2026-07-01 00:00:00',0)");
+        server.ExecuteRawSql($"INSERT OR IGNORE INTO \"ClassEnrollments\" (\"EnrolledClassesId\",\"StudentsId\") VALUES ('{seededClassId}','{seededStudentId}')");
+
+        var options = new D1Options
+        {
+            AccountId = "test-account",
+            DatabaseId = "test-database",
+            ApiToken = "test-token",
+            BaseUrl = server.BaseUrl.TrimEnd('/') + "/client/v4"
+        };
+        var client = new D1Client(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, options);
+        using var context = new D1Context(client);
+        var uow = new UnitOfWork(context);
+
+        // A lecturer registered through the app: its Id is persisted as LOWERCASE.
+        var lecturer = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "lec@example.com",
+            FirstName = "Lec",
+            LastName = "Tur",
+            StudentId = "S-LEC",
+            PhoneNumber = "123",
+            Role = UserRole.Lecturer,
+            Status = AccountStatus.Verified,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(lecturer);
+        await context.SaveChangesAsync();
+
+        var controller = new AssignmentsController(uow, context)
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+                {
+                    User = new System.Security.Claims.ClaimsPrincipal(
+                        new System.Security.Claims.ClaimsIdentity(new[]
+                        {
+                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, lecturer.Id.ToString())
+                        }))
+                }
+            }
+        };
+
+        // Posting an assignment to the seeded (uppercase) class should FAIL the foreign key
+        // check because the app serializes the Guid as lowercase. This reproduces the 400.
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Create(new CreateAssignmentModel
+        {
+            Title = "HW1",
+            Description = "d",
+            Instructions = "i",
+            DueDate = DateTime.UtcNow.AddDays(7),
+            MaxPoints = 100,
+            AllowLateSubmission = true,
+            ClassWorkspaceId = Guid.Parse(seededClassId)
+        }));
+
+        Assert.Contains("FOREIGN KEY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -93,14 +93,24 @@ public class ClassWorkspacesController : ControllerBase
             classes = await _context.ClassWorkspaces.QueryAsync("WHERE \"IsDeleted\" = 0");
         }
 
-        // Load lecturers and student counts in bulk
+        // Load lecturers, student counts, and user's enrollment status in bulk
         var lecturerIds = classes.Where(c => c.LecturerId.HasValue).Select(c => c.LecturerId!.Value).Distinct().ToList();
         var lecturerMap = await LoadUsersByIdsAsync(lecturerIds);
         var counts = await LoadStudentsCountsAsync(classes.Select(c => c.Id).ToList());
+        var enrolledClassIds = (dbUser.Role == UserRole.Lecturer || dbUser.Role == UserRole.Administrator)
+            ? classes.Select(c => c.Id).ToList()
+            : await _context.GetEnrolledClassIdsAsync(userId);
 
         var result = classes.Select(c =>
         {
             lecturerMap.TryGetValue(c.LecturerId ?? Guid.Empty, out var lecturer);
+            bool isEnrolled = dbUser.Role == UserRole.Administrator ||
+                             dbUser.Role == UserRole.Lecturer ||
+                             c.ClassRepresentativeId == userId ||
+                             c.SecondClassRepresentativeId == userId ||
+                             c.CreatedByUserId == userId ||
+                             enrolledClassIds.Contains(c.Id);
+
             return new
             {
                 c.Id,
@@ -117,7 +127,8 @@ public class ClassWorkspacesController : ControllerBase
                 LecturerName = lecturer != null ? $"{lecturer.FirstName} {lecturer.LastName}" : "Unassigned",
                 HasLecturer = c.LecturerId.HasValue,
                 StudentsCount = counts.TryGetValue(c.Id, out var n) ? n : 0,
-                CreatedByUserId = c.CreatedByUserId
+                CreatedByUserId = c.CreatedByUserId,
+                IsEnrolled = isEnrolled
             };
         });
 
@@ -311,17 +322,17 @@ public class ClassWorkspacesController : ControllerBase
 
         var normalizedCode = model.Code.Trim().ToUpper();
         var classWorkspace = await _context.ClassWorkspaces.QueryFirstOrDefaultAsync(
-            "WHERE \"Code\" = ? AND \"IsDeleted\" = 0",
-            new object?[] { normalizedCode });
+            "WHERE (upper(\"Code\") = ? OR upper(\"CourseCode\") = ?) AND \"IsDeleted\" = 0",
+            new object?[] { normalizedCode, normalizedCode });
 
         if (classWorkspace == null)
-            return NotFound(new { Message = "Class with this code not found" });
+            return NotFound(new { Message = "Invalid course code. Class not found." });
 
-        if (await _context.IsEnrolledAsync(classWorkspace.Id, userId))
-            return BadRequest(new { Message = "You are already enrolled in this class" });
-
-        _context.Enroll(classWorkspace.Id, userId);
-        await _context.SaveChangesAsync();
+        if (!await _context.IsEnrolledAsync(classWorkspace.Id, userId))
+        {
+            _context.Enroll(classWorkspace.Id, userId);
+            await _context.SaveChangesAsync();
+        }
 
         var lecturer = classWorkspace.LecturerId.HasValue ? await _context.Users.FindAsync(classWorkspace.LecturerId.Value) : null;
         var studentsCount = await _context.CountEnrolledAsync(classWorkspace.Id);
@@ -337,7 +348,9 @@ public class ClassWorkspacesController : ControllerBase
             classWorkspace.AcademicLevel,
             classWorkspace.Semester,
             LecturerName = lecturer != null ? $"{lecturer.FirstName} {lecturer.LastName}" : "Unassigned",
-            StudentsCount = studentsCount
+            StudentsCount = studentsCount,
+            IsEnrolled = true,
+            Message = "Successfully enrolled in class workspace!"
         });
     }
 

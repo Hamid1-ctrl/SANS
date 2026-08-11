@@ -253,7 +253,25 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const handleSelectClass = (cls: any) => {
+  const handleSelectClass = async (cls: any) => {
+    const isStudent = user?.role === UserRole.Student || (user?.role as any) === 0 || (user?.role as any) === 'Student';
+    if (cls && cls.isEnrolled === false && isStudent) {
+      const enteredCode = prompt(`To enter "${cls.name}", please enter the Course Code (e.g. ${cls.code || cls.courseCode || 'CE300'}):`, cls.code || cls.courseCode || '');
+      if (!enteredCode || !enteredCode.trim()) return;
+
+      try {
+        await api.post('/classworkspaces/join', { code: enteredCode.trim() });
+        setSuccessMsg(`Successfully joined ${cls.name}!`);
+        await refreshClasses();
+        setSelectedClassId(cls.id);
+        setActiveClass({ ...cls, isEnrolled: true });
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'Invalid course code. Access denied.');
+      }
+      return;
+    }
+
     setSelectedClassId(cls.id);
     setActiveClass(cls);
   };

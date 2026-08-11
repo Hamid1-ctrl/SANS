@@ -362,9 +362,15 @@ const MyClassesPage: React.FC = () => {
                 <div 
                   key={item.id} 
                   onClick={() => {
-                    setActiveClassId(item.id);
-                    setActiveClass(item);
-                    navigate('/dashboard');
+                    if (item.isEnrolled === false && (user?.role === UserRole.Student || (user?.role as any) === 0)) {
+                      setJoinCode(item.code || item.courseCode || '');
+                      setJoinError('');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                      setActiveClassId(item.id);
+                      setActiveClass(item);
+                      navigate('/dashboard');
+                    }
                   }}
                   className={`border rounded-2xl p-5 flex flex-col justify-between hover:scale-[1.02] hover:shadow-md transition-all duration-300 cursor-pointer ${
                     item.id === activeClass?.id 

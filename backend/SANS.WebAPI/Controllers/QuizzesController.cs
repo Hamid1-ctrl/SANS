@@ -57,6 +57,11 @@ public class QuizzesController : ControllerBase
 
         if (classId.HasValue && classId.Value != Guid.Empty)
         {
+            if (!await _context.IsUserAuthorizedForClassAsync(classId.Value, userId))
+            {
+                return StatusCode(403, new { Message = "Access denied. You are not enrolled in this class workspace." });
+            }
+
             quizzes = quizzes
                 .Where(q => q.ClassWorkspaceId == classId.Value || q.ClassWorkspaceId == Guid.Empty)
                 .ToList();

@@ -300,6 +300,7 @@ export interface ClassWorkspace {
   createdBy?: string;          // Name of creator (for available classes view)
   classRepresentativeId?: string;
   secondClassRepresentativeId?: string;
+  isEnrolled?: boolean;
 }
 
 export interface Bookmark {

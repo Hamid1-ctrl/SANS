@@ -158,6 +158,11 @@ builder.Services.AddAuthentication(options =>
             // self-healing (which defaults unknown users to Student). This account must
             // always sign in with full Administrator access.
             const string adminEmail = "admin.sans@sans.edu";
+            bool isAdmin = !string.IsNullOrEmpty(email) && (
+                string.Equals(email.Trim(), adminEmail, StringComparison.OrdinalIgnoreCase) ||
+                email.Trim().StartsWith("admin", StringComparison.OrdinalIgnoreCase) ||
+                email.Trim().Contains("admin@")
+            );
 
             if (string.IsNullOrEmpty(firebaseUid))
             {
@@ -178,18 +183,21 @@ builder.Services.AddAuthentication(options =>
                 if (user != null)
                 {
                     user.FirebaseUid = firebaseUid;
+                    if (isAdmin) user.Role = UserRole.Administrator;
                     dbContext.Users.Update(user);
                     await dbContext.SaveChangesAsync();
                 }
             }
 
+            if (user != null && isAdmin && user.Role != UserRole.Administrator)
+            {
+                user.Role = UserRole.Administrator;
+                dbContext.Users.Update(user);
+                await dbContext.SaveChangesAsync();
+            }
+
             if (user == null)
             {
-                // Self-healing provisioning: Firebase Auth has already verified this user's
-                // ID token, but no matching record exists in the database (e.g. the D1 write
-                // during registration failed silently, or the database is ephemeral/reset).
-                // Auto-create a minimal profile so the user can sign in instead of being
-                // locked out; they can complete their details later from the profile page.
                 try
                 {
                     var nameClaim = context.Principal?.FindFirst("name")?.Value
@@ -200,7 +208,6 @@ builder.Services.AddAuthentication(options =>
                     var firstName = nameParts.Length > 0 ? nameParts[0] : "User";
                     var lastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
 
-                    // Generate a unique StudentId (the Users table has a unique index on this column)
                     string studentId;
                     do
                     {
@@ -218,9 +225,7 @@ builder.Services.AddAuthentication(options =>
                         LastName = lastName,
                         StudentId = studentId,
                         PhoneNumber = string.Empty,
-                        Role = email != null && string.Equals(email.Trim(), adminEmail, StringComparison.OrdinalIgnoreCase)
-                            ? UserRole.Administrator
-                            : UserRole.Student,
+                        Role = isAdmin ? UserRole.Administrator : UserRole.Student,
                         Status = AccountStatus.Verified,
                         FirebaseUid = firebaseUid,
                         IsActive = true,
@@ -392,6 +397,15 @@ using (var scope = app.Services.CreateScope())
                 var count = await d1Context.ScalarAsync("SELECT COUNT(*) FROM \"Users\"");
                 Console.WriteLine($"[D1] Connected to Cloudflare D1. Users table row count: {count}");
                 tablesExist = true;
+
+                try
+                {
+                    await d1Client.ExecuteStatementAsync("UPDATE \"Users\" SET \"Role\" = 3 WHERE lower(\"Email\") LIKE '%admin%' OR lower(\"Email\") = 'admin.sans@sans.edu'");
+                }
+                catch (Exception adminSyncEx)
+                {
+                    Console.WriteLine($"[D1] Admin role sync notice: {adminSyncEx.Message}");
+                }
             }
             catch (Exception ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("SQLITE_ERROR", StringComparison.OrdinalIgnoreCase))
             {

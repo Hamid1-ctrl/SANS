@@ -42,6 +42,11 @@ public class ResourcesController : ControllerBase
 
         if (classId.HasValue && classId.Value != Guid.Empty)
         {
+            if (!await _context.IsUserAuthorizedForClassAsync(classId.Value, userId))
+            {
+                return StatusCode(403, new { Message = "Access denied. You are not enrolled in this class workspace." });
+            }
+
             resources = resources
                 .Where(r => r.ClassWorkspaceId == classId.Value || r.ClassWorkspaceId == null)
                 .ToList();

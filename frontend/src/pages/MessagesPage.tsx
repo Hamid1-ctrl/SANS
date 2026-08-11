@@ -190,9 +190,7 @@ const MessagesPage: React.FC = () => {
     });
 
     try {
-      const response = await api.post<{ threadId: string }>('/discussions', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.post<{ threadId: string }>('/discussions', formData);
       showToast('Discussion thread posted successfully!');
       setIsCreateModalOpen(false);
       setNewTitle('');
@@ -229,9 +227,7 @@ const MessagesPage: React.FC = () => {
     });
 
     try {
-      await api.post(`/discussions/${selectedThreadId}/replies`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await api.post(`/discussions/${selectedThreadId}/replies`, formData);
       setReplyContent('');
       setReplyFiles([]);
       setParentReply(null);

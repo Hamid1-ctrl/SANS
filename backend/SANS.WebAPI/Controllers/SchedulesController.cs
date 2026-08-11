@@ -73,6 +73,11 @@ public class SchedulesController : ControllerBase
 
         if (classId.HasValue && classId.Value != Guid.Empty)
         {
+            if (!await _context.IsUserAuthorizedForClassAsync(classId.Value, userId))
+            {
+                return StatusCode(403, new { Message = "Access denied. You are not enrolled in this class workspace." });
+            }
+
             schedules = schedules.Where(s => s.ClassWorkspaceId == classId.Value || s.ClassWorkspaceId == null).ToList();
         }
         else

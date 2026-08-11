@@ -123,6 +123,11 @@ public class DiscussionsController : ControllerBase
 
         if (classWorkspaceId.HasValue && classWorkspaceId.Value != Guid.Empty)
         {
+            if (!await _context.IsUserAuthorizedForClassAsync(classWorkspaceId.Value, currentUser.Id))
+            {
+                return StatusCode(403, new { Message = "Access denied. You are not enrolled in this class workspace." });
+            }
+
             threads = threads.Where(t => t.ClassWorkspaceId == classWorkspaceId.Value).ToList();
         }
         else if (currentUser.Role == UserRole.Student || currentUser.Role == UserRole.ClassRepresentative)
@@ -422,9 +427,14 @@ public class DiscussionsController : ControllerBase
             new object?[] { id });
         if (thread == null) return NotFound(new { Message = "Thread not found." });
 
+        if (!await _context.IsUserAuthorizedForClassAsync(thread.ClassWorkspaceId, currentUser.Id))
+        {
+            return StatusCode(403, new { Message = "Access denied. You must be enrolled in this class workspace to reply to discussions." });
+        }
+
         if (thread.IsLocked && currentUser.Role != UserRole.Lecturer && currentUser.Role != UserRole.Administrator)
         {
-            return BadRequest(new { Message = "This discussion has been locked by the lecturer. New replies are disabled." });
+            return BadRequest(new { Message = "This discussion is locked and no longer accepts replies." });
         }
 
         if (string.IsNullOrWhiteSpace(form.Content))
@@ -432,13 +442,15 @@ public class DiscussionsController : ControllerBase
             return BadRequest(new { Message = "Reply content is required." });
         }
 
+        Guid? parentReplyId = !string.IsNullOrWhiteSpace(form.ParentReplyId) && Guid.TryParse(form.ParentReplyId, out var pId) ? pId : null;
+
         var reply = new DiscussionReply
         {
             Id = Guid.NewGuid(),
             DiscussionThreadId = thread.Id,
             AuthorId = currentUser.Id,
             Content = form.Content.Trim(),
-            ParentReplyId = form.ParentReplyId,
+            ParentReplyId = parentReplyId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -677,7 +689,7 @@ public class CreateThreadForm
 public class CreateReplyForm
 {
     public string Content { get; set; } = string.Empty;
-    public Guid? ParentReplyId { get; set; }
+    public string? ParentReplyId { get; set; }
     public IFormFileCollection? Files { get; set; }
 }
 
