@@ -47,51 +47,51 @@ public class D1Client : ID1Client
         }
 
         var endpoint = $"{_options.BaseUrl.TrimEnd('/')}/accounts/{_options.AccountId}/d1/database/{_options.DatabaseId}/query";
-
-        var payload = list.Count == 1
-            ? BuildStatementPayload(list[0].Sql, list[0].Parameters)
-            : list.Select(s => BuildStatementPayload(s.Sql, s.Parameters)).ToList();
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiToken);
-        request.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
-
-        using var response = await _httpClient.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new InvalidOperationException(
-                $"D1 request failed with HTTP {(int)response.StatusCode}: {Truncate(body)}");
-        }
-
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
-
-        if (!root.TryGetProperty("success", out var successElement) || !successElement.GetBoolean())
-        {
-            var errors = string.Join("; ", root.TryGetProperty("errors", out var errs)
-                ? errs.EnumerateArray().Select(e => e.TryGetProperty("message", out var m) ? m.GetString() : e.ToString())
-                : Enumerable.Empty<string?>());
-            throw new InvalidOperationException($"D1 request failed: {errors}");
-        }
-
-        var result = root.TryGetProperty("result", out var resultElement) && resultElement.ValueKind == JsonValueKind.Array
-            ? resultElement
-            : default;
-
         var output = new List<D1QueryResult>();
-        if (result.ValueKind == JsonValueKind.Array)
+
+        foreach (var statement in list)
         {
-            foreach (var entry in result.EnumerateArray())
+            var payload = BuildStatementPayload(statement.Sql, statement.Parameters);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiToken);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
             {
-                output.Add(ParseResultEntry(entry));
+                throw new InvalidOperationException(
+                    $"D1 request failed with HTTP {(int)response.StatusCode}: {Truncate(body)}");
             }
-        }
-        else
-        {
-            // Single statement responses may wrap the result differently; treat empty as ok.
-            output.Add(new D1QueryResult());
+
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+
+            if (!root.TryGetProperty("success", out var successElement) || !successElement.GetBoolean())
+            {
+                var errors = string.Join("; ", root.TryGetProperty("errors", out var errs)
+                    ? errs.EnumerateArray().Select(e => e.TryGetProperty("message", out var m) ? m.GetString() : e.ToString())
+                    : Enumerable.Empty<string?>());
+                throw new InvalidOperationException($"D1 request failed: {errors}");
+            }
+
+            var result = root.TryGetProperty("result", out var resultElement) && resultElement.ValueKind == JsonValueKind.Array
+                ? resultElement
+                : default;
+
+            if (result.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var entry in result.EnumerateArray())
+                {
+                    output.Add(ParseResultEntry(entry));
+                }
+            }
+            else
+            {
+                output.Add(new D1QueryResult());
+            }
         }
 
         return output;
