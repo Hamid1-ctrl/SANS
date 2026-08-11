@@ -583,8 +583,12 @@ public class DiscussionsController : ControllerBase
 
     // ─── 7. Pin / Unpin Thread ───────────────────────────────────────────────────
     [HttpPut("{id}/pin")]
+    public async Task<IActionResult> TogglePinPut([FromRoute] Guid id) => await TogglePinInternal(id);
+
     [HttpPost("{id}/pin")]
-    public async Task<IActionResult> TogglePin(Guid id)
+    public async Task<IActionResult> TogglePinPost([FromRoute] Guid id) => await TogglePinInternal(id);
+
+    private async Task<IActionResult> TogglePinInternal(Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
@@ -612,8 +616,12 @@ public class DiscussionsController : ControllerBase
 
     // ─── 8. Lock / Unlock Thread ─────────────────────────────────────────────────
     [HttpPut("{id}/lock")]
+    public async Task<IActionResult> ToggleLockPut([FromRoute] Guid id) => await ToggleLockInternal(id);
+
     [HttpPost("{id}/lock")]
-    public async Task<IActionResult> ToggleLock(Guid id)
+    public async Task<IActionResult> ToggleLockPost([FromRoute] Guid id) => await ToggleLockInternal(id);
+
+    private async Task<IActionResult> ToggleLockInternal(Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
@@ -641,7 +649,7 @@ public class DiscussionsController : ControllerBase
 
     // ─── 9. Delete Thread ────────────────────────────────────────────────────────
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteThread(Guid id)
+    public async Task<IActionResult> DeleteThread([FromRoute] Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });

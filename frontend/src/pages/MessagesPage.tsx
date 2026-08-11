@@ -246,15 +246,12 @@ const MessagesPage: React.FC = () => {
   const handleTogglePin = async () => {
     if (!selectedThreadId) return;
     try {
-      let res: any;
-      try {
-        res = await api.put(`/discussions/${selectedThreadId}/pin`);
-      } catch {
-        res = await api.post(`/discussions/${selectedThreadId}/pin`);
-      }
+      const res = await api.put(`/discussions/${selectedThreadId}/pin`);
       const isPinnedNow = res.data?.isPinned ?? res.data?.IsPinned ?? !(currentThread?.isPinned);
       showToast(isPinnedNow ? 'Discussion thread pinned to top.' : 'Discussion thread unpinned.');
-      await fetchThreadDetail(selectedThreadId);
+      if (currentThread) {
+        setCurrentThread({ ...currentThread, isPinned: isPinnedNow });
+      }
       await fetchThreads();
     } catch (err: any) {
       console.error('Failed to toggle pin:', err);
@@ -265,15 +262,12 @@ const MessagesPage: React.FC = () => {
   const handleToggleLock = async () => {
     if (!selectedThreadId) return;
     try {
-      let res: any;
-      try {
-        res = await api.put(`/discussions/${selectedThreadId}/lock`);
-      } catch {
-        res = await api.post(`/discussions/${selectedThreadId}/lock`);
-      }
+      const res = await api.put(`/discussions/${selectedThreadId}/lock`);
       const isLockedNow = res.data?.isLocked ?? res.data?.IsLocked ?? !(currentThread?.isLocked);
       showToast(isLockedNow ? 'Discussion thread locked.' : 'Discussion thread unlocked.');
-      await fetchThreadDetail(selectedThreadId);
+      if (currentThread) {
+        setCurrentThread({ ...currentThread, isLocked: isLockedNow });
+      }
       await fetchThreads();
     } catch (err: any) {
       console.error('Failed to toggle lock:', err);
