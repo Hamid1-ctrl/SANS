@@ -886,11 +886,11 @@ const MessagesPage: React.FC = () => {
 
           {/* Top Tab Bar */}
           <div className="flex items-center border-b border-slate-100 dark:border-slate-800 px-4 pt-4 pb-0 gap-3 text-[11px] font-extrabold text-slate-400 shrink-0">
-            {(['overview','notes','files','roster'] as const).map(tab => (
+            {(['overview','notes','files', ...(isStaff ? ['roster'] : [])] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => {
-                  setActiveRightTab(tab);
+                  setActiveRightTab(tab as any);
                   if (tab === 'roster') {
                     setIsRosterOpen(true);
                   }
@@ -971,12 +971,14 @@ const MessagesPage: React.FC = () => {
                       </button>
                     )}
 
-                    <button
-                      onClick={() => setIsRosterOpen(true)}
-                      className="w-full py-2 px-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-white rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
-                    >
-                      <Users size={13} /> Enrolled Students Directory
-                    </button>
+                    {isStaff && (
+                      <button
+                        onClick={() => setIsRosterOpen(true)}
+                        className="w-full py-2 px-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-white rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
+                      >
+                        <Users size={13} /> Enrolled Students Directory
+                      </button>
+                    )}
                   </div>
 
                   {/* Class Context */}
