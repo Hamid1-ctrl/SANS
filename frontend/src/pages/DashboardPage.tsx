@@ -62,8 +62,13 @@ const DashboardPage: React.FC = () => {
   const { data: schedules = [] } = useSchedules(activeClass?.id);
   const { data: todaySummary } = useTodaySummary(activeClass?.id);
 
+  // Robust role detection
+  const isLecturerUser = user?.role === UserRole.Lecturer || (user?.role as any) === 1 || String(user?.role) === 'Lecturer' || String(user?.role) === '1';
+  const isRepUser = user?.role === UserRole.ClassRepresentative || (user?.role as any) === 2 || String(user?.role) === 'ClassRepresentative' || String(user?.role) === '2';
+  const isStudentUser = !isLecturerUser && !isRepUser;
+
   // Class Representative Authorization check
-  const isUserClassRep = user?.role === UserRole.ClassRepresentative || 
+  const isUserClassRep = isRepUser || 
     Boolean(activeClass && (activeClass.classRepresentativeId === user?.id || activeClass.secondClassRepresentativeId === user?.id));
 
   // Student specific panel state
@@ -1464,9 +1469,9 @@ const DashboardPage: React.FC = () => {
 
   return (
     <>
-      {user?.role === UserRole.Lecturer && renderLecturer()}
-      {user?.role === UserRole.ClassRepresentative && renderRep()}
-      {user?.role === UserRole.Student && renderStudent()}
+      {isLecturerUser && renderLecturer()}
+      {isRepUser && renderRep()}
+      {isStudentUser && renderStudent()}
       {successMsg && (
         <div className="fixed bottom-6 right-6 bg-[#1e7a34] text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-3 z-[9999] transition-all duration-300">
           <CheckCircle size={16} className="text-white shrink-0" />
