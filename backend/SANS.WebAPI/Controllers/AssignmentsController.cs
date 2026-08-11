@@ -129,12 +129,6 @@ public class AssignmentsController : ControllerBase
             return Forbid();
         }
 
-        // Prevent pending or unverified lecturers from creating assignments
-        if (dbUser.Role == UserRole.Lecturer && dbUser.Status != AccountStatus.Verified)
-        {
-            return Forbid();
-        }
-
         // Safely resolve Department ID
         Guid? resolvedDeptId = model.DepartmentId;
         if (!resolvedDeptId.HasValue || resolvedDeptId.Value == Guid.Empty)

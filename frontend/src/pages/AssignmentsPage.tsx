@@ -217,15 +217,17 @@ const AssignmentsPage: React.FC = () => {
         attachmentFileSize = result.fileSize;
       }
 
+      const parsedDueDate = new Date(newDue).toISOString();
+
       await createAssignment.mutateAsync({
-        title: newTitle,
+        title: newTitle.trim(),
         description: createMode === 'typed'
-          ? newDesc || 'No written description provided.'
+          ? newDesc.trim() || 'No written description provided.'
           : 'Please download and review the guidelines in the attached file.',
         instructions: createMode === 'typed'
-          ? newDesc || 'No written instructions provided.'
+          ? newDesc.trim() || 'No written instructions provided.'
           : 'Please download and review the guidelines in the attached file.',
-        dueDate: newDue,
+        dueDate: parsedDueDate,
         classWorkspaceId: targetClassId,
         maxPoints: 100,
         allowLateSubmission: true,
@@ -243,7 +245,13 @@ const AssignmentsPage: React.FC = () => {
       setSuccessMsg('Assignment posted successfully!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
-      setCreateError(err.response?.data?.message || 'Failed to post assignment.');
+      setCreateError(
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        err.response?.data?.title ||
+        err.message ||
+        'Failed to post assignment.'
+      );
     } finally {
       setIsUploading(false);
     }
