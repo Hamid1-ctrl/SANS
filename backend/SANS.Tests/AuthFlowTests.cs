@@ -628,6 +628,87 @@ public class AuthFlowTests
         Assert.Equal("First", saved.Semester);
         Assert.Equal(rep.Id, saved.CreatedByUserId);
     }
+[Fact]
+    public async Task CreateClass_RequestTime_SelfHeal_Fixes_Missing_Columns_Without_Startup_Repair()
+    {
+        // Old-schema DB that LACKS ClassWorkspaces.CreatedByUserId/CourseCode/etc. — the exact
+        // source of the reported "table classworkspaces has no column named createdbyuserid" 400.
+        using var server = new D1MockServer(schemaFileName: "old_cloudflare_d1_schema.sql", applySeed: false);
+        var options = new D1Options
+        {
+            AccountId = "test-account",
+            DatabaseId = "test-database",
+            ApiToken = "test-token",
+            BaseUrl = server.BaseUrl.TrimEnd('/') + "/client/v4"
+        };
+        var client = new D1Client(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, options);
+
+        using var context = new D1Context(client);
+
+        // A Lecturer user (the old-schema Users table already has all User entity columns).
+        var lecturer = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "lecturer.selfheal@example.com",
+            FirstName = "Self",
+            LastName = "Heal",
+            StudentId = "SANS-SELFHEAL-001",
+            PhoneNumber = "123",
+            Role = UserRole.Lecturer,
+            Status = AccountStatus.Verified,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(lecturer);
+        await context.SaveChangesAsync();
+
+        // Confirm the reported symptom exists BEFORE any repair: the column is missing and a
+        // raw write of the current entity would fail.
+        var cols = await client.ExecuteStatementAsync("SELECT name FROM pragma_table_info('ClassWorkspaces')");
+        var names = cols.Rows
+            .Select(r => Convert.ToString(r.FirstOrDefault().Value))
+            .Where(n => !string.IsNullOrEmpty(n))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CreatedByUserId", names);
+
+        // Do NOT run the startup repairer. The request-time self-heal inside CreateClass (the
+        // belt-and-braces AddMissingColumnsAsync path that ASP.NET DI now injects) must add the
+        // missing column before the INSERT — reproducing what happens live.
+        var controller = new ClassWorkspacesController(context, new D1SchemaRepairer(client))
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+                {
+                    User = new System.Security.Claims.ClaimsPrincipal(
+                        new System.Security.Claims.ClaimsIdentity(new[]
+                        {
+                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, lecturer.Id.ToString())
+                        }))
+                }
+            }
+        };
+
+        var result = await controller.CreateClass(new CreateClassModel
+        {
+            Name = "Self-Healed Class",
+            Code = "SELF001",
+            Description = "Created without a startup repair",
+            CourseCode = "CS400",
+            Department = "Computer Science",
+            AcademicLevel = "400",
+            Semester = "First"
+        });
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.CreatedAtActionResult>(result);
+
+        var saved = await context.ClassWorkspaces.QueryFirstOrDefaultAsync(
+            "WHERE lower(\"Code\") = lower(?)", new object?[] { "SELF001" });
+        Assert.NotNull(saved);
+        Assert.Equal(lecturer.Id, saved!.LecturerId);
+        Assert.Equal(lecturer.Id, saved.CreatedByUserId); // column added by the self-heal
+        Assert.Equal("CS400", saved.CourseCode);
+    }
 
     [Fact]
     public async Task Repair_Engine_Fixes_Old_D1_Database_Preserves_Data_And_Allows_Create()

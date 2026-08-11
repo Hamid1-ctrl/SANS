@@ -102,6 +102,10 @@ builder.Services.AddSingleton<ID1Client>(sp =>
 // Request-scoped data context (one shared write queue per request).
 builder.Services.AddScoped<D1Context>();
 
+// Startup + request-time schema self-healing. Singleton: only depends on the (singleton)
+// ID1Client and takes the scoped D1Context as a method argument.
+builder.Services.AddSingleton<D1SchemaRepairer>();
+
 // Register repositories and unit of work
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();

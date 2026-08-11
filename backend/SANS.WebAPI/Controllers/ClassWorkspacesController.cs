@@ -13,10 +13,12 @@ namespace SANS.WebAPI.Controllers;
 public class ClassWorkspacesController : ControllerBase
 {
     private readonly D1Context _context;
+    private readonly D1SchemaRepairer? _repairer;
 
-    public ClassWorkspacesController(D1Context context)
+    public ClassWorkspacesController(D1Context context, D1SchemaRepairer? repairer = null)
     {
         _context = context;
+        _repairer = repairer;
     }
 
     private Guid GetCurrentUserId()
@@ -222,6 +224,22 @@ public class ClassWorkspacesController : ControllerBase
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false
         };
+
+        // Belt-and-braces: ensure the ClassWorkspaces table actually has every column the
+        // entity writes (e.g. CreatedByUserId) BEFORE inserting. In-place additive ALTER,
+        // safe under D1's enforced foreign keys and cheap. If repairer isn't available (or
+        // fails), fall through so the request still attempts the insert in the normal way.
+        if (_repairer != null)
+        {
+            try
+            {
+                await _repairer.EnsureTableColumnsAsync<ClassWorkspace>(_context);
+            }
+            catch (Exception selfHealEx)
+            {
+                Console.WriteLine($"[D1] CreateClass self-heal skipped: {selfHealEx.Message}");
+            }
+        }
 
         await _context.ClassWorkspaces.AddAsync(newClass);
         await _context.SaveChangesAsync();

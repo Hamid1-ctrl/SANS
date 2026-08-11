@@ -61,18 +61,15 @@ public class D1SchemaRepairer
 
         try
         {
-            // 1. FK graph: parent table -> tables that reference it (children).
-            var children = await BuildForeignKeyGraphAsync(specs);
-
-            // 2. Diff every table against its entity.
+            // 1. Diff every table against its entity. This step only uses PRAGMA table_info,
+            //    which is safe and never requires foreign-key introspection.
             //    - addColumns: tables missing an entity-mapped column (e.g. the old
-            //      ClassWorkspaces without CreatedByUserId) -> fixed FIRST, safely, IN PLACE
-            //      via an additive ALTER TABLE ADD COLUMN.
-            //    - needsRepair: the original rebuild trigger — any table with missing columns
-            //      OR a stale NOT NULL. This is kept separate from addColumns because the full
-            //      RebuildTableAsync is also what relaxes a NOT NULL on a *nullable* entity
-            //      column (e.g. the old ClassWorkspaces.LecturerId was NOT NULL, which rejected
-            //      every rep-created class). ALTER ADD COLUMN cannot drop a NOT NULL constraint.
+            //      ClassWorkspaces without CreatedByUserId) -> fixed IN PLACE with an additive
+            //      ALTER TABLE ADD COLUMN.
+            //    - needsRepair: any table with missing columns OR a stale NOT NULL. Kept
+            //      separate because the full rebuild is what also relaxes a NOT NULL on a
+            //      *nullable* entity column (e.g. the old ClassWorkspaces.LecturerId was NOT
+            //      NULL), which ALTER ADD COLUMN cannot do.
             var addColumns = new List<TableSpec>();
             var needsRepair = new List<TableSpec>();
 
@@ -89,11 +86,10 @@ public class D1SchemaRepairer
                 return 0;
             }
 
-            // 3. FIRST, add missing columns IN PLACE. This additive ALTER never touches
-            //    foreign keys, so unlike the full rebuild it is unaffected by D1's ENFORCED
-            //    foreign keys. It alone fixes "no column named CreatedByUserId" style errors
-            //    on old databases, preserving every existing row — even if the rebuild below
-            //    is blocked by D1's foreign-key enforcement on the next boot.
+            // 2. FIRST, add missing columns IN PLACE. This additive ALTER never touches
+            //    foreign keys, so it is unaffected by D1's ENFORCED foreign keys and needs NO
+            //    foreign-key introspection — it fixes "no column named CreatedByUserId" style
+            //    errors even if the FK graph below cannot be built (the reported error).
             foreach (var spec in addColumns)
             {
                 if (await AddMissingColumnsAsync(spec))
@@ -102,18 +98,19 @@ public class D1SchemaRepairer
                 }
             }
 
-            // 4. Rebuild out-of-date tables (missing columns OR stale NOT NULL). Rebuilding a
+            // 3. Rebuild out-of-date tables (missing columns OR stale NOT NULL). Rebuilding a
             //    parent DROPs it, which (with D1's enforced foreign keys) would cascade into
             //    child tables still carrying FK constraints, so the closure of ALL affected
             //    children must be rebuilt too — children BEFORE parents. Rebuilding is what
             //    makes a nullable entity column actually nullable in storage, which is required
             //    for a Course Rep to create a class with no lecturer assigned.
+            var children = await BuildForeignKeyGraphAsync(specs);
             var repairSet = ExpandToChildren(
                 needsRepair.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase),
                 children);
             var order = TopologicalOrder(repairSet, children);
 
-            // 5. Rebuild each table atomically (one D1 batch per table).
+            // 4. Rebuild each table atomically (one D1 batch per table).
             foreach (var name in order)
             {
                 await RebuildTableAsync(specsByName[name]);
@@ -133,6 +130,24 @@ public class D1SchemaRepairer
             Console.WriteLine($"[D1] Auto-repaired {repaired.Count} table(s) to match the app's entities: {string.Join(", ", repaired)}");
         }
         return repaired.Count;
+    }
+
+    /// <summary>
+    /// Request-time self-heal for a single table. Adds any missing (entity-mapped but not
+    /// live) columns to the given entity's table IN PLACE, using only PRAGMA table_info and
+    /// an additive ALTER TABLE ADD COLUMN — no foreign-key introspection, no table rebuild —
+    /// so it is always safe under D1's ENFORCED foreign keys and cheap enough to run right
+    /// before a write. This guarantees a Course Rep / Lecturer can create a Class Workspace
+    /// even if the startup-time repair has not run yet (the reported "no column named
+    /// CreatedByUserId" scenario). Idempotent and never throws.
+    /// </summary>
+    public async Task EnsureTableColumnsAsync<T>(D1Context context) where T : class, new()
+    {
+        var table = context.Table<T>();
+        var spec = new TableSpec(
+            table.TableName,
+            table.Columns.Select(c => (c.ColumnName, c.Kind)).ToArray());
+        await AddMissingColumnsAsync(spec);
     }
 
     private static List<TableSpec> BuildSpecs(D1Context context)
