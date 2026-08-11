@@ -87,13 +87,60 @@ public class ClassWorkspacesController : ControllerBase
                 new object?[] { userId, userId, userId, userId });
         }
 
-        // Fallback: if user has no explicitly assigned classes, return all active class workspaces
-        if (classes.Count == 0)
-        {
-            classes = await _context.ClassWorkspaces.QueryAsync("WHERE \"IsDeleted\" = 0");
-        }
-
         // Load lecturers, student counts, and user's enrollment status in bulk
+        var lecturerIds = classes.Where(c => c.LecturerId.HasValue).Select(c => c.LecturerId!.Value).Distinct().ToList();
+        var lecturerMap = await LoadUsersByIdsAsync(lecturerIds);
+        var counts = await LoadStudentsCountsAsync(classes.Select(c => c.Id).ToList());
+        var enrolledClassIds = (dbUser.Role == UserRole.Lecturer || dbUser.Role == UserRole.Administrator)
+            ? classes.Select(c => c.Id).ToList()
+            : await _context.GetEnrolledClassIdsAsync(userId);
+
+        var result = classes.Select(c =>
+        {
+            lecturerMap.TryGetValue(c.LecturerId ?? Guid.Empty, out var lecturer);
+            bool isEnrolled = dbUser.Role == UserRole.Administrator ||
+                             dbUser.Role == UserRole.Lecturer ||
+                             c.ClassRepresentativeId == userId ||
+                             c.SecondClassRepresentativeId == userId ||
+                             c.CreatedByUserId == userId ||
+                             enrolledClassIds.Contains(c.Id);
+
+            return new
+            {
+                c.Id,
+                c.Name,
+                c.Code,
+                c.Description,
+                c.CourseCode,
+                c.DepartmentText,
+                c.AcademicLevel,
+                c.Semester,
+                ClassRepresentativeId = c.ClassRepresentativeId,
+                SecondClassRepresentativeId = c.SecondClassRepresentativeId,
+                LecturerId = c.LecturerId,
+                LecturerName = lecturer != null ? $"{lecturer.FirstName} {lecturer.LastName}" : "Unassigned",
+                HasLecturer = c.LecturerId.HasValue,
+                StudentsCount = counts.TryGetValue(c.Id, out var n) ? n : 0,
+                CreatedByUserId = c.CreatedByUserId,
+                IsEnrolled = isEnrolled
+            };
+        });
+
+        return Ok(result);
+    }
+
+    // GET /api/classworkspaces/all — Returns all active university class workspaces with enrollment status
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllUniversityClasses()
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
+        var dbUser = await _context.Users.FindAsync(userId);
+        if (dbUser == null) return NotFound();
+
+        var classes = await _context.ClassWorkspaces.QueryAsync("WHERE \"IsDeleted\" = 0");
+
         var lecturerIds = classes.Where(c => c.LecturerId.HasValue).Select(c => c.LecturerId!.Value).Distinct().ToList();
         var lecturerMap = await LoadUsersByIdsAsync(lecturerIds);
         var counts = await LoadStudentsCountsAsync(classes.Select(c => c.Id).ToList());

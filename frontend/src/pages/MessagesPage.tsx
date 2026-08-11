@@ -16,7 +16,6 @@ import {
   BookOpen,
   CornerDownRight,
   Image as ImageIcon,
-  Sparkles,
   User as UserIcon,
   Mail as MailIcon,
   School,
@@ -807,21 +806,16 @@ const MessagesPage: React.FC = () => {
                   <form onSubmit={handleCreateReply} className="space-y-2.5">
                     
                     {/* Header bar of composition box */}
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-1">
-                      <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-                        <Sparkles size={13} className="text-brand-green" />
-                        <span>Chat in <span className="text-[#1e7a34] font-extrabold">{currentThread.classCode || currentThread.className}</span></span>
-                      </div>
-                      
-                      {parentReply && (
+                    {parentReply && (
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-1">
                         <div className="flex items-center gap-2 bg-[#eef7f1] dark:bg-slate-900 border border-[#1e7a34]/30 px-2.5 py-0.5 rounded-full text-[10px]">
                           <span className="text-[#1e7a34] font-bold">Replying to {parentReply.author?.name}</span>
                           <button type="button" onClick={() => setParentReply(null)} className="text-slate-400 hover:text-slate-700">
                             <X size={10} />
                           </button>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Files Preview list */}
                     {replyFiles.length > 0 && (
@@ -1279,7 +1273,7 @@ const MessagesPage: React.FC = () => {
 
       {/* Class Roster Directory Modal */}
       <ClassRosterModal
-        classWorkspaceId={activeClass?.id || currentThread?.classWorkspaceId || null}
+        classWorkspaceId={activeClass?.id || currentThread?.classWorkspaceId || (currentThread as any)?.classId || (classes.length > 0 ? classes[0].id : null)}
         classWorkspaceName={activeClass?.name || currentThread?.className}
         isOpen={isRosterOpen}
         onClose={() => setIsRosterOpen(false)}

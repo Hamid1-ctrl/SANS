@@ -120,11 +120,23 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const [allUniversityClasses, setAllUniversityClasses] = useState<any[]>([]);
+
+  const fetchAllUniversityClasses = async () => {
+    try {
+      const res = await api.get<any[]>('/classworkspaces/all');
+      setAllUniversityClasses(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch all university classes:', err);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchProposals();
+      fetchAllUniversityClasses();
     }
-  }, [user]);
+  }, [user, activeClass?.id]);
 
   const showSuccessToast = (msg: string) => {
     setSuccessMsg(msg);
@@ -1391,32 +1403,56 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Taught classes grid */}
+              {/* Classes portfolio grid */}
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-slate-800 dark:text-[#CBD5E1] uppercase tracking-wider px-1">Classes Portfolio</h3>
+                <h3 className="text-xs font-black text-slate-800 dark:text-[#CBD5E1] uppercase tracking-wider px-1">
+                  {isHub ? 'University Classes Directory' : 'Classes Portfolio'}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {classes.length === 0 ? (
-                    <p className="text-xs text-slate-400 dark:text-[#94A3B8] font-bold py-6 text-center bg-white dark:bg-slate-900 border border-slate-150 rounded-2xl col-span-2">No courses created yet.</p>
-                  ) : (
-                    classes.map(cls => (
-                      <div 
-                        key={cls.id}
-                        onClick={() => handleSelectClass(cls)}
-                        className="p-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/40 rounded-3xl cursor-pointer hover:border-[#1e7a34] hover:shadow-soft transition-all hover:scale-[1.01] flex flex-col justify-between"
-                      >
-                        <div>
-                          <span className="text-[8px] font-extrabold text-[#1e7a34] bg-[#f0f7f2] dark:bg-slate-800 px-2 py-0.5 rounded uppercase">
-                            {cls.code}
-                          </span>
-                          <h4 className="text-xs font-bold text-slate-805 dark:text-white mt-3 leading-tight">{cls.name}</h4>
-                        </div>
-                        <div className="border-t border-slate-100 dark:border-slate-800 pt-3 mt-4 flex items-center justify-between text-[9px] text-slate-400 font-bold">
-                          <span>Enter Workspace</span>
-                          <span>{cls.studentsCount || 0} Students</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                  {(() => {
+                    const displayClasses = isHub && allUniversityClasses.length > 0 ? allUniversityClasses : classes;
+                    return displayClasses.length === 0 ? (
+                      <p className="text-xs text-slate-400 dark:text-[#94A3B8] font-bold py-6 text-center bg-white dark:bg-slate-900 border border-slate-150 rounded-2xl col-span-2">No courses found.</p>
+                    ) : (
+                      displayClasses.map(cls => {
+                        const isEnrolled = cls.isEnrolled !== false;
+                        return (
+                          <div 
+                            key={cls.id}
+                            onClick={() => handleSelectClass(cls)}
+                            className={`p-5 bg-white dark:bg-slate-900 border rounded-3xl cursor-pointer hover:shadow-soft transition-all hover:scale-[1.01] flex flex-col justify-between ${
+                              isEnrolled
+                                ? 'border-slate-100 dark:border-slate-800/40 hover:border-[#1e7a34]'
+                                : 'border-amber-200 dark:border-amber-900/40 bg-amber-50/10 hover:border-amber-500'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[8px] font-extrabold text-[#1e7a34] bg-[#f0f7f2] dark:bg-slate-800 px-2 py-0.5 rounded uppercase">
+                                  {cls.code}
+                                </span>
+                                {isEnrolled ? (
+                                  <span className="text-[8px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                    ✓ Enrolled
+                                  </span>
+                                ) : (
+                                  <span className="text-[8px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                    🔒 Join with Code
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="text-xs font-bold text-slate-805 dark:text-white mt-3 leading-tight">{cls.name}</h4>
+                              <p className="text-[10px] text-slate-400 font-medium mt-1">Lecturer: {cls.lecturerName || 'Unassigned'}</p>
+                            </div>
+                            <div className="border-t border-slate-100 dark:border-slate-800 pt-3 mt-4 flex items-center justify-between text-[9px] text-slate-400 font-bold">
+                              <span>{isEnrolled ? 'Enter Workspace →' : 'Enroll with Class Code'}</span>
+                              <span>{cls.studentsCount || 0} Students</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    );
+                  })()}
                 </div>
               </div>
             </div>
