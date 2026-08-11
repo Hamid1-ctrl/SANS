@@ -20,7 +20,8 @@ import {
   Mail as MailIcon,
   School,
   GraduationCap, 
-  Users
+  Users,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -81,6 +82,10 @@ const MessagesPage: React.FC = () => {
   const [parentReply, setParentReply] = useState<DiscussionReply | null>(null);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
+
+  // Moderation Action Pending States
+  const [isTogglingPin, setIsTogglingPin] = useState(false);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
 
   // Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -244,34 +249,66 @@ const MessagesPage: React.FC = () => {
 
   // ─── Moderation Handlers ────────────────────────────────────────────────
   const handleTogglePin = async () => {
-    if (!selectedThreadId) return;
+    if (!selectedThreadId || isTogglingPin) return;
+    setIsTogglingPin(true);
+    const targetState = !(currentThread?.isPinned);
+    
+    // Optimistic local state update for instant button feel
+    if (currentThread) {
+      setCurrentThread({ ...currentThread, isPinned: targetState });
+    }
+    setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isPinned: targetState } : t));
+
     try {
-      const res = await api.put(`/discussions/${selectedThreadId}/pin`);
-      const isPinnedNow = res.data?.isPinned ?? res.data?.IsPinned ?? !(currentThread?.isPinned);
-      showToast(isPinnedNow ? 'Discussion thread pinned to top.' : 'Discussion thread unpinned.');
+      const res = await api.put(`/discussions/${selectedThreadId}/pin`, {});
+      const isPinnedNow = res.data?.isPinned ?? res.data?.IsPinned ?? targetState;
+      showToast(isPinnedNow ? '📌 Discussion thread pinned to top.' : 'Discussion thread unpinned.');
       if (currentThread) {
         setCurrentThread({ ...currentThread, isPinned: isPinnedNow });
       }
       await fetchThreads();
     } catch (err: any) {
       console.error('Failed to toggle pin:', err);
+      // Revert on error
+      if (currentThread) {
+        setCurrentThread({ ...currentThread, isPinned: !targetState });
+      }
+      setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isPinned: !targetState } : t));
       showToast(err?.response?.data?.message || 'Failed to toggle pin state.');
+    } finally {
+      setIsTogglingPin(false);
     }
   };
 
   const handleToggleLock = async () => {
-    if (!selectedThreadId) return;
+    if (!selectedThreadId || isTogglingLock) return;
+    setIsTogglingLock(true);
+    const targetState = !(currentThread?.isLocked);
+
+    // Optimistic local state update for instant button feel
+    if (currentThread) {
+      setCurrentThread({ ...currentThread, isLocked: targetState });
+    }
+    setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isLocked: targetState } : t));
+
     try {
-      const res = await api.put(`/discussions/${selectedThreadId}/lock`);
-      const isLockedNow = res.data?.isLocked ?? res.data?.IsLocked ?? !(currentThread?.isLocked);
-      showToast(isLockedNow ? 'Discussion thread locked.' : 'Discussion thread unlocked.');
+      const res = await api.put(`/discussions/${selectedThreadId}/lock`, {});
+      const isLockedNow = res.data?.isLocked ?? res.data?.IsLocked ?? targetState;
+      showToast(isLockedNow ? '🔒 Discussion thread locked.' : 'Discussion thread unlocked.');
       if (currentThread) {
         setCurrentThread({ ...currentThread, isLocked: isLockedNow });
       }
       await fetchThreads();
     } catch (err: any) {
       console.error('Failed to toggle lock:', err);
+      // Revert on error
+      if (currentThread) {
+        setCurrentThread({ ...currentThread, isLocked: !targetState });
+      }
+      setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isLocked: !targetState } : t));
       showToast(err?.response?.data?.message || 'Failed to toggle lock state.');
+    } finally {
+      setIsTogglingLock(false);
     }
   };
 
@@ -586,38 +623,54 @@ const MessagesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Moderation Toolbar Icons — only shown to the author or staff
-                    (backend TogglePin/ToggleLock/DeleteThread enforce the same rule) */}
+                {/* Moderation Toolbar Icons — only shown to the author or staff */}
                 {(currentThread.author?.id === currentUser?.id || isStaff) && (
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
+                      type="button"
                       onClick={handleTogglePin}
-                      title={currentThread.isPinned ? 'Unpin thread' : 'Pin thread'}
-                      className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                      disabled={isTogglingPin}
+                      title={currentThread.isPinned ? 'Click to Unpin Thread' : 'Click to Pin Thread'}
+                      className={`px-3 py-2 rounded-xl text-xs font-black border flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 active:shadow-inner ${
                         currentThread.isPinned 
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' 
-                          : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                          ? 'bg-amber-500 hover:bg-amber-600 border-amber-600 text-white shadow-amber-500/20 ring-2 ring-amber-400/40' 
+                          : 'bg-slate-50 dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/30 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-600 hover:border-amber-300'
                       }`}
                     >
-                      <Pin size={14} className={currentThread.isPinned ? 'fill-amber-500 text-amber-500' : ''} />
+                      {isTogglingPin ? (
+                        <Loader2 size={14} className="animate-spin text-current" />
+                      ) : (
+                        <Pin size={14} className={currentThread.isPinned ? 'fill-white text-white rotate-45 transition-transform' : 'transition-transform hover:rotate-12'} />
+                      )}
+                      <span>{currentThread.isPinned ? 'Pinned' : 'Pin'}</span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={handleToggleLock}
-                      title={currentThread.isLocked ? 'Unlock thread' : 'Lock thread'}
-                      className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                      disabled={isTogglingLock}
+                      title={currentThread.isLocked ? 'Click to Unlock Thread' : 'Click to Lock Thread'}
+                      className={`px-3 py-2 rounded-xl text-xs font-black border flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 active:shadow-inner ${
                         currentThread.isLocked 
-                          ? 'bg-rose-500/10 border-rose-500/30 text-rose-600' 
-                          : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                          ? 'bg-rose-600 hover:bg-rose-700 border-rose-700 text-white shadow-rose-500/20 ring-2 ring-rose-400/40' 
+                          : 'bg-slate-50 dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:border-rose-300'
                       }`}
                     >
-                      {currentThread.isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                      {isTogglingLock ? (
+                        <Loader2 size={14} className="animate-spin text-current" />
+                      ) : currentThread.isLocked ? (
+                        <Lock size={14} className="fill-white text-white" />
+                      ) : (
+                        <Unlock size={14} />
+                      )}
+                      <span>{currentThread.isLocked ? 'Locked' : 'Lock'}</span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={handleDeleteThread}
-                      title="Delete discussion"
-                      className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-600 transition-all cursor-pointer"
+                      title="Delete Discussion Thread"
+                      className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-600 hover:border-rose-300 transition-all cursor-pointer active:scale-95 shadow-xs"
                     >
                       <Trash2 size={14} />
                     </button>
