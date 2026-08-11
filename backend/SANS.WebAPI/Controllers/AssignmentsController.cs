@@ -35,29 +35,14 @@ public class AssignmentsController : ControllerBase
         var dbUser = await _context.Users.FindAsync(userId);
         if (dbUser == null) return NotFound();
 
-        // Soft-delete expired assignments inline
-        var now = DateTime.UtcNow;
-        var expiredAssignments = (await _context.Assignments.QueryAsync("WHERE \"IsDeleted\" = 0"))
-            .Where(a => a.DueDate < now)
-            .ToList();
-
-        if (expiredAssignments.Count > 0)
-        {
-            foreach (var assign in expiredAssignments)
-            {
-                assign.IsDeleted = true;
-                assign.DeletedAt = now;
-                assign.UpdatedBy = "Auto Expired Cleanup";
-                _context.Assignments.Update(assign);
-            }
-            await _context.SaveChangesAsync();
-        }
-
         var assignments = await _context.Assignments.QueryAsync("WHERE \"IsDeleted\" = 0");
 
         if (classId.HasValue && classId.Value != Guid.Empty)
         {
-            if (!await _context.IsUserAuthorizedForClassAsync(classId.Value, userId))
+            // Admins and Lecturers always have access
+            bool hasAccess = dbUser.Role == UserRole.Administrator || dbUser.Role == UserRole.Lecturer ||
+                             await _context.IsUserAuthorizedForClassAsync(classId.Value, userId);
+            if (!hasAccess)
             {
                 return StatusCode(403, new { Message = "Access denied. You are not enrolled in this class workspace." });
             }
@@ -80,9 +65,17 @@ public class AssignmentsController : ControllerBase
                 .Select(r => D1ValueConverter.ParseGuid(r.TryGetValue("Id", out var v) ? v : null))
                 .ToList();
 
-            assignments = assignments
-                .Where(a => a.ClassWorkspaceId == null || (a.ClassWorkspaceId != null && userClassIds.Contains(a.ClassWorkspaceId.Value)))
-                .ToList();
+            // Admins and Lecturers see all assignments
+            if (dbUser.Role == UserRole.Administrator || dbUser.Role == UserRole.Lecturer)
+            {
+                // no extra filter — show all
+            }
+            else
+            {
+                assignments = assignments
+                    .Where(a => a.ClassWorkspaceId == null || (a.ClassWorkspaceId != null && userClassIds.Contains(a.ClassWorkspaceId.Value)))
+                    .ToList();
+            }
         }
 
         var list = assignments.OrderByDescending(a => a.CreatedAt).ToList();

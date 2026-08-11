@@ -13,6 +13,7 @@ namespace SANS.WebAPI.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[DisableRequestSizeLimit]
 public class DiscussionsController : ControllerBase
 {
     private readonly D1Context _context;
@@ -123,7 +124,10 @@ public class DiscussionsController : ControllerBase
 
         if (classWorkspaceId.HasValue && classWorkspaceId.Value != Guid.Empty)
         {
-            if (!await _context.IsUserAuthorizedForClassAsync(classWorkspaceId.Value, currentUser.Id))
+            // Admins and Lecturers can always view any class discussions
+            bool canAccess = currentUser.Role == UserRole.Administrator || currentUser.Role == UserRole.Lecturer ||
+                             await _context.IsUserAuthorizedForClassAsync(classWorkspaceId.Value, currentUser.Id);
+            if (!canAccess)
             {
                 return StatusCode(403, new { Message = "Access denied. You are not enrolled in this class workspace." });
             }
@@ -427,12 +431,8 @@ public class DiscussionsController : ControllerBase
             new object?[] { id });
         if (thread == null) return NotFound(new { Message = "Thread not found." });
 
-        if (!await _context.IsUserAuthorizedForClassAsync(thread.ClassWorkspaceId, currentUser.Id))
-        {
-            return StatusCode(403, new { Message = "Access denied. You must be enrolled in this class workspace to reply to discussions." });
-        }
-
-        if (thread.IsLocked && currentUser.Role != UserRole.Lecturer && currentUser.Role != UserRole.Administrator)
+        // Only block replies if thread is locked (staff can still reply)
+        if (thread.IsLocked && currentUser.Role != UserRole.Lecturer && currentUser.Role != UserRole.Administrator && currentUser.Role != UserRole.ClassRepresentative)
         {
             return BadRequest(new { Message = "This discussion is locked and no longer accepts replies." });
         }
@@ -582,13 +582,11 @@ public class DiscussionsController : ControllerBase
     }
 
     // ─── 7. Pin / Unpin Thread ───────────────────────────────────────────────────
-    [HttpPut("{id}/pin")]
-    public async Task<IActionResult> TogglePinPut([FromRoute] Guid id) => await TogglePinInternal(id);
-
     [HttpPost("{id}/pin")]
-    public async Task<IActionResult> TogglePinPost([FromRoute] Guid id) => await TogglePinInternal(id);
-
-    private async Task<IActionResult> TogglePinInternal(Guid id)
+    [HttpPut("{id}/pin")]
+    [HttpPatch("{id}/pin")]
+    [Consumes("application/json", "text/plain", "application/x-www-form-urlencoded", "multipart/form-data", "*/*")]
+    public async Task<IActionResult> TogglePin([FromRoute] Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
@@ -602,26 +600,22 @@ public class DiscussionsController : ControllerBase
         bool isAuthor = thread.AuthorId == currentUser.Id;
 
         if (!isStaff && !isAuthor)
-        {
             return Forbid();
-        }
 
         thread.IsPinned = !thread.IsPinned;
         thread.UpdatedAt = DateTime.UtcNow;
         _context.DiscussionThreads.Update(thread);
-
         await _context.SaveChangesAsync();
+
         return Ok(new { Message = thread.IsPinned ? "Thread pinned." : "Thread unpinned.", isPinned = thread.IsPinned, IsPinned = thread.IsPinned });
     }
 
     // ─── 8. Lock / Unlock Thread ─────────────────────────────────────────────────
-    [HttpPut("{id}/lock")]
-    public async Task<IActionResult> ToggleLockPut([FromRoute] Guid id) => await ToggleLockInternal(id);
-
     [HttpPost("{id}/lock")]
-    public async Task<IActionResult> ToggleLockPost([FromRoute] Guid id) => await ToggleLockInternal(id);
-
-    private async Task<IActionResult> ToggleLockInternal(Guid id)
+    [HttpPut("{id}/lock")]
+    [HttpPatch("{id}/lock")]
+    [Consumes("application/json", "text/plain", "application/x-www-form-urlencoded", "multipart/form-data", "*/*")]
+    public async Task<IActionResult> ToggleLock([FromRoute] Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
@@ -635,15 +629,13 @@ public class DiscussionsController : ControllerBase
         bool isAuthor = thread.AuthorId == currentUser.Id;
 
         if (!isStaff && !isAuthor)
-        {
             return Forbid();
-        }
 
         thread.IsLocked = !thread.IsLocked;
         thread.UpdatedAt = DateTime.UtcNow;
         _context.DiscussionThreads.Update(thread);
-
         await _context.SaveChangesAsync();
+
         return Ok(new { Message = thread.IsLocked ? "Thread locked." : "Thread unlocked.", isLocked = thread.IsLocked, IsLocked = thread.IsLocked });
     }
 
