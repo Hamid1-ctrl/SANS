@@ -256,23 +256,28 @@ const MessagesPage: React.FC = () => {
     
     // Optimistic local state update for instant button feel
     if (currentThread) {
-      setCurrentThread({ ...currentThread, isPinned: targetState });
+      setCurrentThread(prev => prev ? { ...prev, isPinned: targetState } : null);
     }
     setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isPinned: targetState } : t));
 
     try {
       const res = await api.post(`/discussions/${selectedThreadId}/pin`, {});
       const isPinnedNow = res.data?.isPinned ?? res.data?.IsPinned ?? targetState;
-      showToast(isPinnedNow ? '📌 Discussion thread pinned to top.' : 'Discussion thread unpinned.');
+      
       if (currentThread) {
-        setCurrentThread({ ...currentThread, isPinned: isPinnedNow });
+        setCurrentThread(prev => prev ? { ...prev, isPinned: isPinnedNow } : null);
       }
-      await fetchThreads();
+      setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isPinned: isPinnedNow } : t));
+
+      showToast(isPinnedNow ? '📌 Discussion thread pinned to top.' : 'Discussion thread unpinned.');
+      
+      // Async background refresh without blocking handler
+      fetchThreads().catch(() => {});
     } catch (err: any) {
       console.error('Failed to toggle pin:', err);
       // Revert on error
       if (currentThread) {
-        setCurrentThread({ ...currentThread, isPinned: !targetState });
+        setCurrentThread(prev => prev ? { ...prev, isPinned: !targetState } : null);
       }
       setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isPinned: !targetState } : t));
       showToast(err?.response?.data?.message || 'Failed to toggle pin state.');
@@ -288,23 +293,28 @@ const MessagesPage: React.FC = () => {
 
     // Optimistic local state update for instant button feel
     if (currentThread) {
-      setCurrentThread({ ...currentThread, isLocked: targetState });
+      setCurrentThread(prev => prev ? { ...prev, isLocked: targetState } : null);
     }
     setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isLocked: targetState } : t));
 
     try {
       const res = await api.post(`/discussions/${selectedThreadId}/lock`, {});
       const isLockedNow = res.data?.isLocked ?? res.data?.IsLocked ?? targetState;
-      showToast(isLockedNow ? '🔒 Discussion thread locked.' : 'Discussion thread unlocked.');
+
       if (currentThread) {
-        setCurrentThread({ ...currentThread, isLocked: isLockedNow });
+        setCurrentThread(prev => prev ? { ...prev, isLocked: isLockedNow } : null);
       }
-      await fetchThreads();
+      setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isLocked: isLockedNow } : t));
+
+      showToast(isLockedNow ? '🔒 Discussion thread locked.' : 'Discussion thread unlocked.');
+      
+      // Async background refresh without blocking handler
+      fetchThreads().catch(() => {});
     } catch (err: any) {
       console.error('Failed to toggle lock:', err);
       // Revert on error
       if (currentThread) {
-        setCurrentThread({ ...currentThread, isLocked: !targetState });
+        setCurrentThread(prev => prev ? { ...prev, isLocked: !targetState } : null);
       }
       setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isLocked: !targetState } : t));
       showToast(err?.response?.data?.message || 'Failed to toggle lock state.');
