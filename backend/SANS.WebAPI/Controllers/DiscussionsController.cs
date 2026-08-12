@@ -1,8 +1,6 @@
 using System.Security.Claims;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.SignalR;
 using SANS.Application.Interfaces.Services;
 using SANS.Domain.Entities;
@@ -586,8 +584,7 @@ public class DiscussionsController : ControllerBase
     // ─── 7. Pin / Unpin Thread ───────────────────────────────────────────────────
     [HttpPost("{id}/pin")]
     [HttpPut("{id}/pin")]
-    [HttpPatch("{id}/pin")]
-    public async Task<IActionResult> TogglePin([FromRoute] Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JsonElement? body = null)
+    public async Task<IActionResult> TogglePin([FromRoute] Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });
@@ -614,8 +611,7 @@ public class DiscussionsController : ControllerBase
     // ─── 8. Lock / Unlock Thread ─────────────────────────────────────────────────
     [HttpPost("{id}/lock")]
     [HttpPut("{id}/lock")]
-    [HttpPatch("{id}/lock")]
-    public async Task<IActionResult> ToggleLock([FromRoute] Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JsonElement? body = null)
+    public async Task<IActionResult> ToggleLock([FromRoute] Guid id)
     {
         var currentUser = await GetCurrentUserAsync();
         if (currentUser == null) return Unauthorized(new { Message = "User not authenticated." });

@@ -260,7 +260,7 @@ const MessagesPage: React.FC = () => {
     setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isPinned: targetState } : t));
 
     try {
-      const res = await api.put(`/discussions/${selectedThreadId}/pin`, {});
+      const res = await api.post(`/discussions/${selectedThreadId}/pin`);
       const isPinnedNow = res.data?.isPinned ?? res.data?.IsPinned ?? targetState;
       showToast(isPinnedNow ? '📌 Discussion thread pinned to top.' : 'Discussion thread unpinned.');
       if (currentThread) {
@@ -292,7 +292,7 @@ const MessagesPage: React.FC = () => {
     setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isLocked: targetState } : t));
 
     try {
-      const res = await api.put(`/discussions/${selectedThreadId}/lock`, {});
+      const res = await api.post(`/discussions/${selectedThreadId}/lock`);
       const isLockedNow = res.data?.isLocked ?? res.data?.IsLocked ?? targetState;
       showToast(isLockedNow ? '🔒 Discussion thread locked.' : 'Discussion thread unlocked.');
       if (currentThread) {
