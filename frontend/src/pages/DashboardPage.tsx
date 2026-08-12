@@ -538,7 +538,7 @@ const DashboardPage: React.FC = () => {
               <div className="bg-gradient-to-r from-[#1e7a34]/15 to-[#3ea556]/5 dark:from-[#1e7a34]/10 dark:to-transparent border border-[#1e7a34]/25 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <span className="text-[8px] font-extrabold bg-[#1e7a34] text-white px-2.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
-                    {activeClass.code} Class Dashboard
+                    Class Workspace Dashboard
                   </span>
                   <h2 className="text-base font-black text-slate-805 dark:text-white mt-3 leading-tight">{activeClass.name} Workspace</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">Lecturer: {activeClass.lecturerName || 'Unassigned'}</p>
@@ -1081,7 +1081,7 @@ const DashboardPage: React.FC = () => {
               <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800/40 flex items-center justify-between bg-slate-50/40 dark:bg-slate-900/20 shrink-0 flex-wrap gap-3">
                 <div>
                   <h3 className="font-black text-slate-850 dark:text-[#F8FAFC] text-base">{activeClass.name} Workspace</h3>
-                  <p className="text-[10px] font-extrabold text-[#1e7a34] dark:text-emerald-400 uppercase tracking-wider mt-0.5">{activeClass.code} • Management Console</p>
+                  <p className="text-[10px] font-extrabold text-[#1e7a34] dark:text-emerald-400 uppercase tracking-wider mt-0.5">Management Console</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button 

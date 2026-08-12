@@ -21,7 +21,8 @@ import {
   School,
   GraduationCap, 
   Users,
-  Loader2
+  Loader2,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -389,9 +390,6 @@ const MessagesPage: React.FC = () => {
               <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
                 Academic Discussion Inbox
               </h1>
-              <span className="px-2.5 py-0.5 bg-emerald-500/10 dark:bg-emerald-950/50 text-[#1e7a34] dark:text-emerald-300 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
-                {activeClass ? activeClass.code : 'All Classes'}
-              </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
               {activeClass 
@@ -444,7 +442,7 @@ const MessagesPage: React.FC = () => {
       <div className="flex-1 flex min-h-0 overflow-hidden p-4 sm:p-5 gap-4">
 
         {/* ─── COLUMN 1: Threads List (Left Pane) ────────────────────────── */}
-        <div className="w-full lg:w-80 xl:w-88 flex flex-col bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/80 rounded-[2rem] shadow-sm overflow-hidden shrink-0">
+        <div className={`w-full lg:w-80 xl:w-88 ${selectedThreadId ? 'hidden lg:flex' : 'flex'} flex-col bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/80 rounded-[2rem] shadow-sm overflow-hidden shrink-0`}>
           
           {/* Header & Search Bar */}
           <div className="p-4 space-y-3 border-b border-slate-100 dark:border-slate-800/50">
@@ -567,7 +565,11 @@ const MessagesPage: React.FC = () => {
 
                     {/* Footer Badges */}
                     <div className="flex items-center justify-between text-[9px] font-bold pt-1 border-t border-slate-100/60 dark:border-slate-800/30 text-slate-400">
-                      <span className="uppercase tracking-wider text-slate-450">{thread.classCode || thread.className}</span>
+                      {!activeClass ? (
+                        <span className="uppercase tracking-wider text-slate-450">{thread.classCode || thread.className}</span>
+                      ) : (
+                        <span className="uppercase tracking-wider text-slate-450">{thread.category}</span>
+                      )}
                       <div className="flex items-center gap-1.5">
                         {thread.isPinned && <Pin size={10} className="text-amber-500 fill-amber-500" />}
                         {thread.isLocked && <Lock size={10} className="text-rose-500" />}
@@ -581,7 +583,7 @@ const MessagesPage: React.FC = () => {
         </div>
 
         {/* ─── COLUMN 2: Thread Conversation / Chat Canvas (Middle Pane) ──── */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/80 rounded-[2rem] shadow-sm overflow-hidden min-w-0">
+        <div className={`flex-1 ${selectedThreadId ? 'flex' : 'hidden lg:flex'} flex-col bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/80 rounded-[2rem] shadow-sm overflow-hidden min-w-0`}>
           
           {isLoadingDetail ? (
             <div className="flex-1 flex items-center justify-center p-8">
@@ -600,6 +602,15 @@ const MessagesPage: React.FC = () => {
               {/* Top Chat Header Bar */}
               <div className="p-4 border-b border-slate-100 dark:border-slate-800/60 bg-[#fbfbfe]/70 dark:bg-slate-900/40 flex items-center justify-between gap-4 shrink-0">
                 <div className="flex items-center gap-3 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedThreadId(null)}
+                    className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0 cursor-pointer transition-colors"
+                    title="Back to Inbox"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1e7a34] text-white text-xs font-black flex items-center justify-center shrink-0 border-2 border-white dark:border-slate-800 shadow-xs relative">
                     {currentThread.author?.profileImageUrl ? (
                       <img src={currentThread.author.profileImageUrl} alt="Avatar" className="w-full h-full object-cover" />
@@ -1039,7 +1050,6 @@ const MessagesPage: React.FC = () => {
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Class Context</span>
                     <div className="p-3 bg-[#eef7f1] dark:bg-slate-900/60 border border-[#1e7a34]/20 rounded-2xl space-y-1">
                       <h4 className="text-xs font-black text-slate-800 dark:text-white">{currentThread.className}</h4>
-                      <p className="text-[10px] font-extrabold text-[#1e7a34] dark:text-emerald-300">{currentThread.classCode}</p>
                       <p className="text-[10px] text-slate-400 font-medium">{currentThread.isPinned ? '📌 Pinned' : ''} {currentThread.isLocked ? '🔒 Locked' : ''}</p>
                     </div>
                   </div>
