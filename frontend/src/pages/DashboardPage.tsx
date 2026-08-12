@@ -271,8 +271,10 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleSelectClass = async (cls: any) => {
-    const isStudent = user?.role === UserRole.Student || (user?.role as any) === 0 || (user?.role as any) === 'Student';
-    if (cls && cls.isEnrolled === false && isStudent) {
+    const isStaffUser = isLecturerUser || user?.role === UserRole.Administrator || String(user?.role) === 'Administrator' || String(user?.role) === '3';
+    
+    // Non-staff users (Students / Reps) who are NOT enrolled MUST join with course code first
+    if (cls && !cls.isEnrolled && !isStaffUser) {
       const enteredCode = prompt(`To enter "${cls.name}", please enter the Course Code (e.g. ${cls.code || cls.courseCode || 'CE300'}):`, cls.code || cls.courseCode || '');
       if (!enteredCode || !enteredCode.trim()) return;
 

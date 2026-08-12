@@ -518,9 +518,6 @@ public class ClassWorkspacesController : ControllerBase
         if (dbUser == null)
             return Unauthorized();
 
-        if (dbUser.Role == UserRole.Lecturer && dbUser.Status != AccountStatus.Verified)
-            return Forbid();
-
         var classWorkspace = await _context.ClassWorkspaces.QueryFirstOrDefaultAsync(
             "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
             new object?[] { id });
@@ -528,7 +525,11 @@ public class ClassWorkspacesController : ControllerBase
         if (classWorkspace == null)
             return NotFound(new { Message = "Class workspace not found" });
 
-        if (classWorkspace.LecturerId != userId && dbUser.Role != UserRole.Administrator)
+        bool isClassLecturer = (classWorkspace.LecturerId.HasValue && classWorkspace.LecturerId.Value == userId) || 
+                               (classWorkspace.CreatedByUserId.HasValue && classWorkspace.CreatedByUserId.Value == userId);
+        bool isAuthorized = isClassLecturer || dbUser.Role == UserRole.Lecturer || dbUser.Role == UserRole.Administrator;
+
+        if (!isAuthorized)
             return Forbid();
 
         var targetStudent = await _context.Users.QueryFirstOrDefaultAsync(
@@ -574,16 +575,17 @@ public class ClassWorkspacesController : ControllerBase
         if (dbUser == null)
             return Unauthorized();
 
-        if (dbUser.Role == UserRole.Lecturer && dbUser.Status != AccountStatus.Verified)
-            return Forbid();
-
         var classWorkspace = await _context.ClassWorkspaces.QueryFirstOrDefaultAsync(
             "WHERE lower(\"Id\") = lower(?) AND \"IsDeleted\" = 0",
             new object?[] { id });
         if (classWorkspace == null)
             return NotFound(new { Message = "Class workspace not found" });
 
-        if (classWorkspace.LecturerId != userId && dbUser.Role != UserRole.Administrator)
+        bool isClassLecturer = (classWorkspace.LecturerId.HasValue && classWorkspace.LecturerId.Value == userId) || 
+                               (classWorkspace.CreatedByUserId.HasValue && classWorkspace.CreatedByUserId.Value == userId);
+        bool isAuthorized = isClassLecturer || dbUser.Role == UserRole.Lecturer || dbUser.Role == UserRole.Administrator;
+
+        if (!isAuthorized)
             return Forbid();
 
         if (classWorkspace.ClassRepresentativeId == null && classWorkspace.SecondClassRepresentativeId == null)
