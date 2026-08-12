@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Calendar, 
@@ -12,7 +12,8 @@ import {
   Eye,
   FileText,
   ExternalLink,
-  BookOpen
+  BookOpen,
+  Pencil
 } from 'lucide-react';
 import { 
   useSchedules, 
@@ -25,6 +26,7 @@ import {
 } from '../hooks/useSchedules';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import api from '../lib/axios';
 import { UserRole } from '../types';
 
 const LECTURE_TYPES = ['All', 'Lecture', 'Laboratory', 'Tutorial', 'Seminar', 'Examination'];
@@ -111,6 +113,113 @@ const SchedulePage: React.FC = () => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Semester Timeline State & Management
+  const [isTimelineModalOpen, setIsTimelineModalOpen] = useState(false);
+  const [isSavingTimeline, setIsSavingTimeline] = useState(false);
+  const [timelineData, setTimelineData] = useState<{
+    semesterName: string;
+    totalWeeks: number;
+    startDate: string;
+    endDate: string;
+    examStartDate: string;
+    notes: string;
+    isConfigured: boolean;
+  }>({
+    semesterName: 'Semester 1',
+    totalWeeks: 16,
+    startDate: new Date(Date.now() - 77 * 86400000).toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 35 * 86400000).toISOString().split('T')[0],
+    examStartDate: new Date(Date.now() + 9 * 86400000).toISOString().split('T')[0],
+    notes: '',
+    isConfigured: false,
+  });
+
+  const fetchSemesterTimeline = async () => {
+    if (!activeClass?.id) return;
+    try {
+      const res = await api.get(`/semester-timeline/${activeClass.id}`);
+      if (res.data) {
+        const d = res.data;
+        setTimelineData({
+          semesterName: d.semesterName || 'Semester 1',
+          totalWeeks: d.totalWeeks || 16,
+          startDate: d.startDate ? new Date(d.startDate).toISOString().split('T')[0] : new Date(Date.now() - 77 * 86400000).toISOString().split('T')[0],
+          endDate: d.endDate ? new Date(d.endDate).toISOString().split('T')[0] : new Date(Date.now() + 35 * 86400000).toISOString().split('T')[0],
+          examStartDate: d.examStartDate ? new Date(d.examStartDate).toISOString().split('T')[0] : new Date(Date.now() + 9 * 86400000).toISOString().split('T')[0],
+          notes: d.notes || '',
+          isConfigured: !!d.isConfigured,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch semester timeline:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSemesterTimeline();
+  }, [activeClass?.id]);
+
+  const handleSaveTimeline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeClass?.id) return;
+    setIsSavingTimeline(true);
+    try {
+      await api.put(`/semester-timeline/${activeClass.id}`, {
+        semesterName: timelineData.semesterName,
+        totalWeeks: Number(timelineData.totalWeeks),
+        startDate: timelineData.startDate ? new Date(timelineData.startDate).toISOString() : null,
+        endDate: timelineData.endDate ? new Date(timelineData.endDate).toISOString() : null,
+        examStartDate: timelineData.examStartDate ? new Date(timelineData.examStartDate).toISOString() : null,
+        notes: timelineData.notes,
+      });
+      showToast('Semester Timeline updated successfully!');
+      setIsTimelineModalOpen(false);
+      fetchSemesterTimeline();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update semester timeline.');
+    } finally {
+      setIsSavingTimeline(false);
+    }
+  };
+
+  // Dynamic Calculation for Semester Timeline
+  const calculateTimelineStats = () => {
+    const start = new Date(timelineData.startDate);
+    const now = new Date();
+    const totalW = timelineData.totalWeeks || 16;
+    
+    let currentW = 1;
+    if (!isNaN(start.getTime())) {
+      const diffMs = now.getTime() - start.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      currentW = Math.max(1, Math.min(totalW, Math.floor(diffDays / 7) + 1));
+    } else {
+      currentW = 12;
+    }
+
+    const progressPct = Math.min(100, Math.max(0, Math.round((currentW / totalW) * 100)));
+
+    let daysUntilExamText = '';
+    if (timelineData.examStartDate) {
+      const examDate = new Date(timelineData.examStartDate);
+      if (!isNaN(examDate.getTime())) {
+        const examDiffMs = examDate.getTime() - now.getTime();
+        const days = Math.ceil(examDiffMs / (1000 * 60 * 60 * 24));
+        if (days > 0) {
+          daysUntilExamText = `Final examinations begin in ${days} day${days === 1 ? '' : 's'}.`;
+        } else if (days === 0) {
+          daysUntilExamText = 'Final examinations begin today!';
+        } else {
+          daysUntilExamText = 'Final examinations are currently ongoing / completed.';
+        }
+      }
+    }
+
+    return { currentW, progressPct, daysUntilExamText };
+  };
+
+  const { currentW, progressPct, daysUntilExamText } = calculateTimelineStats();
 
   const getLectureTypeBadge = (type: string) => {
     switch (type.toLowerCase()) {
@@ -660,18 +769,47 @@ const SchedulePage: React.FC = () => {
           </div>
 
           {/* SEMESTER TIMELINE */}
-          <div className="bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/80 rounded-[2rem] p-6 shadow-soft relative overflow-hidden">
-            <h3 className="font-extrabold text-[10px] uppercase tracking-widest text-slate-400 mb-1">
-              Semester Timeline
-            </h3>
-            <p className="text-xl font-black text-slate-800 dark:text-slate-100 mb-3">Semester 1 (Week 12 of 16)</p>
-            <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1.5">
-              <div className="bg-[#1e7a34] h-1.5 rounded-full" style={{ width: '75%' }}></div>
+          <div className="bg-white dark:bg-[#1E293B] border border-[#ece8f3] dark:border-slate-800/80 rounded-[2rem] p-6 shadow-soft relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-extrabold text-[10px] uppercase tracking-widest text-slate-400">
+                Semester Timeline
+              </h3>
+              {isCourseRepOrStaff && (
+                <button
+                  type="button"
+                  onClick={() => setIsTimelineModalOpen(true)}
+                  className="p-1.5 rounded-lg bg-emerald-500/10 text-[#1e7a34] dark:text-emerald-400 hover:bg-[#1e7a34] hover:text-white transition-all cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                  title="Edit Semester Timeline"
+                >
+                  <Pencil size={11} />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
-            <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider flex items-center gap-1">
-              <Clock size={11} />
-              <span>Final examinations begin in 9 days.</span>
+            
+            <p className="text-xl font-black text-slate-800 dark:text-slate-100 mb-3">
+              {timelineData.semesterName} (Week {currentW} of {timelineData.totalWeeks})
             </p>
+            
+            <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1.5">
+              <div 
+                className="bg-[#1e7a34] h-1.5 rounded-full transition-all duration-500" 
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+
+            {daysUntilExamText && (
+              <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider flex items-center gap-1">
+                <Clock size={11} />
+                <span>{daysUntilExamText}</span>
+              </p>
+            )}
+
+            {timelineData.notes && (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic font-medium">
+                "{timelineData.notes}"
+              </p>
+            )}
           </div>
         </aside>
 
@@ -971,6 +1109,131 @@ const SchedulePage: React.FC = () => {
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: EDIT SEMESTER TIMELINE */}
+      {isTimelineModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#1e7a34]/10 text-[#1e7a34] flex items-center justify-center font-bold">
+                  <Pencil size={16} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-800 dark:text-white">Configure Semester Timeline</h3>
+                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                    {activeClass?.name || 'Class Workspace'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setIsTimelineModalOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTimeline} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Semester Designation / Title
+                </label>
+                <input
+                  type="text"
+                  value={timelineData.semesterName}
+                  onChange={(e) => setTimelineData({ ...timelineData, semesterName: e.target.value })}
+                  placeholder="e.g. Semester 1, Semester 2, Trimester 1"
+                  required
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-[#1e7a34]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Total Semester Weeks
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={52}
+                    value={timelineData.totalWeeks}
+                    onChange={(e) => setTimelineData({ ...timelineData, totalWeeks: parseInt(e.target.value) || 16 })}
+                    required
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-[#1e7a34]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Semester Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={timelineData.startDate}
+                    onChange={(e) => setTimelineData({ ...timelineData, startDate: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-[#1e7a34]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Semester End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={timelineData.endDate}
+                    onChange={(e) => setTimelineData({ ...timelineData, endDate: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-[#1e7a34]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Final Examinations Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={timelineData.examStartDate}
+                    onChange={(e) => setTimelineData({ ...timelineData, examStartDate: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-[#1e7a34]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Optional Notice / Announcement Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={timelineData.notes}
+                  onChange={(e) => setTimelineData({ ...timelineData, notes: e.target.value })}
+                  placeholder="e.g. Mid-semester break is scheduled for Week 8."
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-[#1e7a34]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsTimelineModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingTimeline}
+                  className="px-5 py-2 rounded-xl text-xs font-black text-white bg-[#1e7a34] hover:bg-[#18632a] transition-all cursor-pointer shadow-md disabled:opacity-50"
+                >
+                  {isSavingTimeline ? 'Saving...' : 'Save Timeline Settings'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

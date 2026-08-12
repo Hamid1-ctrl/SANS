@@ -457,3 +457,18 @@ CREATE TABLE IF NOT EXISTS "RepProposals" (
     CONSTRAINT "FK_RepProposals_ClassWorkspaces_ClassWorkspaceId" FOREIGN KEY ("ClassWorkspaceId") REFERENCES "ClassWorkspaces" ("Id") ON DELETE CASCADE,
     CONSTRAINT "FK_RepProposals_Users_SubmittedByUserId" FOREIGN KEY ("SubmittedByUserId") REFERENCES "Users" ("Id") ON DELETE RESTRICT
 );
+
+CREATE TABLE IF NOT EXISTS ""SemesterTimelines"" (
+    ""Id"" TEXT NOT NULL PRIMARY KEY,
+    ""ClassWorkspaceId"" TEXT NOT NULL,
+    ""SemesterName"" TEXT NOT NULL DEFAULT 'Semester 1',
+    ""TotalWeeks"" INTEGER NOT NULL DEFAULT 16,
+    ""StartDate"" TEXT NOT NULL,
+    ""EndDate"" TEXT NOT NULL,
+    ""ExamStartDate"" TEXT,
+    ""Notes"" TEXT,
+    ""UpdatedByUserId"" TEXT NOT NULL,
+    ""CreatedAt"" TEXT NOT NULL,
+    ""UpdatedAt"" TEXT,
+    ""IsDeleted"" INTEGER NOT NULL DEFAULT 0
+);

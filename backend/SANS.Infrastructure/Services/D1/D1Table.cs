@@ -83,7 +83,8 @@ public class D1Table<T> where T : class, new()
         ["DiscussionThread"] = "DiscussionThreads",
         ["DiscussionReply"] = "DiscussionReplies",
         ["DiscussionAttachment"] = "DiscussionAttachments",
-        ["RepProposal"] = "RepProposals"
+        ["RepProposal"] = "RepProposals",
+        ["SemesterTimeline"] = "SemesterTimelines"
     };
 
     private static string GetTableName(Type type)

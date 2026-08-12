@@ -42,6 +42,7 @@ public class D1Context : IDisposable
     public D1Table<DiscussionReply> DiscussionReplies => (D1Table<DiscussionReply>)GetTable(typeof(DiscussionReply));
     public D1Table<DiscussionAttachment> DiscussionAttachments => (D1Table<DiscussionAttachment>)GetTable(typeof(DiscussionAttachment));
     public D1Table<RepProposal> RepProposals => (D1Table<RepProposal>)GetTable(typeof(RepProposal));
+    public D1Table<SemesterTimeline> SemesterTimelines => (D1Table<SemesterTimeline>)GetTable(typeof(SemesterTimeline));
 
     public D1Table<T> Table<T>() where T : class, new() => (D1Table<T>)GetTable(typeof(T));
 
