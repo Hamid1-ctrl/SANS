@@ -260,7 +260,7 @@ const MessagesPage: React.FC = () => {
     setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isPinned: targetState } : t));
 
     try {
-      const res = await api.post(`/discussions/${selectedThreadId}/pin`);
+      const res = await api.post(`/discussions/${selectedThreadId}/pin`, {});
       const isPinnedNow = res.data?.isPinned ?? res.data?.IsPinned ?? targetState;
       showToast(isPinnedNow ? '📌 Discussion thread pinned to top.' : 'Discussion thread unpinned.');
       if (currentThread) {
@@ -292,7 +292,7 @@ const MessagesPage: React.FC = () => {
     setThreads(prev => prev.map(t => t.id === selectedThreadId ? { ...t, isLocked: targetState } : t));
 
     try {
-      const res = await api.post(`/discussions/${selectedThreadId}/lock`);
+      const res = await api.post(`/discussions/${selectedThreadId}/lock`, {});
       const isLockedNow = res.data?.isLocked ?? res.data?.IsLocked ?? targetState;
       showToast(isLockedNow ? '🔒 Discussion thread locked.' : 'Discussion thread unlocked.');
       if (currentThread) {
@@ -640,7 +640,7 @@ const MessagesPage: React.FC = () => {
                       {isTogglingPin ? (
                         <Loader2 size={14} className="animate-spin text-current" />
                       ) : (
-                        <Pin size={14} className={currentThread.isPinned ? 'fill-white text-white rotate-45 transition-transform' : 'transition-transform hover:rotate-12'} />
+                        <Pin size={14} className={currentThread.isPinned ? 'text-white rotate-45 transition-transform' : 'transition-transform hover:rotate-12'} />
                       )}
                       <span>{currentThread.isPinned ? 'Pinned' : 'Pin'}</span>
                     </button>
@@ -659,7 +659,7 @@ const MessagesPage: React.FC = () => {
                       {isTogglingLock ? (
                         <Loader2 size={14} className="animate-spin text-current" />
                       ) : currentThread.isLocked ? (
-                        <Lock size={14} className="fill-white text-white" />
+                        <Lock size={14} className="text-white" />
                       ) : (
                         <Unlock size={14} />
                       )}
