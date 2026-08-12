@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, 
   Shield, 
-  Sparkles, 
   CheckCircle, 
   GraduationCap, 
   Users, 
@@ -21,7 +20,6 @@ import {
   Database, 
   UserCheck, 
   UploadCloud, 
-  Lock, 
   Cpu, 
   Share2, 
   Radio
@@ -441,7 +439,7 @@ const LandingPage: React.FC = () => {
           className="lg:col-span-5 space-y-6 text-left"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#f0f7f2] dark:bg-emerald-950/50 border border-[#1e7a34]/20 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
-            <Sparkles size={12} />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1e7a34] dark:bg-emerald-400"></span>
             <span>Centralized Academic Collaboration</span>
           </div>
 
@@ -720,8 +718,8 @@ const LandingPage: React.FC = () => {
       {/* FEATURES SECTION (Bento Grid) */}
       <section id="features" className="py-24 px-6 max-w-7xl mx-auto space-y-12">
         <div className="text-center max-w-2xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-[#f0f7f2] dark:bg-emerald-950/40 border border-[#1e7a34]/20 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
-            <Layers size={11} />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-[#f0f7f2] dark:bg-emerald-950/40 border border-[#1e7a34]/20 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1e7a34] dark:bg-emerald-400"></span>
             <span>Complete Academic Suite</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
@@ -763,8 +761,8 @@ const LandingPage: React.FC = () => {
       <section id="how-it-works" className="border-t border-slate-200/60 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm py-24 px-6">
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center max-w-2xl mx-auto space-y-4">
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-[#f0f7f2] dark:bg-emerald-950/40 border border-[#1e7a34]/20 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
-              <Zap size={11} />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-[#f0f7f2] dark:bg-emerald-950/40 border border-[#1e7a34]/20 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#1e7a34] dark:bg-emerald-400"></span>
               <span>Step-by-Step Workflows</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">How SANS Streamlines Your Academic Experience</h2>
@@ -905,8 +903,8 @@ const LandingPage: React.FC = () => {
       {/* PLATFORM ENGINE & SYSTEM CAPABILITIES */}
       <section id="platform-engine" className="py-24 px-6 max-w-7xl mx-auto space-y-16">
         <div className="text-center max-w-2xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-[#f0f7f2] dark:bg-emerald-950/40 border border-[#1e7a34]/20 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
-            <Lock size={11} />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-[#f0f7f2] dark:bg-emerald-950/40 border border-[#1e7a34]/20 rounded-full text-[#1e7a34] dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1e7a34] dark:bg-emerald-400"></span>
             <span>Platform Engine & Architecture</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
